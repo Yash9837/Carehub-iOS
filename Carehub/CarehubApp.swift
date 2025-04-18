@@ -1,17 +1,13 @@
-//
-//  CarehubApp.swift
-//  Carehub
-//
-//  Created by Anurag on 15/04/25.
-//
-
+// /HMSApp/CareHubApp.swift
 import SwiftUI
 
 @main
-struct CarehubApp: App {
+struct CareHubApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            NavigationStack {
+                SplashView()
+            }
         }
     }
 }

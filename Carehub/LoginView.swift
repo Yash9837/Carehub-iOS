@@ -96,11 +96,11 @@ struct LoginView: View {
                             // Set the appropriate tab view based on role
                             switch selectedRole {
                             case .patient:
-                                tabDestination = AnyView(Patient.PatientTabView())
+                                tabDestination = AnyView(PatientTabView())
                             case .doctor:
-                                tabDestination = AnyView(Doctor.DoctorTabView())
+                                tabDestination = AnyView(DoctorTabView())
                             case .admin:
-                                tabDestination = AnyView(Admin.AdminTabView())
+                                tabDestination = AnyView(AdminTabView())
                             }
                             navigateToTab = true
                         }
