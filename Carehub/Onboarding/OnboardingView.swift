@@ -31,20 +31,16 @@ struct OnboardingView: View {
     
     var body: some View {
         ZStack {
-            // Background color
-            (colorScheme == .light ? Color.white : Color.black)
+            // Base background (white for both modes)
+            Color.white
                 .edgesIgnoringSafeArea(.all)
             
-            // Gradient overlay
+            // Gradient overlay with purple shade #6D57FC (same for light and dark)
             LinearGradient(
-                colors: colorScheme == .light ? [
-                    Color.green.opacity(0.2),
-                    Color.white.opacity(0.8),
-                    Color.green.opacity(0.2)
-                ] : [
-                    Color.green.opacity(0.2),
-                    Color.black.opacity(0.2),
-                    Color.green.opacity(0.3)
+                colors: [
+                    Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4), // #6D57FC
+                    Color.white.opacity(0.9),
+                    Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -81,10 +77,10 @@ struct OnboardingView: View {
                 }) {
                     Text(pages[currentPage].buttonTitle)
                         .font(.headline)
-                        .foregroundColor(.black)
+                        .foregroundColor(.white)
                         .padding()
                         .frame(maxWidth: .infinity)
-                        .background(Color.green)
+                        .background(Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.8))
                         .cornerRadius(10)
                         .shadow(radius: 5)
                 }
@@ -156,19 +152,19 @@ struct OnboardingCard: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 80, height: 80)
-                .foregroundColor(colorScheme == .light ? Color.blue.opacity(0.8) : Color.green) // Changed to green in dark mode
+                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.8)) // #6D57FC
                 .accessibilityLabel("\(page.title) Icon")
 
             Text(page.title)
                 .font(.title2)
                 .fontWeight(.bold)
-                .foregroundColor(colorScheme == .light ? .black : .white)
+                .foregroundColor(.black) // Consistent black text
                 .multilineTextAlignment(.center)
                 .accessibilityLabel("\(page.title) Title")
 
             Text(page.description)
                 .font(.body)
-                .foregroundColor(.gray)
+                .foregroundColor(.gray) // Consistent gray text
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
                 .accessibilityLabel("\(page.title) Description")
@@ -182,9 +178,7 @@ struct OnboardingCard: View {
                         Circle()
                             .frame(width: index == currentPage.wrappedValue ? 10 : 6,
                                    height: index == currentPage.wrappedValue ? 10 : 6)
-                            .foregroundColor(colorScheme == .light ?
-                                             (index == currentPage.wrappedValue ? .black : .gray) :
-                                             (index == currentPage.wrappedValue ? .white : .gray))
+                            .foregroundColor(index == currentPage.wrappedValue ? .black : .gray) // Consistent colors
                     }
                 }
                 .padding(.top, 10)
@@ -193,7 +187,7 @@ struct OnboardingCard: View {
         .padding()
         .frame(maxWidth: .infinity)
         .frame(height: 400) // Reduced height
-        .background(colorScheme == .light ? Color.white : Color.black) // Solid background, no opacity
+        .background(Color.white) // Consistent white background
         .cornerRadius(20)
         .shadow(radius: 5) // Reduced shadow from 10 to 5
         .padding(.horizontal, 30)
