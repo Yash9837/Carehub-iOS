@@ -62,8 +62,83 @@ struct DoctorCard: View {
 }
 
 struct DoctorView: View {
+    let specialties = ["Cardiology", "Orthopedics", "Neurology", "Gynecology", "Surgery", "Dermatology", "Endocrinology", "ENT", "Oncology", "Psychiatry", "Urology", "Pediatrics"]
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                Color.white
+                    .edgesIgnoringSafeArea(.all)
+                
+                // Gradient overlay with purple shade #6D57FC
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4), // #6D57FC
+                        Color.white.opacity(0.9),
+                        Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .edgesIgnoringSafeArea(.all)
+
+                ScrollView {
+                    VStack(spacing: 15) {
+                        Text("Select a Specialty")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.black)
+                            .padding(.top, 20)
+
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 15) {
+                            ForEach(specialties, id: \.self) { specialty in
+                                NavigationLink(destination: SpecialtyDoctorsView(selectedSpecialty: specialty)) {
+                                    CategoryCard(specialty: specialty)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                }
+            }
+            .navigationTitle("Doctors")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+// Category Card for Specialties (Image Removed)
+struct CategoryCard: View {
+    let specialty: String
+
+    var body: some View {
+        HStack(spacing: 15) {
+            Text(specialty)
+                .font(.headline)
+                .foregroundColor(.black)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer()
+        }
+        .padding()
+        .background(Color.white)
+        .frame(maxWidth: .infinity)
+        .frame(width: UIScreen.main.bounds.width * 0.45) // Adjusted for 2 cards per row
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+    }
+}
+
+// New View for Specialty-Specific Doctors with Search and Filter
+struct SpecialtyDoctorsView: View {
+    let selectedSpecialty: String
     @State private var searchText = ""
-    @State private var selectedSpecialty = "All"
     @State private var doctors = [
         (name: "Dr. Amit Sharma", specialty: "Cardiology", education: "MBBS, MD", experience: 12, imageName: "person.circle.fill"),
         (name: "Dr. Priya Gupta", specialty: "Orthopedics", education: "MBBS, MS", experience: 8, imageName: "person.circle.fill"),
@@ -86,85 +161,84 @@ struct DoctorView: View {
         (name: "Dr. Karan Seth", specialty: "Endocrinology", education: "MBBS, DM", experience: 12, imageName: "person.circle.fill"),
         (name: "Dr. Leela Menon", specialty: "ENT", education: "MBBS, MS", experience: 9, imageName: "person.circle.fill")
     ]
-    
-    let specialties = ["All", "Cardiology", "Orthopedics", "Neurology", "Gynecology", "Surgery", "Dermatology", "Endocrinology", "ENT", "Oncology", "Psychiatry", "Urology", "Pediatrics"]
+    @State private var sortByExp = false // Toggle for sorting by experience
 
     var filteredDoctors: [(name: String, specialty: String, education: String, experience: Int, imageName: String)] {
-        doctors.filter { doctor in
-            (searchText.isEmpty || doctor.name.lowercased().contains(searchText.lowercased())) &&
-            (selectedSpecialty == "All" || doctor.specialty == selectedSpecialty)
+        var filtered = doctors.filter { $0.specialty == selectedSpecialty }
+        if searchText.isEmpty == false {
+            filtered = filtered.filter { $0.name.lowercased().contains(searchText.lowercased()) }
         }
+        if sortByExp {
+            filtered.sort { $0.experience > $1.experience } // Sort descending by experience
+        }
+        return filtered
     }
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                Color.white
-                    .edgesIgnoringSafeArea(.all)
-                
-                // Gradient overlay with purple shade #6D57FC
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4), // #6D57FC
-                        Color.white.opacity(0.9),
-                        Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+        ZStack {
+            Color.white
                 .edgesIgnoringSafeArea(.all)
+            
+            // Gradient overlay with purple shade #6D57FC
+            LinearGradient(
+                colors: [
+                    Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4), // #6D57FC
+                    Color.white.opacity(0.9),
+                    Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .edgesIgnoringSafeArea(.all)
 
-                ScrollView {
-                    VStack(spacing: 2) {
-                        // Search Bar with Filter Button
-                        HStack {
-                            TextField("Search by doctor name...", text: $searchText)
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(8)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                                )
-                                .padding(.leading, 10)
-                            
-                            Menu {
-                                Picker("Filter by Specialty", selection: $selectedSpecialty) {
-                                    ForEach(specialties, id: \.self) { specialty in
-                                        Text(specialty)
-                                            .foregroundColor(.black)
-                                    }
-                                }
-                            } label: {
-                                Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                    .font(.title2)
-                                    .padding(.trailing, 10)
-                            }
-                        }
-                        .padding(.horizontal, 10)
-
-                        // Doctor Cards
-                        ForEach(filteredDoctors, id: \.name) { doctor in
-                            DoctorCard(
-                                name: doctor.name,
-                                specialty: doctor.specialty,
-                                education: doctor.education,
-                                experience: doctor.experience,
-                                imageName: doctor.imageName
+            ScrollView {
+                VStack(spacing: 15) {
+                    // Search Bar with Filter Button
+                    HStack {
+                        TextField("Search by doctor name...", text: $searchText)
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                             )
-                            .frame(maxWidth: .infinity)
-                            .frame(width: UIScreen.main.bounds.width * 0.9)
-                            .frame(height: 130)
-                            .padding(.vertical, 5)
+                            .padding(.leading, 10)
+                        
+                        Menu {
+                            Button(action: { sortByExp.toggle() }) {
+                                Text(sortByExp ? "Sort by Exp (High to Low)" : "Sort by Exp (Low to High)")
+                            }
+                        } label: {
+                            Image(systemName: "slider.horizontal.3")
+                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                .font(.title2)
+                                .padding(.trailing, 10)
                         }
                     }
+                    .padding(.horizontal, 10)
                     .padding(.top, 20)
+
+                    // Doctor Cards
+                    ForEach(filteredDoctors, id: \.name) { doctor in
+                        DoctorCard(
+                            name: doctor.name,
+                            specialty: doctor.specialty,
+                            education: doctor.education,
+                            experience: doctor.experience,
+                            imageName: doctor.imageName
+                        )
+                        .frame(maxWidth: .infinity)
+                        .frame(width: UIScreen.main.bounds.width * 0.9)
+                        .frame(height: 130)
+                        .padding(.vertical, 5)
+                    }
                 }
+                .padding(.horizontal, 10)
             }
-            .navigationTitle("Doctors")
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .navigationTitle(selectedSpecialty)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -173,4 +247,3 @@ struct DoctorView_Previews: PreviewProvider {
         DoctorView()
     }
 }
-
