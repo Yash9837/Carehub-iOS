@@ -108,16 +108,18 @@ struct LoginView: View {
                             tabDestination = AnyView(PatientTabView(username: username, patient: patient))
                             navigateToTab = true
                         case .staff:
-                            if username.uppercased().hasPrefix("D") {
-                                tabDestination = AnyView(DoctorTabView())
-                                navigateToTab = true
-                            } else if username.uppercased().hasPrefix("A") {
-                                tabDestination = AnyView(AdminTabView())
-                                navigateToTab = true
-                            } else {
-                                showInvalidStaffAlert = true
-                            }
-                        }
+                            AuthManager.shared.login(username: username, password: password) { success in
+                                if success {
+                                    if username.uppercased().hasPrefix("D") {
+                                        tabDestination = AnyView(DoctorTabView())
+                                    } else if username.uppercased().hasPrefix("A") {
+                                        tabDestination = AnyView(AdminTabView())
+                                    }
+                                    navigateToTab = true
+                                } else {
+                                    showInvalidStaffAlert = true
+                                }
+                            }                }
                     }
                 )
             }

@@ -1,3 +1,11 @@
+//
+//  AuthManager.swift
+//  Carehub
+//
+//  Created by Yash's Mackbook on 19/04/25.
+//
+
+
 // AuthManager.swift
 import Foundation
 

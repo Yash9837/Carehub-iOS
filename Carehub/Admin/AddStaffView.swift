@@ -1,3 +1,11 @@
+//
+//  AddStaffView.swift
+//  Carehub
+//
+//  Created by Yash's Mackbook on 19/04/25.
+//
+import SwiftUI
+
 // AddStaffView.swift
 struct AddStaffView: View {
     @ObservedObject var staffManager: StaffManager
