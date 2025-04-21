@@ -22,7 +22,7 @@ struct PatientTabView: View {
                     Text("Home")
                 }
             
-            BookingView()
+            ScheduleAppointmentView()
                 .tabItem {
                     Image(systemName: "calendar")
                     Text("Booking")
