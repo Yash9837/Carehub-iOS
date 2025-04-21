@@ -4,8 +4,7 @@ struct DoctorCard: View {
     let name: String
     let specialty: String
     let education: String
-    let rating: Double
-    let reviews: Int
+    let experience: Int
     let imageName: String
 
     var body: some View {
@@ -36,17 +35,13 @@ struct DoctorCard: View {
                     .foregroundColor(.gray)
                 
                 HStack(spacing: 4) {
-                    Image(systemName: "star.fill")
-                        .foregroundColor(.yellow)
+                    Image(systemName: "briefcase.fill")
+                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                         .font(.caption)
                     
-                    Text("\(rating, specifier: "%.1f")")
+                    Text("\(experience) yrs exp")
                         .font(.caption)
                         .foregroundColor(.black)
-                    
-                    Text("(\(reviews) reviews)")
-                        .font(.caption)
-                        .foregroundColor(.gray)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -65,35 +60,36 @@ struct DoctorCard: View {
         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
     }
 }
+
 struct DoctorView: View {
     @State private var searchText = ""
     @State private var selectedSpecialty = "All"
     @State private var doctors = [
-        (name: "Dr. Amit Sharma", specialty: "Cardiology", education: "MBBS, MD", rating: 4.5, reviews: 120, imageName: "person.circle.fill"),
-        (name: "Dr. Priya Gupta", specialty: "Orthopedics", education: "MBBS, MS", rating: 4.2, reviews: 85, imageName: "person.circle.fill"),
-        (name: "Dr. Rajesh Kumar", specialty: "Neurology", education: "MBBS, DNB", rating: 4.7, reviews: 150, imageName: "person.circle.fill"),
-        (name: "Dr. Neha Singh", specialty: "Gynecology", education: "MBBS, DGO", rating: 4.3, reviews: 90, imageName: "person.circle.fill"),
-        (name: "Dr. Vikram Patel", specialty: "Surgery", education: "MBBS, FRCS", rating: 4.8, reviews: 200, imageName: "person.circle.fill"),
-        (name: "Dr. Anjali Desai", specialty: "Dermatology", education: "MBBS, MD", rating: 4.1, reviews: 70, imageName: "person.circle.fill"),
-        (name: "Dr. Sanjay Mehta", specialty: "Endocrinology", education: "MBBS, DM", rating: 4.6, reviews: 110, imageName: "person.circle.fill"),
-        (name: "Dr. Kavita Rao", specialty: "ENT", education: "MBBS, MS", rating: 4.4, reviews: 95, imageName: "person.circle.fill"),
-        (name: "Dr. Anil Joshi", specialty: "Oncology", education: "MBBS, MD", rating: 4.9, reviews: 180, imageName: "person.circle.fill"),
-        (name: "Dr. Meena Iyer", specialty: "Psychiatry", education: "MBBS, DPM", rating: 4.0, reviews: 60, imageName: "person.circle.fill"),
-        (name: "Dr. Rohan Malhotra", specialty: "Urology", education: "MBBS, MS", rating: 4.5, reviews: 130, imageName: "person.circle.fill"),
-        (name: "Dr. Sunita Nair", specialty: "Pediatrics", education: "MBBS, MD", rating: 4.3, reviews: 100, imageName: "person.circle.fill"),
-        (name: "Dr. Vikrant Singh", specialty: "Cardiology", education: "MBBS, DM", rating: 4.6, reviews: 140, imageName: "person.circle.fill"),
-        (name: "Dr. Pooja Reddy", specialty: "Orthopedics", education: "MBBS, DNB", rating: 4.2, reviews: 80, imageName: "person.circle.fill"),
-        (name: "Dr. Arjun Kapoor", specialty: "Neurology", education: "MBBS, MD", rating: 4.7, reviews: 160, imageName: "person.circle.fill"),
-        (name: "Dr. Shruti Bose", specialty: "Gynecology", education: "MBBS, DGO", rating: 4.4, reviews: 110, imageName: "person.circle.fill"),
-        (name: "Dr. Sameer Khan", specialty: "Surgery", education: "MBBS, FRCS", rating: 4.8, reviews: 190, imageName: "person.circle.fill"),
-        (name: "Dr. Ritu Sharma", specialty: "Dermatology", education: "MBBS, MD", rating: 4.1, reviews: 75, imageName: "person.circle.fill"),
-        (name: "Dr. Karan Seth", specialty: "Endocrinology", education: "MBBS, DM", rating: 4.5, reviews: 120, imageName: "person.circle.fill"),
-        (name: "Dr. Leela Menon", specialty: "ENT", education: "MBBS, MS", rating: 4.3, reviews: 90, imageName: "person.circle.fill")
+        (name: "Dr. Amit Sharma", specialty: "Cardiology", education: "MBBS, MD", experience: 12, imageName: "person.circle.fill"),
+        (name: "Dr. Priya Gupta", specialty: "Orthopedics", education: "MBBS, MS", experience: 8, imageName: "person.circle.fill"),
+        (name: "Dr. Rajesh Kumar", specialty: "Neurology", education: "MBBS, DNB", experience: 15, imageName: "person.circle.fill"),
+        (name: "Dr. Neha Singh", specialty: "Gynecology", education: "MBBS, DGO", experience: 9, imageName: "person.circle.fill"),
+        (name: "Dr. Vikram Patel", specialty: "Surgery", education: "MBBS, FRCS", experience: 18, imageName: "person.circle.fill"),
+        (name: "Dr. Anjali Desai", specialty: "Dermatology", education: "MBBS, MD", experience: 7, imageName: "person.circle.fill"),
+        (name: "Dr. Sanjay Mehta", specialty: "Endocrinology", education: "MBBS, DM", experience: 11, imageName: "person.circle.fill"),
+        (name: "Dr. Kavita Rao", specialty: "ENT", education: "MBBS, MS", experience: 10, imageName: "person.circle.fill"),
+        (name: "Dr. Anil Joshi", specialty: "Oncology", education: "MBBS, MD", experience: 19, imageName: "person.circle.fill"),
+        (name: "Dr. Meena Iyer", specialty: "Psychiatry", education: "MBBS, DPM", experience: 6, imageName: "person.circle.fill"),
+        (name: "Dr. Rohan Malhotra", specialty: "Urology", education: "MBBS, MS", experience: 13, imageName: "person.circle.fill"),
+        (name: "Dr. Sunita Nair", specialty: "Pediatrics", education: "MBBS, MD", experience: 10, imageName: "person.circle.fill"),
+        (name: "Dr. Vikrant Singh", specialty: "Cardiology", education: "MBBS, DM", experience: 14, imageName: "person.circle.fill"),
+        (name: "Dr. Pooja Reddy", specialty: "Orthopedics", education: "MBBS, DNB", experience: 8, imageName: "person.circle.fill"),
+        (name: "Dr. Arjun Kapoor", specialty: "Neurology", education: "MBBS, MD", experience: 16, imageName: "person.circle.fill"),
+        (name: "Dr. Shruti Bose", specialty: "Gynecology", education: "MBBS, DGO", experience: 11, imageName: "person.circle.fill"),
+        (name: "Dr. Sameer Khan", specialty: "Surgery", education: "MBBS, FRCS", experience: 17, imageName: "person.circle.fill"),
+        (name: "Dr. Ritu Sharma", specialty: "Dermatology", education: "MBBS, MD", experience: 7, imageName: "person.circle.fill"),
+        (name: "Dr. Karan Seth", specialty: "Endocrinology", education: "MBBS, DM", experience: 12, imageName: "person.circle.fill"),
+        (name: "Dr. Leela Menon", specialty: "ENT", education: "MBBS, MS", experience: 9, imageName: "person.circle.fill")
     ]
     
     let specialties = ["All", "Cardiology", "Orthopedics", "Neurology", "Gynecology", "Surgery", "Dermatology", "Endocrinology", "ENT", "Oncology", "Psychiatry", "Urology", "Pediatrics"]
 
-    var filteredDoctors: [(name: String, specialty: String, education: String, rating: Double, reviews: Int, imageName: String)] {
+    var filteredDoctors: [(name: String, specialty: String, education: String, experience: Int, imageName: String)] {
         doctors.filter { doctor in
             (searchText.isEmpty || doctor.name.lowercased().contains(searchText.lowercased())) &&
             (selectedSpecialty == "All" || doctor.specialty == selectedSpecialty)
@@ -154,8 +150,7 @@ struct DoctorView: View {
                                 name: doctor.name,
                                 specialty: doctor.specialty,
                                 education: doctor.education,
-                                rating: doctor.rating,
-                                reviews: doctor.reviews,
+                                experience: doctor.experience,
                                 imageName: doctor.imageName
                             )
                             .frame(maxWidth: .infinity)
@@ -178,3 +173,4 @@ struct DoctorView_Previews: PreviewProvider {
         DoctorView()
     }
 }
+
