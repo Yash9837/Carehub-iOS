@@ -189,7 +189,6 @@ struct OnboardingCard: View {
         .frame(height: 400) // Reduced height
         .background(Color.white) // Consistent white background
         .cornerRadius(20)
-        .shadow(radius: 5) // Reduced shadow from 10 to 5
         .padding(.horizontal, 30)
     }
 }
