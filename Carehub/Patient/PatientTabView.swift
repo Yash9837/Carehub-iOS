@@ -9,7 +9,7 @@ struct PatientTabView: View {
         self.patient = patient
         let tabBarAppearance = UITabBarAppearance()
         tabBarAppearance.configureWithOpaqueBackground()
-        tabBarAppearance.selectionIndicatorTintColor = UIColor.green
+        tabBarAppearance.selectionIndicatorTintColor = UIColor(red: 0.43, green: 0.34, blue: 0.99, alpha: 1.0) // #6D57FC
         UITabBar.appearance().standardAppearance = tabBarAppearance
         UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
     }
@@ -41,7 +41,7 @@ struct PatientTabView: View {
                 }
         }
         .navigationBarBackButtonHidden(true)
-        .accentColor(.green)
+        .accentColor(Color(red: 0.43, green: 0.34, blue: 0.99)) // #6D57FC
     }
 }
 

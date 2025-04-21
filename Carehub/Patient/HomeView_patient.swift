@@ -1,10 +1,10 @@
 import SwiftUI
 
 struct HomeView_patient: View {
-    let username: String // Accept username as a parameter
+    let username: String
     @Environment(\.colorScheme) private var colorScheme
+    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99) // #6D57FC
 
-    // Sample data for upcoming schedule and top doctors
     let upcomingSchedule = (doctorName: "Dr. Rasheed Idris", specialty: "Cardiovascular", date: "Nov 24, 9:00am", imageName: "doctor1")
     let topDoctors = [
         (name: "Dr. Kenny Adeola", specialty: "General Practitioner", rating: 4.4, reviews: 54, imageName: "doctor2"),
@@ -12,9 +12,9 @@ struct HomeView_patient: View {
         (name: "Dr. Johnson", specialty: "Pediatrician", rating: 4.8, reviews: 280, imageName: "doctor4"),
         (name: "Dr. Nkechi Okeli", specialty: "Oncologist", rating: 4.3, reviews: 130, imageName: "doctor5")
     ]
+    
     var body: some View {
         ZStack {
-            // Background gradient adjusted for dark and light mode
             LinearGradient(
                 colors: colorScheme == .dark ? [Color.black, Color(.systemGray6)] : [Color.white, Color(.systemGray5)],
                 startPoint: .top,
@@ -26,7 +26,7 @@ struct HomeView_patient: View {
                 VStack(spacing: 20) {
                     // Greeting
                     HStack {
-                        Image("profile") // Replace with actual user profile image or placeholder
+                        Image("profile")
                             .resizable()
                             .frame(width: 40, height: 40)
                             .clipShape(Circle())
@@ -57,7 +57,7 @@ struct HomeView_patient: View {
                             Image(systemName: "magnifyingglass")
                                 .foregroundColor(.white)
                                 .padding(8)
-                                .background(colorScheme == .dark ? Color.green : Color.green)
+                                .background(purpleColor) // Changed to purple
                                 .cornerRadius(10)
                         }
                     }
@@ -72,17 +72,17 @@ struct HomeView_patient: View {
                             Spacer()
                             Text("See All")
                                 .font(.system(size: 14))
-                                .foregroundColor(colorScheme == .dark ? .green : .blue)
+                                .foregroundColor(purpleColor) // Changed to purple
                         }
                         .padding(.horizontal)
 
                         ZStack {
                             RoundedRectangle(cornerRadius: 15)
-                                .fill(colorScheme == .dark ? Color.green.opacity(0.2) : Color.blue.opacity(0.2))
+                                .fill(purpleColor.opacity(0.2)) // Changed to purple
                                 .frame(height: 120)
 
                             HStack(spacing: 15) {
-                                Image(upcomingSchedule.imageName) // Replace with actual image
+                                Image(upcomingSchedule.imageName)
                                     .resizable()
                                     .scaledToFill()
                                     .frame(width: 90, height: 120)
@@ -123,12 +123,12 @@ struct HomeView_patient: View {
                             Spacer()
                             Text("See All")
                                 .font(.system(size: 14))
-                                .foregroundColor(colorScheme == .dark ? .green : .blue)
+                                .foregroundColor(purpleColor) // Changed to purple
                         }
                         .padding(.horizontal)
 
                         ForEach(topDoctors, id: \.name) { doctor in
-                            DoctorCard(doctor: doctor)
+                            DoctorCards(doctor: doctor)
                         }
                     }
                     .padding(.horizontal)
@@ -140,16 +140,16 @@ struct HomeView_patient: View {
     }
 }
 
-// Quick Action Button
 struct QuickActionButton: View {
     let icon: String
     let title: String
     @Environment(\.colorScheme) private var colorScheme
+    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99) // #6D57FC
 
     var body: some View {
         VStack {
             Image(systemName: icon)
-                .foregroundColor(colorScheme == .dark ? .green : .blue)
+                .foregroundColor(purpleColor) // Changed to purple
                 .font(.system(size: 24))
             Text(title)
                 .font(.system(size: 12))
@@ -159,14 +159,13 @@ struct QuickActionButton: View {
     }
 }
 
-// Doctor Card
-struct DoctorCard: View {
+struct DoctorCards: View {
     let doctor: (name: String, specialty: String, rating: Double, reviews: Int, imageName: String)
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(spacing: 15) {
-            Image(doctor.imageName) // Replace with actual image
+            Image(doctor.imageName)
                 .resizable()
                 .frame(width: 50, height: 50)
                 .clipShape(Circle())

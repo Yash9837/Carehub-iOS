@@ -22,12 +22,13 @@ struct ProfileView_patient: View {
                                 .fontWeight(.bold)
                             Text("ID: \(patient.generatedID)")
                                 .font(.subheadline)
-                                .foregroundStyle(.green)
+                                .foregroundStyle(Color(red: 0.43, green: 0.34, blue: 0.99)) // #6D57FC
                         }
                         Spacer()
                     }
                     .padding(.vertical, 8)
                 }
+                
                 Section(header: Text("Personal Information").font(.headline)) {
                     ProfileRow(title: "Patient ID", value: patient.generatedID, icon: "number")
                     ProfileRow(title: "Full Name", value: patient.fullName, icon: "person.fill")
@@ -48,21 +49,20 @@ struct ProfileView_patient: View {
                             .foregroundStyle(.blue)
                     }
                     Button(action: {
-                        // Handle sign-out logic (e.g., navigate to login or clear session)
+                        // Handle sign-out logic
                     }) {
                         Label("Sign Out", systemImage: "arrow.right.circle")
                             .foregroundStyle(.red)
                     }
                 }
             }
-            .listStyle(.insetGrouped) // Apple-style grouped list
+            .listStyle(.insetGrouped)
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
 
-// Reusable view for profile rows
 struct ProfileRow: View {
     let title: String
     let value: String
@@ -71,7 +71,7 @@ struct ProfileRow: View {
     var body: some View {
         HStack {
             Image(systemName: icon)
-                .foregroundStyle(.green) // Match PatientTabView's green theme
+                .foregroundStyle(Color(red: 0.43, green: 0.34, blue: 0.99)) // #6D57FC
                 .frame(width: 24)
             Text(title)
                 .foregroundStyle(.primary)
@@ -83,7 +83,6 @@ struct ProfileRow: View {
     }
 }
 
-// Placeholder for Edit Profile View
 struct EditProfileView: View {
     let patient: Patient
     
