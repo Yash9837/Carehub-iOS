@@ -70,3 +70,4 @@ struct SplashView_Previews: PreviewProvider {
         }
     }
 }
+

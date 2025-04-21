@@ -1,5 +1,9 @@
 // StaffRole.swift
-enum StaffRole: String, CaseIterable, Identifiable {
+
+import Foundation
+
+
+enum StaffRole: String, CaseIterable, Codable, Identifiable {
     case doctor = "Doctor"
     case nurse = "Nurse"
     case labTechnician = "Lab Technician"
@@ -26,6 +30,11 @@ struct Staff: Identifiable, Codable {
     var department: String
     var phoneNumber: String
     var joinDate: Date
+    
+    // Add CodingKeys if you want to customize the JSON keys
+    enum CodingKeys: String, CodingKey {
+        case id, fullName, email, role, department, phoneNumber, joinDate
+    }
     
     init(fullName: String, email: String, role: StaffRole, department: String, phoneNumber: String) {
         self.fullName = fullName

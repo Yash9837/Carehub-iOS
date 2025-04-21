@@ -1,3 +1,11 @@
+//
+//  AnalyticsView.swift
+//  Carehub
+//
+//  Created by Yash's Mackbook on 19/04/25.
+//
+import SwiftUI
+
 // AnalyticsView.swift
 struct AnalyticsView: View {
     var body: some View {
