@@ -4,8 +4,13 @@ struct HomeView_patient: View {
     let username: String
     @Environment(\.colorScheme) private var colorScheme
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99) // #6D57FC
-
-    let upcomingSchedule = (doctorName: "Dr. Rasheed Idris", specialty: "Cardiovascular", date: "Nov 24, 9:00am", imageName: "doctor1")
+    
+    let upcomingSchedules = [
+        (doctorName: "Dr. Rasheed Idris", specialty: "Cardiovascular", date: "Nov 24, 9:00am", imageName: "doctor1"),
+        (doctorName: "Dr. Aisha Bello", specialty: "Orthopedics", date: "Nov 25, 10:00am", imageName: "doctor2"),
+        (doctorName: "Dr. Musa Ibrahim", specialty: "Neurology", date: "Nov 26, 2:00pm", imageName: "doctor3")
+    ]
+    
     let topDoctors = [
         (name: "Dr. Kenny Adeola", specialty: "General Practitioner", rating: 4.4, reviews: 54, imageName: "doctor2"),
         (name: "Dr. Taiwo", specialty: "General Practitioner", rating: 4.5, reviews: 56, imageName: "doctor3"),
@@ -15,123 +20,147 @@ struct HomeView_patient: View {
     
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: colorScheme == .dark ? [Color.black, Color(.systemGray6)] : [Color.white, Color(.systemGray5)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .edgesIgnoringSafeArea(.all)
-
+            Color(red: 0.94, green: 0.94, blue: 1.0)
+                .edgesIgnoringSafeArea(.all)
+            
             ScrollView {
-                VStack(spacing: 20) {
-                    // Greeting
+                VStack(spacing: 0) {
                     HStack {
-                        Image("profile")
-                            .resizable()
-                            .frame(width: 40, height: 40)
-                            .clipShape(Circle())
-                        VStack(alignment: .leading) {
-                            Text("Hi, \(username)")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
-                            Text("How are you today?")
-                                .font(.system(size: 14))
-                                .foregroundColor(colorScheme == .dark ? .gray : .secondary)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Hello, \(username)")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.black)
+                            
+                            Text("How are you feeling today?")
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
                         }
+                        
                         Spacer()
-                        Image(systemName: "bell")
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
-                            .font(.system(size: 20))
-                    }
-                    .padding(.horizontal)
-
-                    // Search Bar
-                    HStack {
-                        TextField("Search doctor, Pharmacy...", text: .constant(""))
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
-                            .frame(height: 40)
-                            .background(colorScheme == .dark ? Color(.systemGray5) : Color(.systemGray4))
-                            .cornerRadius(10)
+                        
                         Button(action: {}) {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundColor(.white)
-                                .padding(8)
-                                .background(purpleColor) // Changed to purple
-                                .cornerRadius(10)
+                            Image(systemName: "bell.fill")
+                                .foregroundColor(purpleColor)
+                                .font(.system(size: 20))
+                                .frame(width: 40, height: 40)
+                                .background(Color.white)
+                                .clipShape(Circle())
+                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 3)
                         }
                     }
-                    .padding(.horizontal)
-
-                    // Upcoming Schedule
-                    VStack(alignment: .leading, spacing: 10) {
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 16)
+                    
+                    // Upcoming Appointment Cards (Horizontal Scroll)
+                    VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text("Upcoming schedule")
+                            Text("Upcoming Appointment")
                                 .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                                .foregroundColor(.black)
+                            
                             Spacer()
+                            
                             Text("See All")
-                                .font(.system(size: 14))
-                                .foregroundColor(purpleColor) // Changed to purple
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(purpleColor)
                         }
-                        .padding(.horizontal)
-
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 15)
-                                .fill(purpleColor.opacity(0.2)) // Changed to purple
-                                .frame(height: 120)
-
-                            HStack(spacing: 15) {
-                                Image(upcomingSchedule.imageName)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 90, height: 120)
-                                    .clipShape(RoundedRectangle(cornerRadius: 15))
-                                VStack(alignment: .leading, spacing: 5) {
-                                    Text(upcomingSchedule.doctorName)
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundColor(colorScheme == .dark ? .white : .black)
-                                    Text(upcomingSchedule.specialty)
-                                        .font(.system(size: 14))
-                                        .foregroundColor(colorScheme == .dark ? .gray : .secondary)
-                                    Text(upcomingSchedule.date)
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(colorScheme == .dark ? .white : .black)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 16) {
+                                ForEach(upcomingSchedules, id: \.doctorName) { schedule in
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(LinearGradient(
+                                                gradient: Gradient(colors: [purpleColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ))
+                                            .shadow(color: purpleColor.opacity(0.2), radius: 10, x: 0, y: 5)
+                                        
+                                        HStack(spacing: 16) {
+                                            Image(schedule.imageName)
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 80, height: 80)
+                                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                            
+                                            VStack(alignment: .leading, spacing: 8) {
+                                                Text(schedule.doctorName)
+                                                    .font(.system(size: 18, weight: .bold))
+                                                    .foregroundColor(.white)
+                                                
+                                                Text(schedule.specialty)
+                                                    .font(.system(size: 14, weight: .medium))
+                                                    .foregroundColor(.white.opacity(0.8))
+                                                
+                                                HStack(spacing: 6) {
+                                                    Image(systemName: "calendar")
+                                                        .foregroundColor(.white)
+                                                        .font(.system(size: 14))
+                                                    
+                                                    Text(schedule.date)
+                                                        .font(.system(size: 14, weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
+                                            }
+                                            
+                                            Spacer()
+                                        }
+                                        .padding(16)
+                                    }
+                                    .frame(width: 300, height: 120)
                                 }
-                                Spacer()
                             }
-                            .padding()
                         }
-                        .padding(.horizontal)
                     }
-
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+                    
                     // Quick Actions
-                    HStack(spacing: 20) {
-                        QuickActionButton(icon: "stethoscope", title: "Doctor")
-                        QuickActionButton(icon: "pills", title: "Pharmacy")
-                        QuickActionButton(icon: "car", title: "Ambulance")
-                        QuickActionButton(icon: "house", title: "Hospital")
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Quick Actions")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.black)
+                        
+                        HStack(spacing: 16) {
+                            QuickActionButton(icon: "stethoscope", title: "Doctor")
+                            QuickActionButton(icon: "pills", title: "Pharmacy")
+                            QuickActionButton(icon: "cross.case.fill", title: "Hospital")
+                            QuickActionButton(icon: "car.fill", title: "Ambulance")
+                        }
                     }
-                    .padding(.horizontal)
-
-                    // Top Doctors
-                    VStack(alignment: .leading, spacing: 10) {
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 24)
+                    
+                    // Top Doctors Section
+                    VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text("Top Doctor")
+                            Text("Top Doctors")
                                 .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                                .foregroundColor(.black)
+                            
                             Spacer()
+                            
                             Text("See All")
-                                .font(.system(size: 14))
-                                .foregroundColor(purpleColor) // Changed to purple
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(purpleColor)
                         }
-                        .padding(.horizontal)
-
-                        ForEach(topDoctors, id: \.name) { doctor in
-                            DoctorCards(doctor: doctor)
+                        
+                        VStack(spacing: 12) {
+                            ForEach(topDoctors, id: \.name) { doctor in
+                                HomeDoctorCard(
+                                    name: doctor.name,
+                                    specialty: doctor.specialty,
+                                    rating: doctor.rating,
+                                    reviews: doctor.reviews,
+                                    imageName: doctor.imageName
+                                )
+                            }
                         }
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 }
             }
         }
@@ -143,55 +172,98 @@ struct HomeView_patient: View {
 struct QuickActionButton: View {
     let icon: String
     let title: String
-    @Environment(\.colorScheme) private var colorScheme
-    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99) // #6D57FC
-
+    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    
     var body: some View {
-        VStack {
-            Image(systemName: icon)
-                .foregroundColor(purpleColor) // Changed to purple
-                .font(.system(size: 24))
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(purpleColor.opacity(0.1))
+                    .frame(width: 50, height: 50)
+                
+                Image(systemName: icon)
+                    .foregroundColor(purpleColor)
+                    .font(.system(size: 20, weight: .bold))
+            }
+            
             Text(title)
-                .font(.system(size: 12))
-                .foregroundColor(colorScheme == .dark ? .white : .black)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.black)
         }
         .frame(maxWidth: .infinity)
     }
 }
 
-struct DoctorCards: View {
-    let doctor: (name: String, specialty: String, rating: Double, reviews: Int, imageName: String)
-    @Environment(\.colorScheme) private var colorScheme
-
+struct HomeDoctorCard: View {
+    let name: String
+    let specialty: String
+    let rating: Double
+    let reviews: Int
+    let imageName: String
+    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    
     var body: some View {
-        HStack(spacing: 15) {
-            Image(doctor.imageName)
+        HStack(spacing: 16) {
+            // Doctor Image with improved styling
+            Image(imageName)
                 .resizable()
+                .aspectRatio(contentMode: .fill)
                 .frame(width: 50, height: 50)
                 .clipShape(Circle())
-            VStack(alignment: .leading, spacing: 5) {
-                Text(doctor.name)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(colorScheme == .dark ? .white : .black)
-                Text(doctor.specialty)
-                    .font(.system(size: 14))
-                    .foregroundColor(colorScheme == .dark ? .gray : .secondary)
-                HStack(spacing: 5) {
+                .overlay(
+                    Circle()
+                        .stroke(LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color(red: 0.43, green: 0.34, blue: 0.99),
+                                Color(red: 0.55, green: 0.48, blue: 0.99)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ), lineWidth: 2)
+                )
+                .shadow(color: purpleColor.opacity(0.2), radius: 5, x: 0, y: 3)
+            
+            // Doctor Details
+            VStack(alignment: .leading, spacing: 8) {
+                Text(name)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.black)
+                    .lineLimit(1)
+                
+                Text(specialty)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.gray)
+                
+                HStack(spacing: 6) {
                     Image(systemName: "star.fill")
-                        .foregroundColor(.yellow)
-                    Text(String(format: "%.1f", doctor.rating))
-                        .foregroundColor(colorScheme == .dark ? .white : .black)
-                    Text("(\(doctor.reviews) reviews)")
-                        .foregroundColor(colorScheme == .dark ? .gray : .secondary)
+                        .foregroundColor(Color.yellow)
+                        .font(.system(size: 14))
+                    
+                    Text(String(format: "%.1f", rating))
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color.black.opacity(0.7))
+                    
+                    Text("(\(reviews) reviews)")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.gray)
                 }
             }
+            
             Spacer()
+            
+            // Disclosure indicator
             Image(systemName: "chevron.right")
-                .foregroundColor(colorScheme == .dark ? .white : .black)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(purpleColor)
+                .padding(.trailing, 8)
         }
-        .padding()
-        .background(colorScheme == .dark ? Color(.systemGray6) : Color(.systemGray5))
-        .cornerRadius(10)
+        .padding(.vertical, 14)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+        )
     }
 }
 
