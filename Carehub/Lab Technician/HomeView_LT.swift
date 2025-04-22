@@ -1,16 +1,39 @@
 import SwiftUI
+import FirebaseFirestore
 
-//struct Patient: Codable {
-//    let fullName: String
-//    let generatedID: String
-//    let age: String
-//    let previousProblems: String
-//    let allergies: String
-//    let medications: String
-//}
+// Patient1 struct (from patients collection)
+struct Patient1: Codable, Identifiable {
+    let id: String // Firestore document ID
+    let fullName: String
+    let generatedID: String
+    let age: String
+    let previousProblems: String
+    let allergies: String
+    let medications: String
+}
 
+// MedicalTest struct (from medicalTests collection)
+struct MedicalTest: Codable, Identifiable {
+    let id: String // Firestore document ID
+    let date: String
+    let notes: String
+    let patientId: String
+    let results: String
+    let status: String
+    let testName: String
+}
+
+// Combined data structure to link MedicalTest with Patient1
+struct PatientWithTest: Identifiable {
+    let id: String // Use medicalTest id
+    let patient: Patient1
+    let medicalTest: MedicalTest
+}
+
+// PatientCard View (updated with navigation)
 struct PatientCard: View {
-    let patient: Patient
+    let patientWithTest: PatientWithTest
+    @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
         HStack(spacing: 16) {
@@ -34,30 +57,30 @@ struct PatientCard: View {
                 .clipShape(Circle())
                 .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.3), radius: 5, x: 0, y: 3)
             
-            // Patient Details with reduced font sizes and added ID & Age
+            // Patient Details
             VStack(alignment: .leading, spacing: 6) {
-                Text(patient.fullName)
-                    .font(.system(size: 18, weight: .semibold)) // Reduced from 20
+                Text(patientWithTest.patient.fullName)
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.black)
                     .lineLimit(1)
                 
-                Text("Test: \(patient.medications)")
-                    .font(.system(size: 14, weight: .medium)) // Reduced from 16
+                Text("Test: \(patientWithTest.medicalTest.testName)")
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.gray)
                 
                 HStack(spacing: 4) {
-                    Text("ID: \(patient.generatedID) | Age: \(patient.age)")
-                        .font(.system(size: 12, weight: .medium)) // Reduced from 14
+                    Text("ID: \(patientWithTest.patient.generatedID) | Age: \(patientWithTest.patient.age)")
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.gray)
                 }
                 
                 HStack(spacing: 4) {
                     Image(systemName: "clock.fill")
                         .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                        .font(.system(size: 12)) // Reduced from 14
+                        .font(.system(size: 12))
                     
-                    Text("Pending")
-                        .font(.system(size: 12, weight: .medium)) // Reduced from 14
+                    Text(patientWithTest.medicalTest.status)
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(Color.black.opacity(0.7))
                 }
             }
@@ -67,7 +90,7 @@ struct PatientCard: View {
             
             // Disclosure indicator
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold)) // Reduced from 14
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                 .padding(.trailing, 8)
         }
@@ -83,26 +106,19 @@ struct PatientCard: View {
     }
 }
 
+// HomeView_LT View
 struct HomeView_LT: View {
     @State private var searchText = ""
     @State private var selectedCategory = "All"
-    @State private var patients: [Patient] = [
-        Patient(fullName: "John Doe", generatedID: "PT1234", age: "45", previousProblems: "Hypertension", allergies: "Penicillin", medications: "Blood Count"),
-        Patient(fullName: "Jane Smith", generatedID: "PT5678", age: "32", previousProblems: "None", allergies: "None", medications: "Lipid Panel"),
-        Patient(fullName: "Mike Johnson", generatedID: "PT9012", age: "60", previousProblems: "Diabetes", allergies: "Sulfa drugs", medications: "Thyroid Function"),
-        Patient(fullName: "Sarah Williams", generatedID: "PT3456", age: "28", previousProblems: "Asthma", allergies: "Peanuts", medications: "Glucose Test"),
-        Patient(fullName: "Robert Brown", generatedID: "PT7890", age: "50", previousProblems: "Heart Disease", allergies: "Aspirin", medications: "Cholesterol Test"),
-        Patient(fullName: "Emily Davis", generatedID: "PT4567", age: "35", previousProblems: "Allergies", allergies: "Pollen", medications: "Allergy Test"),
-        Patient(fullName: "Thomas Lee", generatedID: "PT2345", age: "55", previousProblems: "Arthritis", allergies: "None", medications: "Joint Fluid Analysis"),
-        Patient(fullName: "Lisa White", generatedID: "PT6789", age: "40", previousProblems: "Migraine", allergies: "Ibuprofen", medications: "Blood Test")
-    ]
+    @State private var patientsWithTests: [PatientWithTest] = []
+    @State private var isLoading = false
     
     let categories = ["All", "Blood Count", "Lipid Panel", "Thyroid Function", "Glucose Test", "Cholesterol Test", "Allergy Test", "Joint Fluid Analysis", "Blood Test"]
     
-    var filteredPatients: [Patient] {
-        patients.filter { patient in
-            (searchText.isEmpty || patient.fullName.lowercased().contains(searchText.lowercased())) &&
-            (selectedCategory == "All" || patient.medications == selectedCategory)
+    var filteredPatients: [PatientWithTest] {
+        patientsWithTests.filter { patientWithTest in
+            (searchText.isEmpty || patientWithTest.patient.fullName.lowercased().contains(searchText.lowercased())) &&
+            (selectedCategory == "All" || patientWithTest.medicalTest.testName == selectedCategory)
         }
     }
     
@@ -154,7 +170,7 @@ struct HomeView_LT: View {
                         
                         // Section title with count
                         HStack {
-                            Text(selectedCategory == "All" ? "All Patients" : selectedCategory)
+                            Text(selectedCategory == "All" ? "Pending Tests" : selectedCategory)
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                             
@@ -167,28 +183,105 @@ struct HomeView_LT: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 14)
                         
-                        // Patient Cards List
-                        LazyVStack(spacing: 0) {
-                            ForEach(filteredPatients, id: \.generatedID) { patient in
-                                Button(action: {
-                                    // Action for navigating to patient detail
-                                    print("Selected patient: \(patient.fullName)")
-                                }) {
-                                    PatientCard(patient: patient)
+                        // Loading Indicator or Patient Cards
+                        if isLoading {
+                            ProgressView()
+                                .padding(.vertical, 20)
+                        } else if filteredPatients.isEmpty {
+                            Text("No pending tests found")
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
+                                .padding(.vertical, 20)
+                        } else {
+                            LazyVStack(spacing: 0) {
+                                ForEach(filteredPatients, id: \.id) { patientWithTest in
+                                    NavigationLink(destination: UpdateTestView(medicalTestId: patientWithTest.medicalTest.id)) {
+                                        PatientCard(patientWithTest: patientWithTest)
+                                    }
                                 }
-                                .buttonStyle(PlainButtonStyle())
                             }
+                            .padding(.bottom, 24)
                         }
-                        .padding(.bottom, 24)
                     }
                 }
             }
             .navigationTitle("Lab Technician")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                fetchPendingTests()
+            }
         }
+    }
+    
+    private func fetchPendingTests() {
+        isLoading = true
+        let db = Firestore.firestore()
+        
+        db.collection("medicalTests")
+            .whereField("status", isEqualTo: "Pending")
+            .addSnapshotListener { (snapshot, error) in
+                isLoading = false
+                if let error = error {
+                    print("Error fetching medical tests: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else {
+                    print("No documents found")
+                    return
+                }
+                
+                let medicalTests = documents.compactMap { doc -> MedicalTest? in
+                    let data = doc.data()
+                    return MedicalTest(
+                        id: doc.documentID,
+                        date: data["date"] as? String ?? "",
+                        notes: data["notes"] as? String ?? "",
+                        patientId: data["patientId"] as? String ?? "",
+                        results: data["results"] as? String ?? "",
+                        status: data["status"] as? String ?? "",
+                        testName: data["testName"] as? String ?? ""
+                    )
+                }
+                
+                let patientIds = Set(medicalTests.map { $0.patientId })
+                var patientDict: [String: Patient1] = [:]
+                
+                let patientGroup = DispatchGroup()
+                
+                for patientId in patientIds {
+                    patientGroup.enter()
+                    db.collection("patients").document(patientId).getDocument { (doc, error) in
+                        defer { patientGroup.leave() }
+                        if let doc = doc, doc.exists, let data = doc.data() {
+                            let patient = Patient1(
+                                id: doc.documentID,
+                                fullName: data["fullName"] as? String ?? "",
+                                generatedID: data["generatedID"] as? String ?? "",
+                                age: data["age"] as? String ?? "",
+                                previousProblems: data["previousProblems"] as? String ?? "",
+                                allergies: data["allergies"] as? String ?? "",
+                                medications: data["medications"] as? String ?? ""
+                            )
+                            patientDict[patientId] = patient
+                        }
+                    }
+                }
+                
+                patientGroup.notify(queue: .main) {
+                    let patientWithTests = medicalTests.compactMap { medicalTest in
+                        if let patient = patientDict[medicalTest.patientId] {
+                            return PatientWithTest(id: medicalTest.id, patient: patient, medicalTest: medicalTest)
+                        }
+                        return nil
+                    }
+                    self.patientsWithTests = patientWithTests
+                }
+            }
     }
 }
 
+// Preview Provider
 struct HomeView_LT_Previews: PreviewProvider {
     static var previews: some View {
         HomeView_LT()
