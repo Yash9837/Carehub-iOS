@@ -64,31 +64,40 @@ struct AccountantDashboard: View {
                             
                             // Accountant Cards Grid
                             LazyVGrid(columns: [GridItem(.flexible(), spacing: 16), GridItem(.fixed(175), spacing: 16)], spacing: 16) {
-                                AccountantCard(
-                                    title: "Generate Bill",
-                                    icon: "doc.text",
-                                    color: primaryColor
-                                )
+                                NavigationLink(destination: GenerateBillView()) {
+                                    AccountantCard(
+                                        title: "Generate Bill",
+                                        icon: "doc.text",
+                                        color: primaryColor
+                                    )
+                                }
                                 
-                                AccountantCard(
-                                    title: "Pending Payments",
-                                    icon: "clock.badge.exclamationmark",
-                                    color: primaryColor
-                                )
+                                NavigationLink(destination: PendingPaymentsView()) {
+                                    AccountantCard(
+                                        title: "Pending Payments",
+                                        icon: "clock.badge.exclamationmark",
+                                        color: primaryColor
+                                    )
+                                }
                                 
-                                AccountantCard(
-                                    title: "Schedule Followups",
-                                    icon: "calendar.badge.clock",
-                                    color: primaryColor
-                                )
+                                NavigationLink(destination: ScheduleFollowupsView()) {
+                                    AccountantCard(
+                                        title: "Schedule Followups",
+                                        icon: "calendar.badge.clock",
+                                        color: primaryColor
+                                    )
+                                }
                                 
-                                AccountantCard(
-                                    title: "Payment History",
-                                    icon: "chart.bar.fill",
-                                    color: primaryColor
-                                )
+                                NavigationLink(destination: PaymentHistoryView()) {
+                                    AccountantCard(
+                                        title: "Payment History",
+                                        icon: "chart.bar.fill",
+                                        color: primaryColor
+                                    )
+                                }
                             }
                             .padding(.horizontal, 24)
+
                             
                             // Quick Actions Section
                             VStack(alignment: .leading, spacing: 16) {

@@ -1,106 +1,250 @@
-import SwiftUI
+import Foundation
 import FirebaseFirestore
 
-struct Accountant: Identifiable, Codable {
-    var id: String { accountantId }
-    var email: String
-    var name: String
-    var password: String?  // Include but mark as optional since we may not want to expose this
-    var shift: Shift
-    var accountantId: String
-    var createdAt: Timestamp?  // Using Firestore Timestamp
-    var phoneNo: String
+class FirebaseAccountantService {
+    private let db = Firestore.firestore()
     
-    struct Shift: Codable {
-        var endTime: String
-        var startTime: String
+    func fetchAccountant(byAccountantId accountantId: String, completion: @escaping (Result<Accountant, Error>) -> Void) {
+        db.collection("accountants").document(accountantId)
+            .getDocument { document, error in
+                if let error = error {
+                    completion(.failure(error))
+                    return
+                }
+                
+                guard let document = document, document.exists, let data = document.data() else {
+                    completion(.failure(NSError(domain: "AppError", code: 404, userInfo: [NSLocalizedDescriptionKey: "Accountant not found"])))
+                    return
+                }
+                
+                do {
+                    guard let shiftData = data["Shift"] as? [String: String],
+                          let startTime = shiftData["startTime"],
+                          let endTime = shiftData["endTime"] else {
+                        throw NSError(domain: "ParsingError", code: 400, userInfo: [NSLocalizedDescriptionKey: "Failed to parse shift data"])
+                    }
+                    
+                    let shift = Accountant.Shift(endTime: endTime, startTime: startTime)
+                    let accountant = Accountant(
+                        email: data["Email"] as? String ?? "",
+                        name: data["Name"] as? String ?? "",
+                        password: data["Password"] as? String,
+                        shift: shift,
+                        accountantId: data["accountantId"] as? String ?? accountantId,
+                        createdAt: data["createdAt"] as? Timestamp,
+                        phoneNo: data["phoneNo"] as? String ?? ""
+                    )
+                    
+                    completion(.success(accountant))
+                } catch {
+                    completion(.failure(error))
+                }
+            }
     }
-    
-    // Ensuring exact field names from the database
-    enum CodingKeys: String, CodingKey {
-        case email = "Email"
-        case name = "Name"
-        case password = "Password"
-        case shift = "Shift"
-        case accountantId = "accountantId"
-        case createdAt = "createdAt"
-        case phoneNo = "phoneNo"
+
+    func updateShiftHours(accountantId: String, newStart: String, newEnd: String, completion: ((Error?) -> Void)? = nil) {
+        db.collection("accountants").document(accountantId)
+            .updateData([
+                "Shift.startTime": newStart,
+                "Shift.endTime": newEnd
+            ], completion: completion)
     }
 }
+///Accountant View Model
 
 class AccountantViewModel: ObservableObject {
     @Published var accountant: Accountant?
     @Published var isLoading = false
     @Published var error: Error?
-    
-    private let db = Firestore.firestore()
+
+    private let accountantService = FirebaseAccountantService()
     
     func fetchAccountant(byAccountantId accountantId: String) {
         isLoading = true
         error = nil
         
-        // Directly access the document using the ID
-        db.collection("accountants").document(accountantId)
-            .getDocument { [weak self] document, error in
+        accountantService.fetchAccountant(byAccountantId: accountantId) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                switch result {
+                case .success(let accountant):
+                    self?.accountant = accountant
+                case .failure(let err):
+                    self?.error = err
+                    print("Error fetching accountant: \(err.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    func updateShiftHours(accountantId: String, newStart: String, newEnd: String) {
+        accountantService.updateShiftHours(accountantId: accountantId, newStart: newStart, newEnd: newEnd) { [weak self] error in
+            if let error = error {
+                print("Error updating shift: \(error.localizedDescription)")
+            } else {
+                print("Shift updated successfully")
+                self?.fetchAccountant(byAccountantId: accountantId)
+            }
+        }
+    }
+}
+
+///Generate Bill View Model
+
+class GenerateBillViewModel: ObservableObject {
+    @Published var paidAppointments: [Appointment] = []
+    @Published var unpaidAppointments: [Appointment] = []
+    @Published var isLoading = false
+    @Published var error: Error?
+    
+    private let db = Firestore.firestore()
+    
+    func fetchAppointments(forPatientId patientId: String) {
+        isLoading = true
+        error = nil
+        paidAppointments = []
+        unpaidAppointments = []
+        
+        print("Fetching appointments for patientId: \(patientId)")
+        
+        db.collection("appointments")
+            .whereField("patientId", isEqualTo: patientId)
+            .getDocuments { [weak self] snapshot, error in
                 DispatchQueue.main.async {
                     self?.isLoading = false
                     
                     if let error = error {
                         self?.error = error
-                        print("Error fetching accountant: \(error.localizedDescription)")
+                        print("Error fetching appointments: \(error.localizedDescription)")
                         return
                     }
                     
-                    guard let document = document, document.exists, let data = document.data() else {
-                        self?.error = NSError(domain: "AppError", code: 404, userInfo: [NSLocalizedDescriptionKey: "Accountant not found"])
+                    guard let documents = snapshot?.documents, !documents.isEmpty else {
+                        self?.error = NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "No appointments found"])
+                        print("No appointments found for patientId: \(patientId)")
                         return
                     }
                     
-                    // Manual construction of Accountant object from document data
-                    do {
-                        // Extract shift data
-                        guard let shiftData = data["Shift"] as? [String: String],
-                              let endTime = shiftData["endTime"],
-                              let startTime = shiftData["startTime"] else {
-                            throw NSError(domain: "ParsingError", code: 400,
-                                   userInfo: [NSLocalizedDescriptionKey: "Failed to parse shift data"])
+                    print("Found \(documents.count) appointment(s) for patientId: \(patientId)")
+                    
+                    var paid: [Appointment] = []
+                    var unpaid: [Appointment] = []
+                    
+                    for document in documents {
+                        let data = document.data()
+                        let id = document.documentID
+                        
+                        print("Processing appointment with documentId: \(id)")
+                        
+                        // Match the actual fields in your document
+                        guard let patientId = data["patientId"] as? String,
+                              let description = data["Description"] as? String,  // Note: capital D
+                              let docId = data["docId"] as? String,
+                              let status = data["Status"] as? String,            // Note: capital S
+                              let billingStatus = data["billingStatus"] as? String,
+                              let apptId = data["apptId"] as? String
+                        else {
+                            print("Skipping malformed document with documentId: \(id)")
+                            // Debug which fields are missing
+                            if data["patientId"] as? String == nil { print("- Missing patientId") }
+                            if data["Description"] as? String == nil { print("- Missing Description") }
+                            if data["docId"] as? String == nil { print("- Missing docId") }
+                            if data["Status"] as? String == nil { print("- Missing Status") }
+                            if data["billingStatus"] as? String == nil { print("- Missing billingStatus") }
+                            if data["apptId"] as? String == nil { print("- Missing apptId") }
+                            continue
                         }
                         
-                        let shift = Accountant.Shift(endTime: endTime, startTime: startTime)
+                        // Optional fields
+                        let doctorsNotes = data["doctorsNotes"] as? String
+                        let prescriptionId = data["prescriptionId"] as? String
+                        let followUpRequired = data["followUpRequired"] as? Bool
+                        let amount = data["amount"] as? Double
                         
-                        // Create accountant object
-                        let accountant = Accountant(
-                            email: data["Email"] as? String ?? "",
-                            name: data["Name"] as? String ?? "",
-                            password: data["Password"] as? String,
-                            shift: shift,
-                            accountantId: data["accountantId"] as? String ?? accountantId, // Default to document ID if not present
-                            createdAt: data["createdAt"] as? Timestamp,
-                            phoneNo: data["phoneNo"] as? String ?? ""
+                        // Handle date fields
+                        var date: Date? = nil
+                        if let timestamp = data["Date"] as? Timestamp {
+                            date = timestamp.dateValue()
+                        }
+                        
+                        var followUpDate: Date? = nil
+                        if let timestamp = data["followUpDate"] as? Timestamp {
+                            followUpDate = timestamp.dateValue()
+                        }
+                        
+                        print("Created appointment: \(description), billingStatus: \(billingStatus)")
+                        
+                        let appointment = Appointment(
+                            id: id,
+                            apptId: apptId,
+                            patientId: patientId,
+                            description: description,
+                            docId: docId,
+                            status: status,
+                            billingStatus: billingStatus,
+                            amount: amount,
+                            date: date,
+                            doctorsNotes: doctorsNotes,
+                            prescriptionId: prescriptionId,
+                            followUpRequired: followUpRequired,
+                            followUpDate: followUpDate
                         )
                         
-                        self?.accountant = accountant
-                    } catch {
-                        self?.error = error
-                        print("Error decoding accountant: \(error.localizedDescription)")
+                        // Sort into appropriate array
+                        if billingStatus.lowercased() == "paid" {
+                            paid.append(appointment)
+                        } else {
+                            unpaid.append(appointment)
+                        }
                     }
+                    
+                    self?.paidAppointments = paid
+                    self?.unpaidAppointments = unpaid
+                    
+                    print("Total paid appointments: \(paid.count)")
+                    print("Total unpaid appointments: \(unpaid.count)")
                 }
             }
     }
+
     
-    // Update accountant's shift hours
-    func updateShiftHours(accountantId: String, newStart: String, newEnd: String) {
-        db.collection("accountants").document(accountantId)
-            .updateData([
-                "Shift.startTime": newStart,
-                "Shift.endTime": newEnd
-            ]) { [weak self] error in
-                if let error = error {
-                    print("Error updating shift: \(error.localizedDescription)")
-                } else {
-                    print("Shift updated successfully")
-                    // Refresh the data
-                    self?.fetchAccountant(byAccountantId: accountantId)
+    func markAsPaid(appointmentId: String, completion: @escaping (Bool) -> Void) {
+        db.collection("appointments").document(appointmentId)
+            .updateData(["billingStatus": "paid"]) { [weak self] error in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        print("Error updating appointment: \(error.localizedDescription)")
+                        completion(false)
+                    } else {
+                        // Update local data arrays
+                        if let index = self?.unpaidAppointments.firstIndex(where: { $0.id == appointmentId }) {
+                            guard let appointment = self?.unpaidAppointments[index] else {
+                                completion(false)
+                                return
+                            }
+                            
+                            // Create updated appointment with all fields from original appointment
+                            let updatedAppointment = Appointment(
+                                id: appointment.id,
+                                apptId: appointment.apptId,
+                                patientId: appointment.patientId,
+                                description: appointment.description,
+                                docId: appointment.docId,
+                                status: appointment.status,
+                                billingStatus: "paid",
+                                amount: appointment.amount,
+                                date: appointment.date,
+                                doctorsNotes: appointment.doctorsNotes,
+                                prescriptionId: appointment.prescriptionId,
+                                followUpRequired: appointment.followUpRequired,
+                                followUpDate: appointment.followUpDate
+                            )
+                            
+                            self?.paidAppointments.append(updatedAppointment)
+                            self?.unpaidAppointments.remove(at: index)
+                        }
+                        completion(true)
+                    }
                 }
             }
     }
