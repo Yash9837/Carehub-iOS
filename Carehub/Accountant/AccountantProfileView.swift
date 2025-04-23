@@ -1,18 +1,11 @@
-//
-//  NurseProfileView.swift
-//  Carehub
-//
-//  Created by user@87 on 21/04/25.
-//
-
 import SwiftUI
 
-struct NurseProfileView: View {
-    let nurseId: String
-    @StateObject private var viewModel = NurseViewModel()
+struct AccountantProfileView: View {
+    let accountantId: String
+    @StateObject private var viewModel = AccountantViewModel()
     let primaryColor = Color(red: 109/255, green: 87/255, blue: 252/255)
     @State private var isEditingProfile = false
-
+    
     var body: some View {
         NavigationView {
             List {
@@ -20,8 +13,8 @@ struct NurseProfileView: View {
                     ProgressView("Loading profile...")
                         .frame(maxWidth: .infinity, alignment: .center)
                         .listRowSeparator(.hidden)
-                } else if let nurse = viewModel.nurse {
-                    // Profile Header
+                } else if let accountant = viewModel.accountant {
+                    // Profile Header Section
                     Section {
                         VStack(alignment: .center, spacing: 16) {
                             Image(systemName: "person.circle.fill")
@@ -29,42 +22,47 @@ struct NurseProfileView: View {
                                 .scaledToFit()
                                 .frame(width: 100, height: 100)
                                 .foregroundColor(primaryColor)
-
+                                .symbolRenderingMode(.hierarchical)
+                            
                             VStack(spacing: 4) {
-                                Text(nurse.name)
+                                Text(accountant.name)
                                     .font(.title2)
                                     .fontWeight(.semibold)
-
-                                Text(nurse.nurseld)
+                                
+                                Text(accountant.accountantId)
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
-                        .background(Color.clear)
                     }
-                    .listRowBackground(Color.clear)
-                    // Contact Info
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color(.systemGroupedBackground))
+                    
+                    // Contact Information Section
                     Section(header: Text("Contact Information")) {
-                        LabeledContent("Phone", value: nurse.phoneNo)
-                        LabeledContent("Email", value: nurse.email)
+                        LabeledContent("Phone", value: accountant.phoneNo)
+                        LabeledContent("Email", value: accountant.email)
                     }
-
-                    // Shift Info
+                    
+                    // Shift Information Section
                     Section(header: Text("Shift Information")) {
-                        LabeledContent("Start Time", value: nurse.shift.startTime)
-                        LabeledContent("End Time", value: nurse.shift.endTime)
+                        LabeledContent("Start Time", value: accountant.shift.startTime)
+                        LabeledContent("End Time", value: accountant.shift.endTime)
                     }
-
-                    // Account Info
+                    
+                    // Account Details Section
                     Section(header: Text("Account Details")) {
-                        LabeledContent("Nurse ID", value: nurse.nurseld)
-                        if let createdAt = nurse.createdAt {
-                            LabeledContent("Created", value: createdAt.dateValue().formatted(date: .abbreviated, time: .shortened))
+                        LabeledContent("Employee ID", value: accountant.accountantId)
+                        
+                        if let createdAt = accountant.createdAt {
+                            LabeledContent("Account Created", value: createdAt.dateValue().formatted(date: .abbreviated, time: .shortened))
+                        } else {
+                            LabeledContent("Account Created", value: "N/A")
                         }
                     }
-
+                    
                 } else if let error = viewModel.error {
                     Section {
                         VStack(spacing: 16) {
@@ -72,19 +70,19 @@ struct NurseProfileView: View {
                                 .font(.system(size: 40))
                                 .foregroundColor(.orange)
                                 .symbolRenderingMode(.hierarchical)
-
+                            
                             VStack(spacing: 4) {
                                 Text("Error loading profile")
                                     .font(.headline)
-
+                                
                                 Text(error.localizedDescription)
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .multilineTextAlignment(.center)
                             }
-
+                            
                             Button {
-                                viewModel.fetchNurse(byNurseId: nurseId)
+                                viewModel.fetchAccountant(byAccountantId: accountantId)
                             } label: {
                                 Label("Try Again", systemImage: "arrow.clockwise")
                             }
@@ -101,29 +99,35 @@ struct NurseProfileView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Edit") {
-                        isEditingProfile = true
+                    if isEditingProfile {
+                        Button("Done") {
+//                            saveChanges()
+                            isEditingProfile = false
+                        }
+                    } else {
+                        Button("Edit") {
+                            isEditingProfile = true
+                        }
+                        .foregroundStyle(primaryColor)
                     }
-                    .foregroundStyle(primaryColor)
                 }
             }
             .refreshable {
-                viewModel.fetchNurse(byNurseId: nurseId)
+                viewModel.fetchAccountant(byAccountantId: accountantId)
             }
             .sheet(isPresented: $isEditingProfile) {
-                Text("Edit sheet coming soon!") // Replace with NurseEditProfile if implemented
+                AccountantEditProfile(accountant: $viewModel.accountant)
             }
         }
         .onAppear {
-            viewModel.fetchNurse(byNurseId: nurseId)
+            viewModel.fetchAccountant(byAccountantId: accountantId)
         }
     }
 }
 
-// Preview
-struct NurseProfileView_Previews: PreviewProvider {
+// Preview with sample data
+struct AccountantProfileView_Previews: PreviewProvider {
     static var previews: some View {
-        NurseProfileView(nurseId: "NUR001")
+        AccountantProfileView(accountantId: "ACC001")
     }
 }
-
