@@ -3,7 +3,6 @@ import SwiftUI
 struct PatientTabView: View {
     let username: String
     let patient: Patient
-    
     init(username: String, patient: Patient) {
         self.username = username
         self.patient = patient
@@ -13,15 +12,13 @@ struct PatientTabView: View {
         UITabBar.appearance().standardAppearance = tabBarAppearance
         UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
     }
-    
     var body: some View {
         TabView {
-            HomeView_patient(username: username)
+            HomeView_patient(patient: patient)
                 .tabItem {
                     Image(systemName: "house")
                     Text("Home")
                 }
-            
             ScheduleAppointmentView()
                 .tabItem {
                     Image(systemName: "calendar")
@@ -48,11 +45,13 @@ struct PatientTabView: View {
 #Preview {
     let samplePatient = Patient(
         fullName: "John Doe",
+        username: "johndoe123",
         generatedID: "P123456",
         age: "30",
         previousProblems: "Asthma",
         allergies: "Peanuts",
         medications: "Inhaler"
     )
-    return PatientTabView(username: "TestUser", patient: samplePatient)
+    PatientTabView(username: "TestUser", patient: samplePatient)
 }
+

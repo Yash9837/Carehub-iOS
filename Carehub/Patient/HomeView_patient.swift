@@ -1,21 +1,24 @@
 import SwiftUI
+import FirebaseFirestore
 
 struct HomeView_patient: View {
-    let username: String
+    let patient: Patient
     @Environment(\.colorScheme) private var colorScheme
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99) // #6D57FC
+    @State private var upcomingSchedules: [(doctorName: String, specialty: String, date: Date, imageName: String)] = []
+    @State private var isLoading = true
+    private let currentPatientId = "PT001"
     
-    let upcomingSchedules = [
-        (doctorName: "Dr. Rasheed Idris", specialty: "Cardiovascular", date: "Nov 24, 9:00am", imageName: "doctor1"),
-        (doctorName: "Dr. Aisha Bello", specialty: "Orthopedics", date: "Nov 25, 10:00am", imageName: "doctor2"),
-        (doctorName: "Dr. Musa Ibrahim", specialty: "Neurology", date: "Nov 26, 2:00pm", imageName: "doctor3")
+    let recentPrescriptions = [
+        (type: "Prescription", doctorName: "Dr. Kenny Adeola", date: "Nov 15, 2023", title: "Blood Test Results"),
+        (type: "Report", doctorName: "Dr. Rasheed Idris", date: "Nov 10, 2023", title: "CT Scan Report"),
+        (type: "Prescription", doctorName: "Dr. Taiwo", date: "Nov 5, 2023", title: "Antibiotics")
     ]
     
-    let topDoctors = [
-        (name: "Dr. Kenny Adeola", specialty: "General Practitioner", rating: 4.4, reviews: 54, imageName: "doctor2"),
-        (name: "Dr. Taiwo", specialty: "General Practitioner", rating: 4.5, reviews: 56, imageName: "doctor3"),
-        (name: "Dr. Johnson", specialty: "Pediatrician", rating: 4.8, reviews: 280, imageName: "doctor4"),
-        (name: "Dr. Nkechi Okeli", specialty: "Oncologist", rating: 4.3, reviews: 130, imageName: "doctor5")
+    let previouslyVisitedDoctors = [
+        (name: "Dr. Kenny Adeola", specialty: "General Practitioner", lastVisit: "Nov 15, 2023", imageName: "doctor2"),
+        (name: "Dr. Taiwo", specialty: "General Practitioner", lastVisit: "Oct 28, 2023", imageName: "doctor3"),
+        (name: "Dr. Johnson", specialty: "Pediatrician", lastVisit: "Oct 10, 2023", imageName: "doctor4")
     ]
     
     var body: some View {
@@ -27,7 +30,7 @@ struct HomeView_patient: View {
                 VStack(spacing: 0) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Hello, \(username)")
+                            Text("Hello, \(patient.username)") // Changed from patient.fullName to patient.username
                                 .font(.system(size: 24, weight: .bold))
                                 .foregroundColor(.black)
                             
@@ -66,50 +69,25 @@ struct HomeView_patient: View {
                                 .foregroundColor(purpleColor)
                         }
                         
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 16) {
-                                ForEach(upcomingSchedules, id: \.doctorName) { schedule in
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .fill(LinearGradient(
-                                                gradient: Gradient(colors: [purpleColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            ))
-                                            .shadow(color: purpleColor.opacity(0.2), radius: 10, x: 0, y: 5)
-                                        
-                                        HStack(spacing: 16) {
-                                            Image(schedule.imageName)
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(width: 80, height: 80)
-                                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                            
-                                            VStack(alignment: .leading, spacing: 8) {
-                                                Text(schedule.doctorName)
-                                                    .font(.system(size: 18, weight: .bold))
-                                                    .foregroundColor(.white)
-                                                
-                                                Text(schedule.specialty)
-                                                    .font(.system(size: 14, weight: .medium))
-                                                    .foregroundColor(.white.opacity(0.8))
-                                                
-                                                HStack(spacing: 6) {
-                                                    Image(systemName: "calendar")
-                                                        .foregroundColor(.white)
-                                                        .font(.system(size: 14))
-                                                    
-                                                    Text(schedule.date)
-                                                        .font(.system(size: 14, weight: .medium))
-                                                        .foregroundColor(.white)
-                                                }
-                                            }
-                                            
-                                            Spacer()
-                                        }
-                                        .padding(16)
+                        if isLoading {
+                            ProgressView()
+                                .padding()
+                        } else if upcomingSchedules.isEmpty {
+                            Text("No upcoming appointments.")
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
+                                .padding()
+                        } else {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 16) {
+                                    ForEach(upcomingSchedules, id: \.doctorName) { schedule in
+                                        AppointmentCard(
+                                            doctorName: schedule.doctorName,
+                                            specialty: schedule.specialty,
+                                            date: formatDate(schedule.date),
+                                            imageName: schedule.imageName
+                                        )
                                     }
-                                    .frame(width: 300, height: 120)
                                 }
                             }
                         }
@@ -117,26 +95,40 @@ struct HomeView_patient: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                     
-                    // Quick Actions
+                    // Recent Prescriptions and Lab Reports
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Quick Actions")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.black)
+                        HStack {
+                            Text("Recent Prescriptions & Reports")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.black)
+                            
+                            Spacer()
+                            
+                            Text("See All")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(purpleColor)
+                        }
                         
-                        HStack(spacing: 16) {
-                            QuickActionButton(icon: "stethoscope", title: "Doctor")
-                            QuickActionButton(icon: "pills", title: "Pharmacy")
-                            QuickActionButton(icon: "cross.case.fill", title: "Hospital")
-                            QuickActionButton(icon: "car.fill", title: "Ambulance")
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 16) {
+                                ForEach(recentPrescriptions, id: \.title) { item in
+                                    MedicalRecordCard(
+                                        type: item.type,
+                                        doctorName: item.doctorName,
+                                        date: item.date,
+                                        title: item.title
+                                    )
+                                }
+                            }
                         }
                     }
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 20)
                     
-                    // Top Doctors Section
+                    // Previously Visited Doctors
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text("Top Doctors")
+                            Text("Previously Visited Doctors")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.black)
                             
@@ -148,12 +140,11 @@ struct HomeView_patient: View {
                         }
                         
                         VStack(spacing: 12) {
-                            ForEach(topDoctors, id: \.name) { doctor in
-                                HomeDoctorCard(
+                            ForEach(previouslyVisitedDoctors, id: \.name) { doctor in
+                                PreviouslyVisitedDoctorCard(
                                     name: doctor.name,
                                     specialty: doctor.specialty,
-                                    rating: doctor.rating,
-                                    reviews: doctor.reviews,
+                                    lastVisit: doctor.lastVisit,
                                     imageName: doctor.imageName
                                 )
                             }
@@ -166,45 +157,177 @@ struct HomeView_patient: View {
         }
         .navigationTitle("Home")
         .navigationBarBackButtonHidden(true)
+        .onAppear {
+            fetchUpcomingAppointments()
+        }
+    }
+    
+    private func fetchUpcomingAppointments() {
+        let db = Firestore.firestore()
+        let calendar = Calendar.current
+        let now = Date()
+        let oneMonthFromNow = calendar.date(byAdding: .month, value: 1, to: now) ?? now
+        
+        db.collection("appointments")
+            .whereField("patientId", isEqualTo: currentPatientId)
+            .whereField("Date", isGreaterThanOrEqualTo: now)
+            .whereField("Date", isLessThan: oneMonthFromNow)
+            .whereField("Status", isEqualTo: "scheduled")
+            .getDocuments { (querySnapshot, error) in
+                if let error = error {
+                    print("Error fetching appointments: \(error.localizedDescription)")
+                    isLoading = false
+                    return
+                }
+                
+                var schedules: [(doctorName: String, specialty: String, date: Date, imageName: String)] = []
+                for document in querySnapshot?.documents ?? [] {
+                    if let doctorName = document.data()["doctorName"] as? String,
+                       let specialty = document.data()["specialty"] as? String,
+                       let date = (document.data()["Date"] as? Timestamp)?.dateValue(),
+                       let imageName = document.data()["imageName"] as? String {
+                        schedules.append((doctorName: doctorName, specialty: specialty, date: date, imageName: imageName))
+                    }
+                }
+                upcomingSchedules = schedules.sorted { $0.date < $1.date }
+                isLoading = false
+            }
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM dd, h:mma"
+        return formatter.string(from: date).lowercased()
     }
 }
 
-struct QuickActionButton: View {
-    let icon: String
-    let title: String
+// MARK: - Custom Card Views
+
+struct AppointmentCard: View {
+    let doctorName: String
+    let specialty: String
+    let date: String
+    let imageName: String
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     
     var body: some View {
-        VStack(spacing: 8) {
-            ZStack {
-                Circle()
-                    .fill(purpleColor.opacity(0.1))
-                    .frame(width: 50, height: 50)
-                
-                Image(systemName: icon)
-                    .foregroundColor(purpleColor)
-                    .font(.system(size: 20, weight: .bold))
-            }
+        ZStack {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(LinearGradient(
+                    gradient: Gradient(colors: [purpleColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+                .shadow(color: purpleColor.opacity(0.2), radius: 10, x: 0, y: 5)
             
-            Text(title)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.black)
+            HStack(spacing: 16) {
+                Image(imageName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 80, height: 80)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(doctorName)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                    
+                    Text(specialty)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.8))
+                    
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar")
+                            .foregroundColor(.white)
+                            .font(.system(size: 14))
+                        
+                        Text(date)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white)
+                    }
+                }
+                
+                Spacer()
+            }
+            .padding(16)
         }
-        .frame(maxWidth: .infinity)
+        .frame(width: 300, height: 120)
     }
 }
 
-struct HomeDoctorCard: View {
+struct MedicalRecordCard: View {
+    let type: String  // "Prescription" or "Report"
+    let doctorName: String
+    let date: String
+    let title: String
+    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(LinearGradient(
+                    gradient: Gradient(colors: [purpleColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+                .shadow(color: purpleColor.opacity(0.2), radius: 10, x: 0, y: 5)
+            
+            HStack(spacing: 16) {
+                // PDF Icon container
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(LinearGradient(
+                            gradient: Gradient(colors: [purpleColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ))
+                        .frame(width: 60, height: 60)
+                        .shadow(color: purpleColor.opacity(0.2), radius: 5, x: 0, y: 3)
+                    
+                    Image(systemName: "doc.text.fill")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 30, height: 35)
+                        .foregroundColor(.white)
+                }
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(title)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                    
+                    Text("by \(doctorName)")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.8))
+                    
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar")
+                            .foregroundColor(.white)
+                            .font(.system(size: 14))
+                        
+                        Text(date)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white)
+                    }
+                }
+                
+                Spacer()
+            }
+            .padding(16)
+        }
+        .frame(width: 300, height: 120)
+    }
+}
+
+struct PreviouslyVisitedDoctorCard: View {
     let name: String
     let specialty: String
-    let rating: Double
-    let reviews: Int
+    let lastVisit: String
     let imageName: String
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     
     var body: some View {
         HStack(spacing: 16) {
-            // Doctor Image with improved styling
             Image(imageName)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
@@ -223,50 +346,56 @@ struct HomeDoctorCard: View {
                 )
                 .shadow(color: purpleColor.opacity(0.2), radius: 5, x: 0, y: 3)
             
-            // Doctor Details
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(name)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.black)
-                    .lineLimit(1)
                 
                 Text(specialty)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.gray)
                 
-                HStack(spacing: 6) {
-                    Image(systemName: "star.fill")
-                        .foregroundColor(Color.yellow)
-                        .font(.system(size: 14))
+                HStack(spacing: 4) {
+                    Image(systemName: "clock.fill")
+                        .foregroundColor(purpleColor)
+                        .font(.system(size: 12))
                     
-                    Text(String(format: "%.1f", rating))
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(Color.black.opacity(0.7))
-                    
-                    Text("(\(reviews) reviews)")
-                        .font(.system(size: 14, weight: .medium))
+                    Text("Last visit: \(lastVisit)")
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.gray)
                 }
             }
             
             Spacer()
             
-            // Disclosure indicator
-            Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(purpleColor)
-                .padding(.trailing, 8)
+            // Book Button
+            Button(action: {}) {
+                Text("Book")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(purpleColor)
+                    .cornerRadius(8)
+            }
         }
-        .padding(.vertical, 14)
-        .padding(.horizontal, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.white)
-                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
-        )
+        .padding(16)
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
     }
 }
 
 #Preview {
-    HomeView_patient(username: "Azeez")
+    let samplePatient = Patient(
+        fullName: "Vansh Patel",
+        username: "vansh123",
+        generatedID: "P123456",
+        age: "25",
+        previousProblems: "",
+        allergies: "",
+        medications: ""
+    )
+    HomeView_patient(patient: samplePatient)
 }
+
