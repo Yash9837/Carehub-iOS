@@ -162,5 +162,44 @@ class FirebaseService {
             completion(.success(trendData))
         }
     }
+    
+    func fetchNurse(byId nurseId: String, completion: @escaping (Result<Nurse, Error>) -> Void) {
+        db.collection("nurses").document(nurseId).getDocument { snapshot, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+
+            guard let data = snapshot?.data(),
+                  let nurse = Nurse(from: data) else {
+                completion(.failure(NSError(domain: "FirebaseService", code: 404, userInfo: [NSLocalizedDescriptionKey: "Nurse not found or data is invalid."])))
+                return
+            }
+
+            completion(.success(nurse))
+        }
+    }
 }
 
+class NurseViewModel: ObservableObject {
+    @Published var nurse: Nurse?
+    @Published var isLoading = false
+    @Published var error: Error?
+
+    func fetchNurse(byNurseId nurseId: String) {
+        isLoading = true
+        error = nil
+
+        FirebaseService.shared.fetchNurse(byId: nurseId) { result in
+            DispatchQueue.main.async {
+                self.isLoading = false
+                switch result {
+                case .success(let nurse):
+                    self.nurse = nurse
+                case .failure(let err):
+                    self.error = err
+                }
+            }
+        }
+    }
+}

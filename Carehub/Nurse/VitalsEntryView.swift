@@ -26,72 +26,87 @@ struct NurseVitalsEntryView: View {
     }
 
     let primaryColor = Color(red: 109/255, green: 87/255, blue: 252/255)
-    let backgroundColor = Color(.systemGroupedBackground)
-    let cardBackground = Color(.secondarySystemBackground)
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                Color.white
-                    .edgesIgnoringSafeArea(.all)
-
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4),
-                        Color.white.opacity(0.9),
-                        Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .edgesIgnoringSafeArea(.all)
-                
-                if isLoading {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .progressViewStyle(CircularProgressViewStyle(tint: primaryColor))
-                } else if patientFound {
-                    ScrollView {
-                        VStack(spacing: 32) {
-                            patientInfoCard
-                            vitalsForm
-                        }
-                        .padding(.vertical)
+        TabView {
+            NavigationView {
+                ZStack {
+                    // Background
+                    if colorScheme == .dark {
+                        Color(.systemBackground)
+                            .edgesIgnoringSafeArea(.all)
+                    } else {
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.1),
+                                Color(.systemBackground).opacity(0.9),
+                                Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.1)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .edgesIgnoringSafeArea(.all)
                     }
-                    .navigationTitle("Enter Vitals")
-                    .navigationBarTitleDisplayMode(.large)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button(action: resetForm) {
-                                HStack(spacing: 14) {
-                                    Image(systemName: "chevron.backward")
-                                        .font(.system(size: 18, weight: .semibold))
-                                    Text("Back")
+                    
+                    // Content
+                    if isLoading {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                            .progressViewStyle(CircularProgressViewStyle(tint: primaryColor))
+                    } else if patientFound {
+                        ScrollView {
+                            VStack(spacing: 32) {
+                                patientInfoCard
+                                vitalsForm
+                            }
+                            .padding(.vertical)
+                        }
+                        .navigationTitle("Enter Vitals")
+                        .navigationBarTitleDisplayMode(.large)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                Button(action: resetForm) {
+                                    HStack(spacing: 14) {
+                                        Image(systemName: "chevron.backward")
+                                            .font(.system(size: 18, weight: .semibold))
+                                        Text("Back")
+                                    }
+                                    .foregroundColor(primaryColor)
                                 }
-                                .foregroundColor(primaryColor)
                             }
                         }
+                    } else {
+                        patientSearchView
                     }
-                } else {
-                    patientSearchView
+                }
+                .alert("Alert", isPresented: $showAlert) {
+                    Button("OK", role: .cancel) { }
+                } message: {
+                    Text(alertMessage)
+                }
+                .sheet(item: $activeSheet) { item in
+                    pickerSheet(for: item)
                 }
             }
-            .alert("Alert", isPresented: $showAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text(alertMessage)
+            .tabItem {
+                Label("Vitals", systemImage: "heart.text.square")
             }
-            .sheet(item: $activeSheet) { item in
-                pickerSheet(for: item)
-            }
+            
+            // Profile View (placeholder)
+            NurseProfileView(nurseId: "NUR001") // Replace with dynamic ID if needed
+                .tabItem {
+                    Label("Profile", systemImage: "person.crop.circle")
+                }
+
         }
+        .accentColor(primaryColor)
     }
     
     // MARK: - View Components
     
     private var patientInfoCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header with patient ID
             HStack(spacing: 12) {
                 Image(systemName: "person.crop.circle.fill")
                     .font(.title2)
@@ -118,9 +133,9 @@ struct NurseVitalsEntryView: View {
             }
         }
         .padding()
-        .background(.white)
+        .background(colorScheme == .dark ? Color(.secondarySystemBackground) : .white)
         .cornerRadius(14)
-        .shadow(color: .primary.opacity(0.1), radius: 5, x: 0, y: 2)
+        .shadow(color: colorScheme == .dark ? .clear : .primary.opacity(0.1), radius: 5, x: 0, y: 2)
         .padding(.horizontal)
         .padding(.top, 16)
     }
@@ -129,11 +144,12 @@ struct NurseVitalsEntryView: View {
         let icon: String
         let label: String
         let value: String
+        @Environment(\.colorScheme) var colorScheme
         
         var body: some View {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: icon)
-                    .foregroundColor(Color(UIColor(Color(hex: "6D57FC"))))
+                    .foregroundColor(Color(red: 109/255, green: 87/255, blue: 252/255))
                     .frame(width: 24)
                 
                 VStack(alignment: .leading, spacing: 2) {
@@ -199,12 +215,12 @@ struct NurseVitalsEntryView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.custom("SFProDisplay-Medium",size: 18))
-                .foregroundColor(.black)
+                .foregroundColor(colorScheme == .dark ? .white : .black)
             
             HStack {
                 Text(value)
                     .font(.custom("SFProDisplay-Medium",size: 16))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
                     .fontWeight(.semibold)
                 Text(unit)
                     .font(.body)
@@ -214,10 +230,12 @@ struct NurseVitalsEntryView: View {
                     .foregroundColor(Color(.tertiaryLabel))
             }
             .padding(12)
-            .background(.white)
-            .border(Color(.tertiaryLabel).opacity(0.2))
+            .background(colorScheme == .dark ? Color(.tertiarySystemBackground) : .white)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color(.tertiaryLabel).opacity(0.2), lineWidth: 1)
             .cornerRadius(10)
-        }
+        )}
         .frame(maxWidth: .infinity)
     }
     
@@ -236,7 +254,7 @@ struct NurseVitalsEntryView: View {
                 HStack {
                     Text(String(format: value.truncatingRemainder(dividingBy: 1) == 0 ? "%.0f" : "%.1f", value))
                         .font(.custom("SFProDisplay-Medium",size: 18))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(colorScheme == .dark ? .white : .black)
                         .fontWeight(.semibold)
                     Text(unit)
                         .font(.body)
@@ -246,8 +264,11 @@ struct NurseVitalsEntryView: View {
                         .foregroundColor(Color(.tertiaryLabel))
                 }
                 .padding(12)
-                .background(.white)
-                .border(Color(.tertiaryLabel).opacity(0.2))
+                .background(colorScheme == .dark ? Color(.tertiarySystemBackground) : .white)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color(.tertiaryLabel).opacity(0.2), lineWidth: 1)
+                )
                 .cornerRadius(10)
             }
         }
@@ -269,10 +290,12 @@ struct NurseVitalsEntryView: View {
             TextField("Peanuts, Dust, etc.", text: $allergies)
                 .textFieldStyle(.plain)
                 .padding(12)
-                .background(.white)
-                .border(Color(.tertiaryLabel).opacity(0.2))
+                .background(colorScheme == .dark ? Color(.tertiarySystemBackground) : .white)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color(.tertiaryLabel).opacity(0.2), lineWidth: 1)
                 .cornerRadius(10)
-        }
+       ) }
     }
     
     private var saveButton: some View {
@@ -298,18 +321,17 @@ struct NurseVitalsEntryView: View {
                 Text("Enter Patient ID")
                     .font(.title2.bold())
                 
-                // Search field and button
                 VStack(spacing: 16) {
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(primaryColor)
                         TextField("Patient ID", text: $patientID)
                             .textFieldStyle(.plain)
-                            .background(.white)
-                            .foregroundStyle(.black)
+                            .background(colorScheme == .dark ? Color(.tertiarySystemBackground) : .white)
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
                     }
                     .padding(12)
-                    .background(.white)
+                    .background(colorScheme == .dark ? Color(.tertiarySystemBackground) : .white)
                     .cornerRadius(10)
                     
                     Button(action: checkPatient) {
@@ -332,14 +354,12 @@ struct NurseVitalsEntryView: View {
     
     private func pickerSheet(for item: ActiveSheet) -> some View {
         VStack(spacing: 0) {
-            // Drag handle
             Capsule()
                 .frame(width: 36, height: 5)
                 .foregroundColor(Color(.systemGray5))
                 .padding(.top, 8)
                 .padding(.bottom, 16)
             
-            // Picker content
             Group {
                 switch item {
                 case .systolic:
@@ -358,7 +378,6 @@ struct NurseVitalsEntryView: View {
             }
             .padding(.horizontal)
             
-            // Done button
             Button(action: { activeSheet = nil }) {
                 Text("Done")
                     .font(.headline)
@@ -373,6 +392,61 @@ struct NurseVitalsEntryView: View {
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled()
         .background(Color(.systemBackground))
+    }
+    
+    // MARK: - Helper Views
+    
+    struct IntPicker: View {
+        @Binding var value: Int
+        let range: ClosedRange<Int>
+        let title: String
+        let unit: String
+        
+        var body: some View {
+            VStack {
+                Text("\(title): \(value) \(unit)")
+                    .font(.headline)
+                    .padding(.bottom, 8)
+                
+                Picker("", selection: $value) {
+                    ForEach(range, id: \.self) { num in
+                        Text("\(num)").tag(num)
+                    }
+                }
+                .pickerStyle(.wheel)
+            }
+        }
+    }
+    
+    struct DecimalPicker: View {
+        @Binding var value: Double
+        let range: ClosedRange<Double>
+        let title: String
+        let unit: String
+        let step: Double
+        
+        init(value: Binding<Double>, range: ClosedRange<Double>, title: String, unit: String, step: Double = 0.1) {
+            self._value = value
+            self.range = range
+            self.title = title
+            self.unit = unit
+            self.step = step
+        }
+        
+        var body: some View {
+            VStack {
+                Text("\(title): \(String(format: value.truncatingRemainder(dividingBy: 1) == 0 ? "%.0f" : "%.1f", value)) \(unit)")
+                    .font(.headline)
+                    .padding(.bottom, 8)
+                
+                Picker("", selection: $value) {
+                    ForEach(Array(stride(from: range.lowerBound, through: range.upperBound, by: step)), id: \.self) { num in
+                        Text(String(format: num.truncatingRemainder(dividingBy: 1) == 0 ? "%.0f" : "%.1f", num)).tag(num)
+                    }
+                }
+                .pickerStyle(.wheel)
+            }
+        }
     }
     
     // MARK: - Functions
@@ -517,95 +591,9 @@ struct NurseVitalsEntryView: View {
     }
 }
 
-// MARK: - Picker Components
-
-struct IntPicker: View {
-    @Binding var value: Int
-    let range: ClosedRange<Int>
-    let title: String
-    let unit: String
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(title)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            Text("\(value) \(unit)")
-                .font(.title2.bold())
-                .foregroundColor(.primary)
-            
-            Picker("", selection: $value) {
-                ForEach(Array(range), id: \.self) { num in
-                    Text("\(num)")
-                }
-            }
-            .pickerStyle(.wheel)
-            .labelsHidden()
-            .frame(height: 120)
-        }
-    }
-}
-
-struct DecimalPicker: View {
-    @Binding var value: Double
-    let range: ClosedRange<Int>
-    let title: String
-    let unit: String
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(title)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            Text(String(format: value.truncatingRemainder(dividingBy: 1) == 0 ? "%.0f %@" : "%.1f %@", value, unit))
-                .font(.title2.bold())
-                .foregroundColor(.primary)
-            
-            HStack(spacing: 0) {
-                Picker("", selection: Binding(
-                    get: { Int(value) },
-                    set: { value = Double($0) + (value - Double(Int(value))) }
-                )) {
-                    ForEach(Array(range), id: \.self) { num in
-                        Text("\(num)")
-                    }
-                }
-                .pickerStyle(.wheel)
-                .labelsHidden()
-                .frame(width: 100)
-                
-                Text(".")
-                    .font(.title2.bold())
-                
-                Picker("", selection: Binding(
-                    get: { Int((value - Double(Int(value))) * 10) },
-                    set: { value = Double(Int(value)) + Double($0) / 10.0 }
-                )) {
-                    ForEach(0..<10, id: \.self) { num in
-                        Text("\(num)")
-                    }
-                }
-                .pickerStyle(.wheel)
-                .labelsHidden()
-                .frame(width: 80)
-            }
-            .frame(height: 120)
-        }
-    }
-}
-
-// MARK: - Previews
-
-struct NurseVitalsEntryView_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            NurseVitalsEntryView()
-                .preferredColorScheme(.light)
-            
-            NurseVitalsEntryView()
-                .preferredColorScheme(.dark)
-        }
+#Preview {
+    Group {
+        NurseVitalsEntryView()
+            .preferredColorScheme(.light)
     }
 }
