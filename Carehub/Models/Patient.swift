@@ -8,35 +8,55 @@
 import SwiftUI
 import FirebaseFirestore
 
-struct PatientF{
+struct PatientF: Codable, Identifiable {
+    var id: String { patientId }
     var emergencyContact: [EmergencyContact]
     var medicalRecords: [MedicalRecord]
-    var testResults: [TestResult]
+    var testResults: [TestResultF]
     var userData: UserData
     var vitals: Vitals
     var lastModified: Date
     var patientId: String
     var username: String
+
+    enum CodingKeys: String, CodingKey {
+        case emergencyContact
+        case medicalRecords
+        case testResults
+        case userData
+        case vitals
+        case lastModified
+        case patientId
+        case username
+    }
 }
 
-struct EmergencyContact{
+struct EmergencyContact: Codable, Identifiable {
+    var id: String = UUID().uuidString
     var Number: String
     var name: String
+
+    enum CodingKeys: String, CodingKey {
+        case Number
+        case name
+    }
 }
 
-struct MedicalRecord{
+struct MedicalRecord: Codable, Identifiable {
+    var id: String = UUID().uuidString
     var name: String
     var url: String
 }
 
-struct TestResultF {
+struct TestResultF: Codable, Identifiable {
+    var id: String = UUID().uuidString
     var dateCreated: Date
     var labTechId: String
     var testType: String
     var url: String
 }
 
-struct UserData{
+struct UserData: Codable {
     var Address: String
     var Dob: String
     var Email: String
@@ -46,7 +66,7 @@ struct UserData{
     var phoneNo: String
 }
 
-struct Vitals{
+struct Vitals: Codable {
     var allergies: [String]
     var bp: [VitalEntry]
     var heartRate: [VitalEntry]
@@ -55,7 +75,8 @@ struct Vitals{
     var weight: [VitalEntry]
 }
 
-struct VitalEntry{
+struct VitalEntry: Codable, Identifiable {
+    var id: String = UUID().uuidString
     var timestamp: Date
     var value: String
 }

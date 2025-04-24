@@ -12,8 +12,8 @@ struct ScheduleAppointmentView: View {
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
     @State private var isLoading = false
-    let specialties = DoctorData.specialties
-    let doctors = DoctorData.doctors
+    @State private var isDataLoaded = false
+    @State private var isDataLoadFailed = false
     
     private var timeSlots: [String] {
         var slots = [String]()
@@ -50,39 +50,64 @@ struct ScheduleAppointmentView: View {
             Color(red: 0.94, green: 0.94, blue: 1.0)
                 .edgesIgnoringSafeArea(.all)
             
-            ScrollView {
-                VStack(spacing: 20) {
-                    headerView
-                    
-                    specialtySelectionSection
-                    
-                    if !selectedSpecialty.isEmpty {
-                        doctorSelectionSection
+            if !isDataLoaded && !isDataLoadFailed {
+                ProgressView()
+                    .tint(purpleColor)
+                    .padding()
+            } else if isDataLoadFailed {
+                VStack {
+                    Text("Failed to load data")
+                        .foregroundColor(.red)
+                        .font(.system(size: 18, weight: .medium))
+                    Button(action: {
+                        isDataLoaded = false
+                        isDataLoadFailed = false
+                        loadData()
+                    }) {
+                        Text("Retry")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(purpleColor)
+                            .cornerRadius(10)
                     }
-                    
-                    if !selectedDoctor.isEmpty {
-                        dateSelectionSection
-                    }
-                    
-                    if !selectedDoctor.isEmpty {
-                        timeSlotSelectionSection
-                    }
-                    
-                    if !selectedDoctor.isEmpty {
-                        descriptionField
-                    }
-                    
-                    if !selectedSpecialty.isEmpty && !selectedDoctor.isEmpty && !selectedTimeSlot.isEmpty {
-                        confirmButtonSection
-                    }
-                    
-                    Spacer()
                 }
-                .padding(.bottom, 30)
-                .animation(.easeInOut(duration: 0.3), value: selectedSpecialty)
-                .animation(.easeInOut(duration: 0.3), value: selectedDoctor)
-                .animation(.easeInOut(duration: 0.3), value: selectedTimeSlot)
-                .animation(.easeInOut(duration: 0.3), value: isDatePickerExpanded)
+                .padding()
+            } else {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        headerView
+                        
+                        specialtySelectionSection
+                        
+                        if !selectedSpecialty.isEmpty {
+                            doctorSelectionSection
+                        }
+                        
+                        if !selectedDoctor.isEmpty {
+                            dateSelectionSection
+                        }
+                        
+                        if !selectedDoctor.isEmpty {
+                            timeSlotSelectionSection
+                        }
+                        
+                        if !selectedDoctor.isEmpty {
+                            descriptionField
+                        }
+                        
+                        if !selectedSpecialty.isEmpty && !selectedDoctor.isEmpty && !selectedTimeSlot.isEmpty {
+                            confirmButtonSection
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.bottom, 30)
+                    .animation(.easeInOut(duration: 0.3), value: selectedSpecialty)
+                    .animation(.easeInOut(duration: 0.3), value: selectedDoctor)
+                    .animation(.easeInOut(duration: 0.3), value: selectedTimeSlot)
+                    .animation(.easeInOut(duration: 0.3), value: isDatePickerExpanded)
+                }
             }
         }
         .navigationTitle("New Appointment")
@@ -95,7 +120,19 @@ struct ScheduleAppointmentView: View {
         .alert("Cannot Schedule Appointment", isPresented: $showErrorAlert) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text("Already Booked a slot for this day. Please try again later.")
+            Text("Already booked a slot for this day. Please try again later.")
+        }
+        .onAppear {
+            loadData()
+        }
+    }
+    
+    private func loadData() {
+        DoctorData.fetchDoctors {
+            isDataLoaded = true
+            if DoctorData.specialties.isEmpty {
+                isDataLoadFailed = true
+            }
         }
     }
     
@@ -129,7 +166,7 @@ struct ScheduleAppointmentView: View {
             .padding(.horizontal, 20)
             
             Menu {
-                ForEach(specialties, id: \.self) { specialty in
+                ForEach(DoctorData.specialties, id: \.self) { specialty in
                     Button(action: {
                         selectedSpecialty = specialty
                         selectedDoctor = ""
@@ -176,12 +213,12 @@ struct ScheduleAppointmentView: View {
             .padding(.horizontal, 20)
             
             Menu {
-                ForEach(doctors[selectedSpecialty] ?? [], id: \.name) { doctor in
+                ForEach(DoctorData.doctors[selectedSpecialty] ?? [], id: \.id) { doctor in
                     Button(action: {
-                        selectedDoctor = doctor.name
+                        selectedDoctor = doctor.doctor_name
                         selectedTimeSlot = ""
                     }) {
-                        Text(doctor.name)
+                        Text(doctor.doctor_name)
                     }
                 }
             } label: {
@@ -550,7 +587,10 @@ struct ScheduleAppointmentView: View {
             return
         }
         
-        let doctorId = "DOC\(selectedDoctor.hashValue)"
+        // Find doctor_id based on selectedDoctor
+        let doctor = DoctorData.doctors[selectedSpecialty]?.first { $0.doctor_name == selectedDoctor }
+        let doctorId = doctor?.id ?? "DOC002" // Default to DOC002 if not found
+        
         let followUpDate = calendar.date(byAdding: .day, value: 7, to: appointmentDateTime) ?? Date()
         
         let appointmentData: [String: Any] = [
@@ -571,7 +611,7 @@ struct ScheduleAppointmentView: View {
         db.collection("appointments").document(appointmentId).setData(appointmentData) { error in
             isLoading = false
             if let error = error {
-                errorMessage = "Failed to schedule appointment"
+                errorMessage = "Failed to schedule appointment: \(error.localizedDescription)"
                 showErrorAlert = true
             } else {
                 showSuccessAlert = true
@@ -596,4 +636,3 @@ struct ScheduleAppointmentView_Previews: PreviewProvider {
         }
     }
 }
-
