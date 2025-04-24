@@ -19,6 +19,7 @@ struct CustomTextField: UIViewRepresentable {
         textField.layer.borderColor = UIColor.lightGray.cgColor
         textField.layer.borderWidth = 1.0
         textField.backgroundColor = .white
+        textField.isSecureTextEntry = isSecure
         updatePlaceholder(textField)
         return textField
     }
@@ -29,6 +30,7 @@ struct CustomTextField: UIViewRepresentable {
         uiView.layer.borderColor = UIColor.lightGray.cgColor
         uiView.layer.borderWidth = 1.0
         uiView.backgroundColor = .white
+        uiView.isSecureTextEntry = isSecure
         updatePlaceholder(uiView)
     }
 
@@ -67,6 +69,7 @@ struct LoginView: View {
     @State private var navigateToTab = false
     @State private var tabDestination: AnyView?
     @State private var showInvalidStaffAlert = false
+    @State private var showEmptyFieldsAlert = false
 
     var body: some View {
         NavigationStack {
@@ -93,21 +96,47 @@ struct LoginView: View {
                     showRegister: $showRegister,
                     loginAction: {
                         if username.isEmpty || password.isEmpty {
+                            showEmptyFieldsAlert = true
                             return
                         }
                         switch selectedRole {
                         case .patient:
-                            let patient = Patient(
-                                fullName: username,
-                                username: username, // Added username parameter
-                                generatedID: "P000000",
-                                age: "",
-                                previousProblems: "",
-                                allergies: "",
-                                medications: ""
-                            )
-                            tabDestination = AnyView(PatientTabView(username: username, patient: patient))
-                            navigateToTab = true
+                            if let storedData = UserDefaults.standard.data(forKey: "patientF"),
+                               let storedPatient = try? JSONDecoder().decode(PatientF.self, from: storedData),
+                               storedPatient.username == username,
+                               storedPatient.userData.Password == password {
+                                tabDestination = AnyView(PatientTabView(username: username, patient: storedPatient))
+                                navigateToTab = true
+                            } else {
+                                // Create a temporary patient for navigation (for testing purposes)
+                                let patient = PatientF(
+                                    emergencyContact: [],
+                                    medicalRecords: [],
+                                    testResults: [],
+                                    userData: UserData(
+                                        Address: "123 Main St",
+                                        Dob: "01/01/1990",
+                                        Email: "\(username)@example.com",
+                                        Name: username,
+                                        Password: password,
+                                        aadharNo: "",
+                                        phoneNo: "1234567890"
+                                    ),
+                                    vitals: Vitals(
+                                        allergies: [],
+                                        bp: [],
+                                        heartRate: [],
+                                        height: [],
+                                        temperature: [],
+                                        weight: []
+                                    ),
+                                    lastModified: Date(),
+                                    patientId: "P000000",
+                                    username: username
+                                )
+                                tabDestination = AnyView(PatientTabView(username: username, patient: patient))
+                                navigateToTab = true
+                            }
                         case .staff:
                             AuthManager.shared.login(username: username, password: password) { success in
                                 if success {
@@ -115,6 +144,9 @@ struct LoginView: View {
                                         tabDestination = AnyView(DoctorTabView())
                                     } else if username.uppercased().hasPrefix("A") {
                                         tabDestination = AnyView(AdminTabView())
+                                    } else {
+                                        showInvalidStaffAlert = true
+                                        return
                                     }
                                     navigateToTab = true
                                 } else {
@@ -141,6 +173,11 @@ struct LoginView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text("Staff username should start with 'D' for Doctor or 'A' for Admin.")
+            }
+            .alert("Empty Fields", isPresented: $showEmptyFieldsAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Please fill in both username and password.")
             }
         }
     }
@@ -256,3 +293,15 @@ struct LoginView_Previews: PreviewProvider {
     }
 }
 
+//// Placeholder for AuthManager
+//class AuthManager {
+//    static let shared = AuthManager()
+//
+//    func login(username: String, password: String, completion: @escaping (Bool) -> Void) {
+//        if username.uppercased().hasPrefix("D") || username.uppercased().hasPrefix("A") {
+//            completion(true)
+//        } else {
+//            completion(false)
+//        }
+//    }
+//}

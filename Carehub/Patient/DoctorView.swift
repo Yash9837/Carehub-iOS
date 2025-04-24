@@ -1,39 +1,75 @@
 import SwiftUI
-
 struct DoctorView: View {
-    let specialties = DoctorData.specialties
+    @State private var specialties: [String] = []
+    @State private var isDataLoaded = false
+    @State private var isDataLoadFailed = false
     let columns = [GridItem(.flexible()), GridItem(.flexible())]
-    
     var body: some View {
         NavigationView {
             ZStack {
-                // Background color from first design
                 Color(red: 0.94, green: 0.94, blue: 1.0)
                     .edgesIgnoringSafeArea(.all)
-                
-                ScrollView {
-                    VStack(spacing: 20) {
-                        Text("Select a Specialty")
-                            .font(.system(size: 28, weight: .bold))
-                            .padding(.top, 16)
-                            .padding(.bottom, 8)
-                            .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                        
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(specialties, id: \.self) { specialty in
-                                NavigationLink(destination: SpecialtyDoctorsView(selectedSpecialty: specialty)) {
-                                    SpecialtyCard(specialty: specialty)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
+                if !isDataLoaded && !isDataLoadFailed {
+                    ProgressView()
+                        .tint(Color(red: 0.43, green: 0.34, blue: 0.99))
+                        .padding()
+                } else if isDataLoadFailed {
+                    VStack {
+                        Text("Failed to load specialties")
+                            .foregroundColor(.red)
+                            .font(.system(size: 18, weight: .medium))
+                        Button(action: {
+                            isDataLoaded = false
+                            isDataLoadFailed = false
+                            loadData()
+                        }) {
+                            Text("Retry")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                .cornerRadius(10)
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 24)
+                    }
+                    .padding()
+                } else {
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            Text("Select a Specialty")
+                                .font(.system(size: 28, weight: .bold))
+                                .padding(.top, 16)
+                                .padding(.bottom, 8)
+                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                            
+                            LazyVGrid(columns: columns, spacing: 16) {
+                                ForEach(specialties, id: \.self) { specialty in
+                                    NavigationLink(destination: SpecialtyDoctorsView(selectedSpecialty: specialty)) {
+                                        SpecialtyCard(specialty: specialty)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 24)
+                        }
                     }
                 }
             }
             .navigationTitle("Doctors")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                loadData()
+            }
+        }
+    }
+    
+    private func loadData() {
+        DoctorData.fetchDoctors {
+            specialties = DoctorData.specialties
+            isDataLoaded = true
+            if specialties.isEmpty {
+                isDataLoadFailed = true
+            }
         }
     }
 }
@@ -41,7 +77,6 @@ struct DoctorView: View {
 struct SpecialtyCard: View {
     let specialty: String
     
-    // Map specialties to appropriate icons
     var iconName: String {
         switch specialty {
         case "Cardiology": return "heart.fill"
@@ -62,14 +97,12 @@ struct SpecialtyCard: View {
     
     var body: some View {
         VStack(spacing: 14) {
-            // Icon with consistent size and styling
             Image(systemName: iconName)
                 .font(.system(size: 32))
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                 .frame(height: 36)
                 .padding(.top, 8)
             
-            // Specialty name with consistent positioning
             Text(specialty)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.black)
@@ -86,102 +119,139 @@ struct SpecialtyCard: View {
 struct SpecialtyDoctorsView: View {
     let selectedSpecialty: String
     @State private var searchText = ""
-    @State private var sortByExp = false // False for ascending, true for descending
-    let doctors = DoctorData.doctors
+    @State private var sortByExp = false
+    @State private var doctors: [Doctor] = []
+    @State private var isDataLoaded = false
+    @State private var isDataLoadFailed = false
     
-    var filteredDoctors: [(name: String, experience: Int, imageName: String)] {
-        let filtered = doctors[selectedSpecialty]?.filter { doctor in
-            searchText.isEmpty || doctor.name.lowercased().contains(searchText.lowercased())
-        } ?? []
-        return sortByExp ? filtered.sorted { $0.experience > $1.experience } : filtered.sorted { $0.experience < $1.experience }
+    var filteredDoctors: [Doctor] {
+        let filtered = doctors.filter { doctor in
+            searchText.isEmpty || doctor.doctor_name.lowercased().contains(searchText.lowercased())
+        }
+        return sortByExp ? filtered.sorted { ($0.doctor_experience ?? 0) > ($1.doctor_experience ?? 0) } : filtered.sorted { ($0.doctor_experience ?? 0) < ($1.doctor_experience ?? 0) }
     }
 
     var body: some View {
         ZStack {
-            // Background color from first design
             Color(red: 0.94, green: 0.94, blue: 1.0)
                 .edgesIgnoringSafeArea(.all)
             
-            ScrollView {
-                VStack(spacing: 0) {
-                    HStack {
+            if !isDataLoaded && !isDataLoadFailed {
+                ProgressView()
+                    .tint(Color(red: 0.43, green: 0.34, blue: 0.99))
+                    .padding()
+            } else if isDataLoadFailed {
+                VStack {
+                    Text("Failed to load doctors")
+                        .foregroundColor(.red)
+                        .font(.system(size: 18, weight: .medium))
+                    Button(action: {
+                        isDataLoaded = false
+                        isDataLoadFailed = false
+                        loadDoctors()
+                    }) {
+                        Text("Retry")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color(red: 0.43, green: 0.34, blue: 0.99))
+                            .cornerRadius(10)
+                    }
+                }
+                .padding()
+            } else {
+                ScrollView {
+                    VStack(spacing: 0) {
                         HStack {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                .font(.system(size: 18))
-                                .padding(.leading, 12)
+                            HStack {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                    .font(.system(size: 18))
+                                    .padding(.leading, 12)
+                                
+                                TextField("Search by doctor name...", text: $searchText)
+                                    .font(.system(size: 16))
+                                    .padding(.vertical, 12)
+                            }
+                            .background(Color.white)
+                            .cornerRadius(12)
+                            .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+                            .padding(.leading, 16)
                             
-                            TextField("Search by doctor name...", text: $searchText)
-                                .font(.system(size: 16))
-                                .padding(.vertical, 12)
+                            Menu {
+                                Button(action: { sortByExp = false }) {
+                                    Text("Sort by Exp (Low to High)")
+                                }
+                                Button(action: { sortByExp = true }) {
+                                    Text("Sort by Exp (High to Low)")
+                                }
+                            } label: {
+                                Image(systemName: "slider.horizontal.3")
+                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                    .font(.system(size: 20))
+                                    .padding(.trailing, 16)
+                                    .padding(.vertical, 12)
+                            }
                         }
-                        .background(Color.white)
-                        .cornerRadius(12)
-                        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
-                        .padding(.leading, 16)
+                        .padding(.top, 16)
+                        .padding(.bottom, 16)
+                        .padding(.trailing, 16)
                         
-                        // Filter button
-                        Menu {
-                            Button(action: { sortByExp = false }) {
-                                Text("Sort by Exp (Low to High)")
-                            }
-                            Button(action: { sortByExp = true }) {
-                                Text("Sort by Exp (High to Low)")
-                            }
-                        } label: {
-                            Image(systemName: "slider.horizontal.3")
+                        HStack {
+                            Text(selectedSpecialty)
+                                .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                .font(.system(size: 20))
-                                .padding(.trailing, 16)
-                                .padding(.vertical, 12)
+                            
+                            Text("(\(filteredDoctors.count))")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.gray)
+                            
+                            Spacer()
                         }
-                    }
-                    .padding(.top, 16)
-                    .padding(.bottom, 16)
-                    .padding(.trailing, 16)
-                    
-                    HStack {
-                        Text(selectedSpecialty)
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 14)
                         
-                        Text("(\(filteredDoctors.count))")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.gray)
-                        
-                        Spacer()
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 14)
-                    
-                    LazyVStack(spacing: 0) {
-                        ForEach(filteredDoctors, id: \.name) { doctor in
-                            Button(action: {
-                                print("Selected doctor: \(doctor.name)")
-                            }) {
-                                DoctorCardView(
-                                    name: doctor.name,
-                                    specialty: selectedSpecialty,
-                                    experience: doctor.experience,
-                                    imageName: doctor.imageName
-                                )
+                        LazyVStack(spacing: 0) {
+                            ForEach(filteredDoctors, id: \.id) { doctor in
+                                Button(action: {
+                                    print("Selected doctor: \(doctor.doctor_name)")
+                                }) {
+                                    DoctorCardView(
+                                        name: doctor.doctor_name,
+                                        specialty: selectedSpecialty,
+                                        experience: doctor.doctor_experience ?? 0, // Safely unwrap with default
+                                        imageName: "person.circle.fill"
+                                    )
+                                }
+                                .buttonStyle(PlainButtonStyle())
                             }
-                            .buttonStyle(PlainButtonStyle())
                         }
+                        .padding(.bottom, 24)
                     }
-                    .padding(.bottom, 24)
                 }
             }
         }
         .navigationTitle(selectedSpecialty)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            loadDoctors()
+        }
+    }
+    
+    private func loadDoctors() {
+        let filteredDoctors = DoctorData.doctors[selectedSpecialty] ?? []
+        doctors = filteredDoctors
+        isDataLoaded = true
+        if doctors.isEmpty {
+            isDataLoadFailed = true
+        }
     }
 }
 
 struct DoctorCardView: View {
     let name: String
     let specialty: String
-    let experience: Int
+    let experience: Int // Keep as Int since we provide a default
     let imageName: String
     
     var body: some View {
@@ -205,7 +275,6 @@ struct DoctorCardView: View {
                 .clipShape(Circle())
                 .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.3), radius: 5, x: 0, y: 3)
             
-            // Doctor Details with adjusted typography
             VStack(alignment: .leading, spacing: 6) {
                 Text(name)
                     .font(.system(size: 18, weight: .semibold))
@@ -230,7 +299,6 @@ struct DoctorCardView: View {
             
             Spacer()
             
-            // Book button
             Button(action: {
                 print("Book appointment for \(name)")
             }) {
@@ -263,4 +331,3 @@ struct DoctorView_Previews: PreviewProvider {
         DoctorView()
     }
 }
-
