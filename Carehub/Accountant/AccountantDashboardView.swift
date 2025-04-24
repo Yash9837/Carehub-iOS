@@ -34,7 +34,7 @@ struct AccountantDashboard: View {
                         )
                         .edgesIgnoringSafeArea(.all)
                     }
-                    
+                  
                     ScrollView {
                         VStack(alignment: .leading, spacing: 24) {
                             VStack(alignment: .leading, spacing: 8) {

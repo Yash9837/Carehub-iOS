@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseFirestore
 
 struct ScheduleAppointmentView: View {
     @State private var selectedSpecialty = ""
@@ -6,17 +7,13 @@ struct ScheduleAppointmentView: View {
     @State private var selectedDate = Date()
     @State private var selectedTimeSlot = ""
     @State private var isDatePickerExpanded = false
-    
-    let specialties = ["Cardiology", "Dermatology", "Neurology", "Pediatrics", "Orthopedics", "General Practice"]
-    
-    let doctors: [String: [String]] = [
-        "Cardiology": ["Dr. Rasheed Idris", "Dr. Kenny Adeola", "Dr. Johnson"],
-        "Dermatology": ["Dr. Taiwo", "Dr. Nkechi Okeli"],
-        "Neurology": ["Dr. Smith", "Dr. Williams"],
-        "Pediatrics": ["Dr. Brown", "Dr. Davis"],
-        "Orthopedics": ["Dr. Miller", "Dr. Wilson"],
-        "General Practice": ["Dr. Taylor", "Dr. Anderson"]
-    ]
+    @State private var description: String = ""
+    @State private var showSuccessAlert = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
+    @State private var isLoading = false
+    let specialties = DoctorData.specialties
+    let doctors = DoctorData.doctors
     
     private var timeSlots: [String] {
         var slots = [String]()
@@ -46,36 +43,35 @@ struct ScheduleAppointmentView: View {
         Color(red: 0.55, green: 0.48, blue: 0.99)
     ]
     
+    private let currentPatientId = "PT001" // Example patient ID
+    
     var body: some View {
         ZStack {
-            // Background
             Color(red: 0.94, green: 0.94, blue: 1.0)
                 .edgesIgnoringSafeArea(.all)
             
             ScrollView {
                 VStack(spacing: 20) {
-                    // Header with improved styling
                     headerView
                     
-                    // Specialty Selection
                     specialtySelectionSection
                     
-                    // Doctor Selection (only shown when specialty is selected)
                     if !selectedSpecialty.isEmpty {
                         doctorSelectionSection
                     }
                     
-                    // Date Selection (only shown when doctor is selected)
                     if !selectedDoctor.isEmpty {
                         dateSelectionSection
                     }
                     
-                    // Time Slots (only shown when date is selected)
                     if !selectedDoctor.isEmpty {
                         timeSlotSelectionSection
                     }
                     
-                    // Confirm Button (only shown when all fields are selected)
+                    if !selectedDoctor.isEmpty {
+                        descriptionField
+                    }
+                    
                     if !selectedSpecialty.isEmpty && !selectedDoctor.isEmpty && !selectedTimeSlot.isEmpty {
                         confirmButtonSection
                     }
@@ -91,8 +87,19 @@ struct ScheduleAppointmentView: View {
         }
         .navigationTitle("New Appointment")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("Appointment Scheduled", isPresented: $showSuccessAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Your appointment has been successfully scheduled.")
+        }
+        .alert("Cannot Schedule Appointment", isPresented: $showErrorAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Already Booked a slot for this day. Please try again later.")
+        }
     }
     
+    // MARK: - View Components
     private var headerView: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Book Appointment")
@@ -110,7 +117,6 @@ struct ScheduleAppointmentView: View {
     
     private var specialtySelectionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Section title with icon
             HStack(spacing: 8) {
                 Image(systemName: "stethoscope")
                     .font(.system(size: 18))
@@ -122,7 +128,6 @@ struct ScheduleAppointmentView: View {
             }
             .padding(.horizontal, 20)
             
-            // Specialty selector
             Menu {
                 ForEach(specialties, id: \.self) { specialty in
                     Button(action: {
@@ -159,7 +164,6 @@ struct ScheduleAppointmentView: View {
     
     private var doctorSelectionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Section title with icon
             HStack(spacing: 8) {
                 Image(systemName: "person.fill")
                     .font(.system(size: 18))
@@ -171,14 +175,13 @@ struct ScheduleAppointmentView: View {
             }
             .padding(.horizontal, 20)
             
-            // Doctor selector
             Menu {
-                ForEach(doctors[selectedSpecialty] ?? [], id: \.self) { doctor in
+                ForEach(doctors[selectedSpecialty] ?? [], id: \.name) { doctor in
                     Button(action: {
-                        selectedDoctor = doctor
+                        selectedDoctor = doctor.name
                         selectedTimeSlot = ""
                     }) {
-                        Text(doctor)
+                        Text(doctor.name)
                     }
                 }
             } label: {
@@ -203,12 +206,10 @@ struct ScheduleAppointmentView: View {
                 .padding(.horizontal, 20)
             }
         }
-        .transition(.opacity)
     }
     
     private var dateSelectionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Section title with icon
             HStack(spacing: 8) {
                 Image(systemName: "calendar")
                     .font(.system(size: 18))
@@ -222,7 +223,6 @@ struct ScheduleAppointmentView: View {
             
             VStack {
                 if !isDatePickerExpanded {
-                    // Collapsed date view
                     Button(action: {
                         withAnimation {
                             isDatePickerExpanded.toggle()
@@ -248,7 +248,6 @@ struct ScheduleAppointmentView: View {
                         )
                     }
                 } else {
-                    // Expanded date picker
                     VStack {
                         DatePicker(
                             "Select Date",
@@ -260,7 +259,6 @@ struct ScheduleAppointmentView: View {
                         .accentColor(purpleColor)
                         .padding(.top, 8)
                         
-                        // Done button
                         Button(action: {
                             withAnimation {
                                 isDatePickerExpanded.toggle()
@@ -293,12 +291,10 @@ struct ScheduleAppointmentView: View {
             }
             .padding(.horizontal, 20)
         }
-        .transition(.opacity)
     }
     
     private var timeSlotSelectionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Section title with icon
             HStack(spacing: 8) {
                 Image(systemName: "clock.fill")
                     .font(.system(size: 18))
@@ -311,7 +307,6 @@ struct ScheduleAppointmentView: View {
             .padding(.horizontal, 20)
             
             VStack(alignment: .leading, spacing: 16) {
-                // Date display with indicator
                 HStack(spacing: 8) {
                     Image(systemName: "calendar.badge.clock")
                         .foregroundColor(purpleColor.opacity(0.8))
@@ -323,7 +318,6 @@ struct ScheduleAppointmentView: View {
                 }
                 .padding(.horizontal, 16)
                 
-                // Time slots grid
                 LazyVGrid(columns: [
                     GridItem(.flexible()),
                     GridItem(.flexible()),
@@ -371,12 +365,36 @@ struct ScheduleAppointmentView: View {
             )
             .padding(.horizontal, 20)
         }
-        .transition(.opacity)
+    }
+    
+    private var descriptionField: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "text.bubble")
+                    .font(.system(size: 18))
+                    .foregroundColor(purpleColor)
+                
+                Text("Description (Optional)")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.black)
+            }
+            .padding(.horizontal, 20)
+            
+            TextField("Brief description of your appointment", text: $description)
+                .font(.system(size: 16))
+                .padding(.vertical, 14)
+                .padding(.horizontal, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white)
+                        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+                )
+                .padding(.horizontal, 20)
+        }
     }
     
     private var confirmButtonSection: some View {
         VStack(spacing: 20) {
-            // Appointment Summary
             VStack(alignment: .leading, spacing: 16) {
                 Text("Appointment Summary")
                     .font(.system(size: 18, weight: .semibold))
@@ -387,6 +405,9 @@ struct ScheduleAppointmentView: View {
                     summaryRow(icon: "person.fill", title: "Doctor", value: selectedDoctor)
                     summaryRow(icon: "calendar", title: "Date", value: formattedDate(selectedDate))
                     summaryRow(icon: "clock.fill", title: "Time", value: selectedTimeSlot)
+                    if !description.isEmpty {
+                        summaryRow(icon: "text.bubble", title: "Description", value: description)
+                    }
                 }
                 .padding(16)
                 .background(
@@ -400,19 +421,22 @@ struct ScheduleAppointmentView: View {
             }
             .padding(.horizontal, 20)
             
-            // Confirm Button
             Button(action: {
-                // Handle appointment confirmation
-                print("Appointment scheduled with \(selectedDoctor) at \(selectedTimeSlot) on \(formattedDate(selectedDate))")
+                scheduleAppointment()
             }) {
                 HStack {
-                    Text("Confirm Appointment")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.white)
-                    
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(.white)
+                    if isLoading {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Text("Confirm Appointment")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white)
+                        
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white)
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
@@ -425,12 +449,13 @@ struct ScheduleAppointmentView: View {
                     .cornerRadius(12)
                     .shadow(color: purpleColor.opacity(0.3), radius: 8, x: 0, y: 4)
                 )
+                .disabled(isLoading)
             }
             .padding(.horizontal, 20)
         }
-        .transition(.opacity)
     }
     
+    // MARK: - Helper Functions
     private func summaryRow(icon: String, title: String, value: String) -> some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: icon)
@@ -464,6 +489,104 @@ struct ScheduleAppointmentView: View {
         formatter.dateFormat = "EEEE, MMM d, yyyy"
         return formatter.string(from: date)
     }
+    
+    // MARK: - Appointment Scheduling Logic
+    private func scheduleAppointment() {
+        isLoading = true
+        
+        let calendar = Calendar.current
+        let startOfSelectedDate = calendar.startOfDay(for: selectedDate)
+        let endOfSelectedDate = calendar.date(byAdding: .day, value: 1, to: startOfSelectedDate)!
+        
+        let db = Firestore.firestore()
+        
+        // Check for existing appointments on this date
+        db.collection("appointments")
+            .whereField("patientId", isEqualTo: currentPatientId)
+            .whereField("Date", isGreaterThanOrEqualTo: startOfSelectedDate)
+            .whereField("Date", isLessThan: endOfSelectedDate)
+            .getDocuments { [self] (querySnapshot, error) in
+                if let error = error {
+                    errorMessage = "Error checking appointments: \(error.localizedDescription)"
+                    showErrorAlert = true
+                    isLoading = false
+                    return
+                }
+                
+                guard let documents = querySnapshot?.documents, documents.isEmpty else {
+                    errorMessage = "You already have an appointment scheduled for this day. Please choose another date."
+                    showErrorAlert = true
+                    isLoading = false
+                    return
+                }
+                
+                // No existing appointment - proceed to create new one
+                createNewAppointment()
+            }
+    }
+    
+    private func createNewAppointment() {
+        let appointmentId = "APT\(UUID().uuidString.prefix(6))"
+        let calendar = Calendar.current
+        
+        // Combine date and time
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "h:mm a"
+        guard let timeDate = timeFormatter.date(from: selectedTimeSlot) else {
+            isLoading = false
+            errorMessage = "Invalid time format"
+            showErrorAlert = true
+            return
+        }
+        
+        let timeComponents = calendar.dateComponents([.hour, .minute], from: timeDate)
+        guard let appointmentDateTime = calendar.date(bySettingHour: timeComponents.hour ?? 0,
+                                                      minute: timeComponents.minute ?? 0,
+                                                      second: 0,
+                                                      of: selectedDate) else {
+            isLoading = false
+            errorMessage = "Could not create appointment date"
+            showErrorAlert = true
+            return
+        }
+        
+        let doctorId = "DOC\(selectedDoctor.hashValue)"
+        let followUpDate = calendar.date(byAdding: .day, value: 7, to: appointmentDateTime) ?? Date()
+        
+        let appointmentData: [String: Any] = [
+            "Date": appointmentDateTime,
+            "Description": description.isEmpty ? "Annual Checkup" : description,
+            "Status": "scheduled",
+            "apptId": appointmentId,
+            "billingStatus": "pending",
+            "docId": doctorId,
+            "doctorNotes": "",
+            "followUpDate": followUpDate,
+            "followUpRequired": false,
+            "patientId": currentPatientId,
+            "prescriptionId": ""
+        ]
+        
+        let db = Firestore.firestore()
+        db.collection("appointments").document(appointmentId).setData(appointmentData) { error in
+            isLoading = false
+            if let error = error {
+                errorMessage = "Failed to schedule appointment"
+                showErrorAlert = true
+            } else {
+                showSuccessAlert = true
+                resetForm()
+            }
+        }
+    }
+    
+    private func resetForm() {
+        selectedSpecialty = ""
+        selectedDoctor = ""
+        selectedDate = Date()
+        selectedTimeSlot = ""
+        description = ""
+    }
 }
 
 struct ScheduleAppointmentView_Previews: PreviewProvider {
@@ -473,3 +596,4 @@ struct ScheduleAppointmentView_Previews: PreviewProvider {
         }
     }
 }
+

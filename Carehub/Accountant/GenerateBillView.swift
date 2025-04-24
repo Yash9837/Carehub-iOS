@@ -21,7 +21,6 @@ struct GenerateBillView: View {
             backgroundColor.edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 0) {
-                // Header with search
                 VStack(spacing: 16) {
                     Text("Generate Bill")
                         .font(.title)
@@ -142,7 +141,7 @@ struct GenerateBillView: View {
             Alert(title: Text("Status"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
     }
-    
+
     private func triggerSearch() {
         guard !patientIdInput.isEmpty else { return }
         viewModel.fetchAppointments(forPatientId: patientIdInput)

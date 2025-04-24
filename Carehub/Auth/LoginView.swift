@@ -99,6 +99,7 @@ struct LoginView: View {
                         case .patient:
                             let patient = Patient(
                                 fullName: username,
+                                username: username, // Added username parameter
                                 generatedID: "P000000",
                                 age: "",
                                 previousProblems: "",
@@ -119,7 +120,8 @@ struct LoginView: View {
                                 } else {
                                     showInvalidStaffAlert = true
                                 }
-                            }                }
+                            }
+                        }
                     }
                 )
             }
@@ -243,13 +245,14 @@ struct LoginButton: View {
             )
             .padding(.horizontal, 10)
         }
-        
         .scaleEffect(animate ? 1 : 0.9)
         .opacity(animate ? 1 : 0)
     }
 }
+
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
         LoginView()
     }
 }
+

@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ProfileView_patient: View {
     let patient: Patient
-    
     var body: some View {
         NavigationView {
             ZStack {
@@ -38,6 +37,9 @@ struct ProfileView_patient: View {
                                     Text("ID: \(patient.generatedID)")
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                    Text("Username: \(patient.username)")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                                 }
                                 Spacer()
                             }
@@ -62,6 +64,7 @@ struct ProfileView_patient: View {
                             ProfileRow(title: "Patient ID", value: patient.generatedID, icon: "number")
                             ProfileRow(title: "Full Name", value: patient.fullName, icon: "person.fill")
                             ProfileRow(title: "Age", value: patient.age, icon: "calendar")
+                            ProfileRow(title: "Username", value: patient.username, icon: "person.fill")
                         }
                         .padding(.vertical, 14)
                         .padding(.horizontal, 16)
@@ -436,13 +439,13 @@ struct EditProfileView: View {
             // Join arrays into comma-separated strings and save
             let updatedPatient = Patient(
                 fullName: fullName,
+                username: patient.username,
                 generatedID: patient.generatedID,
                 age: age,
                 previousProblems: previousProblems.filter { !$0.isEmpty }.joined(separator: ", "),
                 allergies: allergies.filter { !$0.isEmpty }.joined(separator: ", "),
                 medications: medications.filter { !$0.isEmpty }.joined(separator: ", ")
             )
-            // Here you would handle saving the updated patient data
         }) {
             Text("Save Changes")
                 .font(.system(size: 16, weight: .semibold))
@@ -517,7 +520,7 @@ struct EditableItemsSection: View {
                     .foregroundColor(.red)
                     .font(.system(size: 22))
             }
-            .padding(.trailing, 8)  // Fixed: using correct number format
+            .padding(.trailing, 8)
         }
     }
     
@@ -545,6 +548,7 @@ struct EditableItemsSection: View {
 #Preview {
     let samplePatient = Patient(
         fullName: "John Doe",
+        username: "johndoe123",
         generatedID: "P123456",
         age: "30",
         previousProblems: "Asthma",
@@ -553,3 +557,4 @@ struct EditableItemsSection: View {
     )
     return ProfileView_patient(patient: samplePatient)
 }
+

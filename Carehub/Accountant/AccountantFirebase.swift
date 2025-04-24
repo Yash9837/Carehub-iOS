@@ -124,7 +124,6 @@ class GenerateBillViewModel: ObservableObject {
                         print("No appointments found for patientId: \(patientId)")
                         return
                     }
-                    
                     var paid: [Appointment] = []
                     var unpaid: [Appointment] = []
                     
@@ -167,7 +166,7 @@ class GenerateBillViewModel: ObservableObject {
                         if let timestamp = data["followUpDate"] as? Timestamp {
                             followUpDate = timestamp.dateValue()
                         }
-                        
+                       
                         
                         let appointment = Appointment(
                             id: id,

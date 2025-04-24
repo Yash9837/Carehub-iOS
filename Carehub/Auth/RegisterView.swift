@@ -3,6 +3,7 @@ import CryptoKit
 
 struct Patient: Codable {
     let fullName: String
+    let username: String
     let generatedID: String
     let age: String
     let previousProblems: String
@@ -66,6 +67,7 @@ struct RegisterView: View {
     
     @State private var currentStep: RegistrationStep = .credentials
     @State private var name = ""
+    @State private var username = ""
     @State private var password = ""
     @State private var generatedID = ""
     @State private var showPasswordAlert = false
@@ -174,7 +176,7 @@ struct RegisterView: View {
             }
             .navigationDestination(isPresented: $navigateToPatientTab) {
                 if let patient = patient {
-                    PatientTabView(username: name, patient: patient)
+                    PatientTabView(username: patient.username, patient: patient)
                 }
             }
             .navigationDestination(isPresented: $navigateToLogin) {
@@ -187,6 +189,9 @@ struct RegisterView: View {
         VStack(spacing: 15) {
             CareHubTextField(text: $name, placeholder: "Full Name", isSecure: false)
                 .accessibilityLabel("Full Name")
+            
+            CareHubTextField(text: $username, placeholder: "Username", isSecure: false)
+                .accessibilityLabel("Username")
             
             CareHubTextField(text: $password, placeholder: "Password", isSecure: true)
                 .accessibilityLabel("Password")
@@ -236,7 +241,7 @@ struct RegisterView: View {
         // Validate current step before proceeding
         switch currentStep {
         case .credentials:
-            if name.trimmingCharacters(in: .whitespaces).isEmpty || password.trimmingCharacters(in: .whitespaces).isEmpty {
+            if name.trimmingCharacters(in: .whitespaces).isEmpty || password.trimmingCharacters(in: .whitespaces).isEmpty || username.trimmingCharacters(in: .whitespaces).isEmpty {
                 showPasswordAlert = true
                 return
             }
@@ -246,29 +251,26 @@ struct RegisterView: View {
                 return
             }
         case .healthInfo:
-            break // Optional fields
+            break
         }
-        
+
         if currentStep == .healthInfo {
-            // Complete registration and navigate directly to PatientTabView
             generatedID = generateUniqueID(name: name, role: "Patient")
             patient = Patient(
                 fullName: name,
+                username: username,
                 generatedID: generatedID,
                 age: age,
                 previousProblems: previousProblems,
                 allergies: allergies,
                 medications: medications
             )
-            
-            // Store patient data
             if let patient = patient, let encoded = try? JSONEncoder().encode(patient) {
                 UserDefaults.standard.set(encoded, forKey: "patient")
             }
             
             navigateToPatientTab = true
         } else {
-            // Go to next step
             withAnimation {
                 currentStep = RegistrationStep(rawValue: currentStep.rawValue + 1) ?? .credentials
             }
@@ -297,3 +299,4 @@ struct RegisterView_Previews: PreviewProvider {
         RegisterView()
     }
 }
+

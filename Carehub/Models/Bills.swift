@@ -22,7 +22,6 @@ struct Billing: Identifiable {
     var paymentMode: String
 }
 
-
 struct BillItem {
     var fee: Double
     var isPaid: Bool
