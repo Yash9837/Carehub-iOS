@@ -30,7 +30,6 @@ struct Shift{
     var startTime: String
 }
 
-
 // Combined data structure to link MedicalTest with Patient1
 struct PatientWithTest: Identifiable {
     let id: String // Use medicalTest id
@@ -115,4 +114,3 @@ struct TestResult: Identifiable, Codable {
         self.notes = notes
     }
 }
-
