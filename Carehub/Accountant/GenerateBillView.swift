@@ -101,7 +101,7 @@ struct GenerateBillView: View {
                                         }
                                         
                                         ForEach(viewModel.unpaidAppointments) { appointment in
-                                            AppointmentCard(appointment: appointment, viewModel: viewModel)
+                                            BillingAppointmentCard(appointment: appointment, viewModel: viewModel)
                                         }
                                     }
                                     .padding(.horizontal, 20)
@@ -124,7 +124,7 @@ struct GenerateBillView: View {
                                         }
                                         
                                         ForEach(viewModel.paidAppointments) { appointment in
-                                            AppointmentCard(appointment: appointment, isPaid: true)
+                                            BillingAppointmentCard(appointment: appointment, isPaid: true)
                                         }
                                     }
                                     .padding(.horizontal, 20)
@@ -150,7 +150,7 @@ struct GenerateBillView: View {
 }
 
 // MARK: - Subviews
-struct AppointmentCard: View {
+struct BillingAppointmentCard: View {
     let appointment: Appointment
     var viewModel: GenerateBillViewModel?
     var isPaid: Bool = false
