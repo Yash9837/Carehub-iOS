@@ -17,10 +17,8 @@ struct AccountantDashboard: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Home Tab
             NavigationView {
                 ZStack {
-                    // Dynamic background based on color scheme
                     if colorScheme == .dark {
                         Color(.systemBackground)
                             .edgesIgnoringSafeArea(.all)
@@ -37,10 +35,8 @@ struct AccountantDashboard: View {
                         .edgesIgnoringSafeArea(.all)
                     }
                     
-                    // Content
                     ScrollView {
                         VStack(alignment: .leading, spacing: 24) {
-                            // Header
                             VStack(alignment: .leading, spacing: 8) {
                                 if viewModel.isLoading {
                                     Text("Loading...")
@@ -63,21 +59,15 @@ struct AccountantDashboard: View {
                             .padding(.top, 24)
                             
                             // Accountant Cards Grid
-                            LazyVGrid(columns: [GridItem(.flexible(), spacing: 16), GridItem(.fixed(175), spacing: 16)], spacing: 16) {
+                            VStack(spacing: 16) {
                                 NavigationLink(destination: GenerateBillView()) {
                                     AccountantCard(
                                         title: "Generate Bill",
                                         icon: "doc.text",
                                         color: primaryColor
                                     )
-                                }
-                                
-                                NavigationLink(destination: PendingPaymentsView()) {
-                                    AccountantCard(
-                                        title: "Pending Payments",
-                                        icon: "clock.badge.exclamationmark",
-                                        color: primaryColor
-                                    )
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.horizontal, 24)
                                 }
                                 
                                 NavigationLink(destination: ScheduleFollowupsView()) {
@@ -86,6 +76,8 @@ struct AccountantDashboard: View {
                                         icon: "calendar.badge.clock",
                                         color: primaryColor
                                     )
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.horizontal, 24)
                                 }
                                 
                                 NavigationLink(destination: PaymentHistoryView()) {
@@ -94,28 +86,12 @@ struct AccountantDashboard: View {
                                         icon: "chart.bar.fill",
                                         color: primaryColor
                                     )
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.horizontal, 24)
                                 }
                             }
-                            .padding(.horizontal, 24)
+                            .padding(.top)
 
-                            
-                            // Quick Actions Section
-                            VStack(alignment: .leading, spacing: 16) {
-                                Text("Quick Actions")
-                                    .font(.title)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.primary)
-                                
-                                HStack(spacing: 16) {
-                                    ActionButton(icon: "plus", label: "New Invoice", color: primaryColor)
-                                    ActionButton(icon: "arrow.left.arrow.right", label: "Transfer", color: primaryColor)
-                                }
-                            }
-                            .padding(24)
-                            .background(Color(.secondarySystemBackground))
-                            .cornerRadius(12)
-                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 8, x: 0, y: 4)
-                            .padding(.horizontal, 24)
                         }
                     }
                 }

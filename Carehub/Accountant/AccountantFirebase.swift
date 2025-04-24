@@ -125,16 +125,12 @@ class GenerateBillViewModel: ObservableObject {
                         return
                     }
                     
-                    print("Found \(documents.count) appointment(s) for patientId: \(patientId)")
-                    
                     var paid: [Appointment] = []
                     var unpaid: [Appointment] = []
                     
                     for document in documents {
                         let data = document.data()
                         let id = document.documentID
-                        
-                        print("Processing appointment with documentId: \(id)")
                         
                         // Match the actual fields in your document
                         guard let patientId = data["patientId"] as? String,
@@ -172,7 +168,6 @@ class GenerateBillViewModel: ObservableObject {
                             followUpDate = timestamp.dateValue()
                         }
                         
-                        print("Created appointment: \(description), billingStatus: \(billingStatus)")
                         
                         let appointment = Appointment(
                             id: id,
@@ -200,13 +195,9 @@ class GenerateBillViewModel: ObservableObject {
                     
                     self?.paidAppointments = paid
                     self?.unpaidAppointments = unpaid
-                    
-                    print("Total paid appointments: \(paid.count)")
-                    print("Total unpaid appointments: \(unpaid.count)")
                 }
             }
     }
-
     
     func markAsPaid(appointmentId: String, completion: @escaping (Bool) -> Void) {
         db.collection("appointments").document(appointmentId)
@@ -215,37 +206,83 @@ class GenerateBillViewModel: ObservableObject {
                     if let error = error {
                         print("Error updating appointment: \(error.localizedDescription)")
                         completion(false)
-                    } else {
-                        // Update local data arrays
-                        if let index = self?.unpaidAppointments.firstIndex(where: { $0.id == appointmentId }) {
-                            guard let appointment = self?.unpaidAppointments[index] else {
-                                completion(false)
-                                return
-                            }
-                            
-                            // Create updated appointment with all fields from original appointment
-                            let updatedAppointment = Appointment(
-                                id: appointment.id,
-                                apptId: appointment.apptId,
-                                patientId: appointment.patientId,
-                                description: appointment.description,
-                                docId: appointment.docId,
-                                status: appointment.status,
-                                billingStatus: "paid",
-                                amount: appointment.amount,
-                                date: appointment.date,
-                                doctorsNotes: appointment.doctorsNotes,
-                                prescriptionId: appointment.prescriptionId,
-                                followUpRequired: appointment.followUpRequired,
-                                followUpDate: appointment.followUpDate
-                            )
-                            
-                            self?.paidAppointments.append(updatedAppointment)
-                            self?.unpaidAppointments.remove(at: index)
+                        return
+                    }
+
+                    guard let index = self?.unpaidAppointments.firstIndex(where: { $0.id == appointmentId }),
+                          let appointment = self?.unpaidAppointments[index] else {
+                        completion(false)
+                        return
+                    }
+
+                    // Step 1: Fetch consultation fee from the doctor's document
+                    self?.db.collection("doctors").document(appointment.docId).getDocument { snapshot, error in
+                        if let error = error {
+                            print("Error fetching doctor: \(error.localizedDescription)")
+                            completion(false)
+                            return
                         }
-                        completion(true)
+
+                        guard let data = snapshot?.data(),
+                              let consultationFee = data["consultationFee"] as? Double else {
+                            print("Consultation fee not found or invalid.")
+                            completion(false)
+                            return
+                        }
+
+                        // Step 2: Create updated appointment
+                        let updatedAppointment = Appointment(
+                            id: appointment.id,
+                            apptId: appointment.apptId,
+                            patientId: appointment.patientId,
+                            description: appointment.description,
+                            docId: appointment.docId,
+                            status: appointment.status,
+                            billingStatus: "paid",
+                            amount: consultationFee,
+                            date: appointment.date,
+                            doctorsNotes: appointment.doctorsNotes,
+                            prescriptionId: appointment.prescriptionId,
+                            followUpRequired: appointment.followUpRequired,
+                            followUpDate: appointment.followUpDate
+                        )
+
+                        self?.paidAppointments.append(updatedAppointment)
+                        self?.unpaidAppointments.remove(at: index)
+
+                        // Step 3: Create billing document
+                        let billingId = UUID().uuidString
+                        let billItems: [[String: Any]] = [
+                            [
+                                "fee": consultationFee,
+                                "isPaid": true,
+                                "itemName": appointment.description
+                            ]
+                        ]
+                        let billingData: [String: Any] = [
+                            "billingId": billingId,
+                            "bills": billItems,
+                            "appointmentId": appointment.id,
+                            "billingStatus": "paid",
+                            "date": Timestamp(date: Date()),
+                            "doctorId": appointment.docId,
+                            "insuranceAmt": 0.0,
+                            "paidAmt": consultationFee,
+                            "patientId": appointment.patientId,
+                            "paymentMode": "Cash" // Or make this dynamic
+                        ]
+
+                        self?.db.collection("billing").document(billingId).setData(billingData) { error in
+                            if let error = error {
+                                print("Failed to add billing document: \(error.localizedDescription)")
+                                completion(false)
+                            } else {
+                                completion(true)
+                            }
+                        }
                     }
                 }
             }
     }
+
 }

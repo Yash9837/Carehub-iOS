@@ -7,37 +7,36 @@ struct GenerateBillView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     
-    // Modern minimal color palette
+    // Dynamic color palette that works in light/dark mode
     let accentColor = Color(hex: "6D57FC")
-    let backgroundColor = Color(hex: "F9F9FB")
-    let cardColor = Color.white
+    var backgroundColor: Color {
+        Color(UIColor.systemGroupedBackground)
+    }
+    var cardColor: Color {
+        Color(UIColor.secondarySystemGroupedBackground)
+    }
     
     var body: some View {
         ZStack {
             backgroundColor.edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 0) {
-                // Minimalist header
+                // Header with search
                 VStack(spacing: 16) {
                     Text("Generate Bill")
                         .font(.title)
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    // Clean search bar
+                    // Search bar with explicit search trigger
                     HStack {
                         Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                         
                         TextField("Enter Patient ID", text: $patientIdInput)
-                            .onChange(of: patientIdInput) { _ in
-                                if patientIdInput.count >= 4 {
-                                    viewModel.fetchAppointments(forPatientId: patientIdInput)
-                                }
-                            }
                             .submitLabel(.search)
                             .onSubmit {
-                                viewModel.fetchAppointments(forPatientId: patientIdInput)
+                                triggerSearch()
                             }
                         
                         if !patientIdInput.isEmpty {
@@ -47,19 +46,18 @@ struct GenerateBillView: View {
                                 viewModel.unpaidAppointments = []
                             }) {
                                 Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(.secondary)
                             }
                         }
                         
-                        if patientIdInput.count >= 1 {
-                            Button(action: {
-                                viewModel.fetchAppointments(forPatientId: patientIdInput)
-                            }) {
-                                Image(systemName: "arrow.right.circle.fill")
-                                    .foregroundColor(accentColor)
-                                    .font(.system(size: 20))
-                            }
+                        Button(action: {
+                            triggerSearch()
+                        }) {
+                            Image(systemName: "arrow.right.circle.fill")
+                                .foregroundColor(patientIdInput.isEmpty ? .secondary : accentColor)
+                                .font(.system(size: 20))
                         }
+                        .disabled(patientIdInput.isEmpty)
                     }
                     .padding(12)
                     .background(cardColor)
@@ -70,77 +68,84 @@ struct GenerateBillView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 10)
                 
-                // Status indicator
-                if viewModel.isLoading {
-                    LoadingView()
-                        .padding(.top, 24)
-                } else if let error = viewModel.error {
-                    ErrorView(error: error) {
-                        viewModel.fetchAppointments(forPatientId: patientIdInput)
-                    }
-                    .padding(.top, 24)
-                } else if viewModel.unpaidAppointments.isEmpty && viewModel.paidAppointments.isEmpty {
-                    EmptyStateView()
-                        .padding(.top, 40)
-                } else {
-                    // Content
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 24) {
-                            // Pending payments section
-                            if !viewModel.unpaidAppointments.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack {
-                                        Text("Pending")
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
-                                        
-                                        Spacer()
-                                        
-                                        Text("\(viewModel.unpaidAppointments.count)")
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(accentColor)
-                                    }
-                                    
-                                    ForEach(viewModel.unpaidAppointments) { appointment in
-                                        AppointmentCard(appointment: appointment, viewModel: viewModel)
-                                    }
-                                }
-                                .padding(.horizontal, 20)
-                            }
-                            
-                            // Completed payments section
-                            if !viewModel.paidAppointments.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack {
-                                        Text("Completed")
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
-                                        
-                                        Spacer()
-                                        
-                                        Text("\(viewModel.paidAppointments.count)")
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(accentColor)
-                                    }
-                                    
-                                    ForEach(viewModel.paidAppointments) { appointment in
-                                        AppointmentCard(appointment: appointment, isPaid: true)
-                                    }
-                                }
-                                .padding(.horizontal, 20)
-                            }
+                // Main content area with fixed height
+                Group {
+                    if viewModel.isLoading {
+                        LoadingView()
+                            .frame(maxHeight: .infinity)
+                    } else if let error = viewModel.error {
+                        ErrorView(error: error) {
+                            triggerSearch()
                         }
-                        .padding(.top, 10)
-                        .padding(.bottom, 40)
+                        .frame(maxHeight: .infinity)
+                    } else if viewModel.unpaidAppointments.isEmpty && viewModel.paidAppointments.isEmpty {
+                        EmptyStateView()
+                            .frame(maxHeight: .infinity)
+                    } else {
+                        ScrollView(showsIndicators: false) {
+                            VStack(spacing: 24) {
+                                // Pending payments section
+                                if !viewModel.unpaidAppointments.isEmpty {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        HStack {
+                                            Text("Pending")
+                                                .font(.headline)
+                                                .foregroundColor(.primary)
+                                            
+                                            Spacer()
+                                            
+                                            Text("\(viewModel.unpaidAppointments.count)")
+                                                .font(.subheadline)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(accentColor)
+                                        }
+                                        
+                                        ForEach(viewModel.unpaidAppointments) { appointment in
+                                            AppointmentCard(appointment: appointment, viewModel: viewModel)
+                                        }
+                                    }
+                                    .padding(.horizontal, 20)
+                                }
+                                
+                                // Completed payments section
+                                if !viewModel.paidAppointments.isEmpty {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        HStack {
+                                            Text("Completed")
+                                                .font(.headline)
+                                                .foregroundColor(.primary)
+                                            
+                                            Spacer()
+                                            
+                                            Text("\(viewModel.paidAppointments.count)")
+                                                .font(.subheadline)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(accentColor)
+                                        }
+                                        
+                                        ForEach(viewModel.paidAppointments) { appointment in
+                                            AppointmentCard(appointment: appointment, isPaid: true)
+                                        }
+                                    }
+                                    .padding(.horizontal, 20)
+                                }
+                            }
+                            .padding(.top, 10)
+                            .padding(.bottom, 40)
+                        }
                     }
                 }
+                .frame(minHeight: 300) // Ensures consistent layout height
             }
         }
         .alert(isPresented: $showAlert) {
             Alert(title: Text("Status"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
+    }
+    
+    private func triggerSearch() {
+        guard !patientIdInput.isEmpty else { return }
+        viewModel.fetchAppointments(forPatientId: patientIdInput)
     }
 }
 
@@ -215,7 +220,7 @@ struct AppointmentCard: View {
             }
         }
         .padding(16)
-        .background(Color.white)
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 2)
         .actionSheet(isPresented: $showingActionSheet) {
@@ -254,7 +259,6 @@ struct AppointmentCard: View {
         viewModel.markAsPaid(appointmentId: appointment.id) { success in
             isProcessing = false
             if success {
-                // Refresh the appointments
                 viewModel.fetchAppointments(forPatientId: appointment.patientId)
             }
         }
@@ -333,8 +337,10 @@ struct ErrorView: View {
 }
 
 // MARK: - Preview
-struct GenerateBillView_Previews: PreviewProvider {
-    static var previews: some View {
+
+#Preview {
+    Group {
         GenerateBillView()
+            .preferredColorScheme(.light)
     }
 }
