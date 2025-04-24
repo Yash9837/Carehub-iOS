@@ -8,7 +8,8 @@
 import SwiftUI
 import FirebaseFirestore
 
-struct Billing {
+struct Billing: Identifiable {
+    var id: String { billingId }
     var billingId: String
     var bills: [BillItem]
     var appointmentId: String

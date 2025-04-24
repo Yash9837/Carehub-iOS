@@ -16,6 +16,7 @@ struct PatientF{
     var vitals: Vitals
     var lastModified: Date
     var patientId: String
+    var username: String
 }
 
 struct EmergencyContact{
