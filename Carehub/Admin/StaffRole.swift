@@ -1,9 +1,14 @@
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 // StaffRole.swift
 
 import Foundation
 
+=======
+import Foundation
+import FirebaseFirestore
+>>>>>>> Stashed changes
 =======
 import Foundation
 import FirebaseFirestore
@@ -41,6 +46,7 @@ struct Staff: Identifiable, Codable {
     var joinDate: Date?
     var profileImageURL: String?
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     
 <<<<<<< Updated upstream
     // Add CodingKeys if you want to customize the JSON keys
@@ -50,6 +56,9 @@ struct Staff: Identifiable, Codable {
     
     init(fullName: String, email: String, role: StaffRole, department: String, phoneNumber: String) {
 =======
+=======
+    
+>>>>>>> Stashed changes
 =======
     
 >>>>>>> Stashed changes
@@ -74,6 +83,9 @@ struct Staff: Identifiable, Codable {
          profileImageURL: String? = nil) {
         self.id = id
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes

@@ -1,5 +1,6 @@
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 //
 //  StaffManager.swift
 //  Carehub
@@ -12,12 +13,17 @@ import SwiftUI
 =======
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 
 import FirebaseFirestore
 import Combine
 import FirebaseAuth
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -166,6 +172,7 @@ class StaffManager: ObservableObject {
     }
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     
     private func loadSampleData() {
         // Sample data for preview/testing
@@ -178,6 +185,8 @@ class StaffManager: ObservableObject {
             Staff(fullName: "Admin James Taylor", email: "j.taylor@hospital.com", role: .admin, department: "Administration", phoneNumber: "555-0106")
         ]
     }
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======

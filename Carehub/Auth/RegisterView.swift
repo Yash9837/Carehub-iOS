@@ -7,7 +7,10 @@ struct CareHubTextField: View {
     let isSecure: Bool
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
     var isValid: Bool = true
@@ -25,6 +28,7 @@ struct CareHubTextField: View {
                 SecureField(placeholder, text: $text)
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
                     .textFieldStyle(PlainTextFieldStyle())
@@ -33,6 +37,14 @@ struct CareHubTextField: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
                     .textFieldStyle(PlainTextFieldStyle())
+=======
+                    .font(.system(size: 16))
+                    .foregroundColor(.black)
+            } else {
+                TextField(placeholder, text: $text)
+                    .font(.system(size: 16))
+                    .foregroundColor(.black)
+>>>>>>> Stashed changes
 =======
                     .font(.system(size: 16))
                     .foregroundColor(.black)
@@ -70,9 +82,14 @@ struct RegisterView: View {
         case credentials = 1
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         case personalInfo
         case contactInfo
         case healthInfo
+=======
+        case contactInfo
+        case personalInfo
+>>>>>>> Stashed changes
 =======
         case contactInfo
         case personalInfo
@@ -91,10 +108,13 @@ struct RegisterView: View {
             case .credentials: return "Create Account"
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             case .personalInfo: return "Personal Information"
             case .contactInfo: return "Contact Information"
             case .healthInfo: return "Health Information"
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
             case .contactInfo: return "Contact Information"
@@ -116,6 +136,9 @@ struct RegisterView: View {
             case .contactInfo: return "phone.fill"
             case .personalInfo: return "heart.text.square.fill"
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -144,9 +167,14 @@ struct RegisterView: View {
     @State private var showAlert = false
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     @State private var navigateToPatientTab = false
     @State private var navigateToLogin = false
     @State private var patient: PatientF?
+=======
+    @State private var navigateToLogin = false
+    @State private var errorMessage: String?
+>>>>>>> Stashed changes
 =======
     @State private var navigateToLogin = false
     @State private var errorMessage: String?
@@ -190,10 +218,13 @@ struct RegisterView: View {
                 
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                 VStack {
                     ProgressView(value: currentStep.progress)
                         .progressViewStyle(LinearProgressViewStyle(tint: Color(red: 0.43, green: 0.34, blue: 0.99)))
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
                 VStack(spacing: 0) {
@@ -209,6 +240,9 @@ struct RegisterView: View {
                             Spacer()
                         }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -216,6 +250,7 @@ struct RegisterView: View {
                     }
                     .padding(.top, 20)
                     
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
                     Text("Step \(currentStep.rawValue) of 4")
@@ -228,6 +263,8 @@ struct RegisterView: View {
                         .foregroundColor(.black)
                         .padding(.top, 10)
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
                     VStack(alignment: .leading, spacing: 8) {
@@ -248,6 +285,9 @@ struct RegisterView: View {
                     .padding(.top, 20)
                     .padding(.bottom, 10)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -255,6 +295,7 @@ struct RegisterView: View {
                     ScrollView {
                         VStack(spacing: 25) {
                             switch currentStep {
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
                             case .credentials:
@@ -265,6 +306,11 @@ struct RegisterView: View {
                                 contactInfoStep
                             case .healthInfo:
                                 healthInfoStep
+=======
+                            case .credentials: credentialsStep
+                            case .contactInfo: contactInfoStep
+                            case .personalInfo: personalInfoStep
+>>>>>>> Stashed changes
 =======
                             case .credentials: credentialsStep
                             case .contactInfo: contactInfoStep
@@ -301,6 +347,9 @@ struct RegisterView: View {
                                 .shadow(color: purpleColor.opacity(0.3), radius: 8, x: 0, y: 4)
                         )
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
@@ -329,6 +378,7 @@ struct RegisterView: View {
                 }
             }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             .alert("Required Fields Missing", isPresented: $showAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
@@ -344,6 +394,12 @@ struct RegisterView: View {
             } message: {
                 Text(errorMessage ?? "An unknown error occurred")
 >>>>>>> Stashed changes
+=======
+            .alert("Registration Error", isPresented: $showAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage ?? "An unknown error occurred")
+>>>>>>> Stashed changes
             }
             .navigationDestination(isPresented: $navigateToLogin) {
                 LoginView()
@@ -351,6 +407,7 @@ struct RegisterView: View {
             .sheet(isPresented: $showDatePicker) {
                 VStack {
                     DatePicker("Select Date of Birth", selection: $selectedDate, in: ...Date(), displayedComponents: .date)
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
                         .datePickerStyle(.graphical)
                         .labelsHidden()
@@ -443,6 +500,8 @@ struct RegisterView: View {
             .sheet(isPresented: $showDatePicker) {
                 VStack {
                     DatePicker("Select Date of Birth", selection: $selectedDate, in: ...Date(), displayedComponents: .date)
+=======
+>>>>>>> Stashed changes
                         .datePickerStyle(WheelDatePickerStyle())
                         .labelsHidden()
                         .accentColor(purpleColor)
@@ -477,6 +536,7 @@ struct RegisterView: View {
     private var credentialsStep: some View {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         VStack(spacing: 15) {
             CareHubTextField(text: $fullName, placeholder: "Full Name", isSecure: false)
                 .accessibilityLabel("Full Name")
@@ -490,6 +550,8 @@ struct RegisterView: View {
             CareHubTextField(text: $password, placeholder: "Password", isSecure: true)
                 .accessibilityLabel("Password")
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
         VStack(spacing: 20) {
@@ -511,6 +573,9 @@ struct RegisterView: View {
                     .onChange(of: password) { _ in isPasswordValid = validatePassword(password) }
             }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -530,6 +595,7 @@ struct RegisterView: View {
         }
     }
     
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
     private var personalInfoStep: some View {
@@ -848,6 +914,109 @@ struct RegisterView: View {
     }
     
 >>>>>>> Stashed changes
+=======
+    private var contactInfoStep: some View {
+        VStack(spacing: 20) {
+            CareHubTextField(text: $phoneNo, placeholder: "Phone Number", isSecure: false, isValid: isPhoneValid, icon: "phone.fill")
+                .keyboardType(.phonePad)
+                .accessibilityLabel("Phone Number")
+                .onChange(of: phoneNo) { _ in isPhoneValid = validatePhone(phoneNo) }
+            
+            CareHubTextField(text: $address, placeholder: "Address", isSecure: false, isValid: isAddressValid, icon: "house.fill")
+                .accessibilityLabel("Address")
+                .onChange(of: address) { _ in isAddressValid = true }
+            
+            CareHubTextField(text: $aadharNo, placeholder: "ABHA ID (Optional)", isSecure: false, isValid: true, icon: "creditcard.fill")
+                .keyboardType(.numberPad)
+                .accessibilityLabel("Aadhar Number")
+            
+            VStack(alignment: .leading, spacing: 15) {
+                VStack(spacing: 70) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "person.crop.circle.badge.exclamationmark")
+                            .font(.system(size: 18))
+                            .foregroundColor(purpleColor)
+                        Text("Emergency Contacts")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(.black)
+                    }
+                }
+                
+                if !emergencyContacts.isEmpty {
+                    VStack(spacing: 12) {
+                        ForEach(emergencyContacts) { contact in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(contact.name)
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(.black)
+                                    Text(contact.Number)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.gray)
+                                }
+                                Spacer()
+                                Button(action: {
+                                    withAnimation {
+                                        emergencyContacts.removeAll { $0.id == contact.id }
+                                    }
+                                }) {
+                                    Image(systemName: "minus.circle.fill")
+                                        .foregroundColor(.red)
+                                        .font(.system(size: 22))
+                                }
+                            }
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(red: 0.97, green: 0.97, blue: 1.0))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color(red: 0.9, green: 0.9, blue: 1.0), lineWidth: 1)
+                                    )
+                            )
+                        }
+                    }
+                }
+                
+                VStack(spacing: 20) {
+                    CareHubTextField(text: $newContactName, placeholder: "Contact Name", isSecure: false, isValid: true, icon: "person.fill")
+                        .accessibilityLabel("New Contact Name")
+                    
+                    CareHubTextField(text: $newContactNumber, placeholder: "Contact Number", isSecure: false, isValid: newContactNumber.isEmpty || validatePhone(newContactNumber), icon: "phone.fill")
+                        .keyboardType(.phonePad)
+                        .accessibilityLabel("New Contact Number")
+                    
+                    Button(action: {
+                        if !newContactName.isEmpty && validatePhone(newContactNumber) {
+                            withAnimation {
+                                emergencyContacts.append(EmergencyContact(Number: newContactNumber, name: newContactName))
+                                newContactName = ""
+                                newContactNumber = ""
+                            }
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                            Text("Add Contact")
+                                .font(.system(size: 16, weight: .medium))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            LinearGradient(gradient: Gradient(colors: gradientColors), startPoint: .leading, endPoint: .trailing)
+                                .cornerRadius(10)
+                                .opacity((newContactName.isEmpty || !validatePhone(newContactNumber)) ? 0.6 : 1)
+                        )
+                        .disabled(newContactName.isEmpty || !validatePhone(newContactNumber))
+                    }
+                }
+            }
+        }
+    }
+    
+>>>>>>> Stashed changes
     private var personalInfoStep: some View {
         VStack(spacing: 20) {
             VStack(alignment: .leading, spacing: 12) {
@@ -975,7 +1144,10 @@ struct RegisterView: View {
     
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
     private func summaryRow(icon: String, title: String, value: String) -> some View {
@@ -1058,6 +1230,9 @@ struct RegisterView: View {
     }
     
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -1067,7 +1242,10 @@ struct RegisterView: View {
         guard let birthDate = dateFormatter.date(from: dob) else { return nil }
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
@@ -1082,6 +1260,7 @@ struct RegisterView: View {
         let impact = UIImpactFeedbackGenerator(style: .medium)
         impact.impactOccurred()
         
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
         switch currentStep {
@@ -1114,6 +1293,8 @@ struct RegisterView: View {
 =======
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
         let isValid = validateCurrentStep()
         
         if !isValid {
@@ -1126,6 +1307,9 @@ struct RegisterView: View {
             generatedID = generateUniqueID(name: fullName, role: "Patient")
             let patient = PatientF(
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -1155,9 +1339,12 @@ struct RegisterView: View {
             )
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             if let patient = patient, let encoded = try? JSONEncoder().encode(patient) {
                 UserDefaults.standard.set(encoded, forKey: "patientF")
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
             
@@ -1171,6 +1358,9 @@ struct RegisterView: View {
                     }
                 }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes

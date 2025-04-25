@@ -3,6 +3,9 @@ import SwiftUI
 =======
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -222,6 +225,7 @@ struct SpecialtyDoctorsView: View {
                             ForEach(filteredDoctors, id: \.id) { doctor in
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                                 Button(action: {
                                     print("Selected doctor: \(doctor.doctor_name)")
                                 }) {
@@ -232,12 +236,17 @@ struct SpecialtyDoctorsView: View {
 =======
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
                                 NavigationLink(destination: DoctorDetailView(doctor: doctor, specialty: selectedSpecialty)) {
                                     DoctorCardView(
                                         name: doctor.doctor_name,
                                         specialty: selectedSpecialty,
                                         experience: doctor.doctor_experience ?? 0,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -274,7 +283,11 @@ struct DoctorCardView: View {
     let specialty: String
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     let experience: Int // Keep as Int since we provide a default
+=======
+    let experience: Int
+>>>>>>> Stashed changes
 =======
     let experience: Int
 >>>>>>> Stashed changes
@@ -330,6 +343,7 @@ struct DoctorCardView: View {
             
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             Button(action: {
                 print("Book appointment for \(name)")
             }) {
@@ -347,11 +361,16 @@ struct DoctorCardView: View {
 =======
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
             Image(systemName: "chevron.right")
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                 .font(.system(size: 14, weight: .semibold))
                 .padding(.trailing, 8)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -368,7 +387,10 @@ struct DoctorCardView: View {
     }
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 }
@@ -503,6 +525,9 @@ extension DoctorDetailView {
         print("Navigate to ScheduleAppointmentView for \(doctor.doctor_name)")
     }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
