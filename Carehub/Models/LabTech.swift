@@ -87,6 +87,7 @@ struct TestResult: Identifiable, Codable {
     let status: String
     let results: String
     let notes: String
+    let pdfUrl: String
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -96,6 +97,7 @@ struct TestResult: Identifiable, Codable {
         case status
         case results
         case notes
+        case pdfUrl
     }
     
     init(id: String = UUID().uuidString,
@@ -104,7 +106,8 @@ struct TestResult: Identifiable, Codable {
          date: String,
          status: String,
          results: String,
-         notes: String) {
+         notes: String,
+         pdfUrl: String = "") {
         self.id = id
         self.patientId = patientId
         self.testName = testName
@@ -112,5 +115,30 @@ struct TestResult: Identifiable, Codable {
         self.status = status
         self.results = results
         self.notes = notes
+        self.pdfUrl = pdfUrl
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        patientId = try container.decode(String.self, forKey: .patientId)
+        testName = try container.decode(String.self, forKey: .testName)
+        date = try container.decode(String.self, forKey: .date)
+        status = try container.decode(String.self, forKey: .status)
+        results = try container.decode(String.self, forKey: .results)
+        notes = try container.decode(String.self, forKey: .notes)
+        pdfUrl = try container.decodeIfPresent(String.self, forKey: .pdfUrl) ?? ""
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(patientId, forKey: .patientId)
+        try container.encode(testName, forKey: .testName)
+        try container.encode(date, forKey: .date)
+        try container.encode(status, forKey: .status)
+        try container.encode(results, forKey: .results)
+        try container.encode(notes, forKey: .notes)
+        try container.encode(pdfUrl, forKey: .pdfUrl)
     }
 }
