@@ -120,7 +120,7 @@ struct ScheduleAppointmentView: View {
         .alert("Cannot Schedule Appointment", isPresented: $showErrorAlert) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text("Already booked a slot for this day. Please try again later.")
+            Text(errorMessage)
         }
         .onAppear {
             loadData()
@@ -532,16 +532,14 @@ struct ScheduleAppointmentView: View {
         isLoading = true
         
         let calendar = Calendar.current
-        let startOfSelectedDate = calendar.startOfDay(for: selectedDate)
-        let endOfSelectedDate = calendar.date(byAdding: .day, value: 1, to: startOfSelectedDate)!
-        
         let db = Firestore.firestore()
         
-        // Check for existing appointments on this date
+        // Debug: Print the selected date
+        print("Selected Date: \(formattedDateWithDay(selectedDate))")
+        
+        // Fetch all appointments for the patient
         db.collection("appointments")
             .whereField("patientId", isEqualTo: currentPatientId)
-            .whereField("Date", isGreaterThanOrEqualTo: startOfSelectedDate)
-            .whereField("Date", isLessThan: endOfSelectedDate)
             .getDocuments { [self] (querySnapshot, error) in
                 if let error = error {
                     errorMessage = "Error checking appointments: \(error.localizedDescription)"
@@ -550,20 +548,47 @@ struct ScheduleAppointmentView: View {
                     return
                 }
                 
-                guard let documents = querySnapshot?.documents, documents.isEmpty else {
-                    errorMessage = "You already have an appointment scheduled for this day. Please choose another date."
-                    showErrorAlert = true
-                    isLoading = false
+                guard let documents = querySnapshot?.documents else {
+                    print("No existing appointments found for patient \(currentPatientId). Proceeding to create new appointment.")
+                    createNewAppointment()
                     return
                 }
                 
-                // No existing appointment - proceed to create new one
-                createNewAppointment()
+                // Debug: Print all existing appointment dates
+                print("Existing appointments for patient \(currentPatientId):")
+                for doc in documents {
+                    if let date = (doc.data()["Date"] as? Timestamp)?.dateValue() {
+                        print(" - \(formattedDateWithDay(date))")
+                    }
+                }
+                
+                // Check if there’s already an appointment on the selected date
+                let selectedDay = calendar.startOfDay(for: selectedDate)
+                let hasAppointmentOnSelectedDay = documents.contains { doc in
+                    if let date = (doc.data()["Date"] as? Timestamp)?.dateValue() {
+                        let appointmentDay = calendar.startOfDay(for: date)
+                        return calendar.isDate(appointmentDay, inSameDayAs: selectedDay)
+                    }
+                    return false
+                }
+                
+                if hasAppointmentOnSelectedDay {
+                    errorMessage = "You already have an appointment scheduled for this day. Please choose another date."
+                    showErrorAlert = true
+                    isLoading = false
+                } else {
+                    print("No appointment found for the selected date. Proceeding to create new appointment.")
+                    createNewAppointment()
+                }
             }
     }
     
     private func createNewAppointment() {
-        let appointmentId = "APT\(UUID().uuidString.prefix(6))"
+        // Generate appointment ID in the same format as your system (e.g., APT081, APT089E56, etc.)
+        let randomNumber = Int.random(in: 0..<10000)
+        let randomLetters = String(format: "%02X", Int.random(in: 0..<256))
+        let appointmentId = "APT\(randomNumber)\(randomLetters)"
+        
         let calendar = Calendar.current
         
         // Combine date and time
@@ -589,13 +614,13 @@ struct ScheduleAppointmentView: View {
         
         // Find doctor_id based on selectedDoctor
         let doctor = DoctorData.doctors[selectedSpecialty]?.first { $0.doctor_name == selectedDoctor }
-        let doctorId = doctor?.id ?? "DOC002" // Default to DOC002 if not found
+        let doctorId = doctor?.id ?? "" // Don't use example ID
         
         let followUpDate = calendar.date(byAdding: .day, value: 7, to: appointmentDateTime) ?? Date()
         
         let appointmentData: [String: Any] = [
             "Date": appointmentDateTime,
-            "Description": description.isEmpty ? "Annual Checkup" : description,
+            "Description": description.isEmpty ? "General Checkup" : description,
             "Status": "scheduled",
             "apptId": appointmentId,
             "billingStatus": "pending",
