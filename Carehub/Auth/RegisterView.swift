@@ -199,27 +199,6 @@ struct RegisterView: View {
                 }
             }
             .navigationBarBackButtonHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        if currentStep == .credentials {
-                            dismiss()
-                        } else {
-                            withAnimation {
-                                currentStep = RegistrationStep(rawValue: currentStep.rawValue - 1) ?? .credentials
-                                resetValidationStates()
-                            }
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
-                        }
-                        .font(.system(.body, design: .rounded))
-                        .foregroundColor(purpleColor)
-                    }
-                }
-            }
             .alert("Registration Error", isPresented: $showAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
@@ -623,7 +602,7 @@ struct RegisterView: View {
             errorMessage = "Please fill in all required fields correctly. Password must be at least 6 characters."
             return
         }
-
+        
         if currentStep == .personalInfo {
             generatedID = generateUniqueID(name: fullName, role: "Patient")
             let patient = PatientF(
@@ -699,4 +678,3 @@ struct RegisterView_Previews: PreviewProvider {
         RegisterView()
     }
 }
-

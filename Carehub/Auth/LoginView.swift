@@ -67,6 +67,7 @@ struct LoginView: View {
             }
             .navigationDestination(isPresented: $navigateToDashboard) {
                 dashboardContent
+                .navigationBarBackButtonHidden(true) // Ensure back button is hidden in dashboard
             }
             .alert("Login Error", isPresented: $showAlert) {
                 Button("OK", role: .cancel) { }
@@ -79,6 +80,7 @@ struct LoginView: View {
                     showAlert = true
                 }
             }
+            .navigationBarBackButtonHidden(true) // Hide back button on LoginView
         }
     }
     
@@ -167,4 +169,3 @@ struct LoginView_Previews: PreviewProvider {
         LoginView()
     }
 }
-

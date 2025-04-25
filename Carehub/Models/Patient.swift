@@ -1,10 +1,3 @@
-//
-//  Patient.swift
-//  Carehub
-//
-//  Created by user@87 on 23/04/25.
-//
-
 import SwiftUI
 import FirebaseFirestore
 
