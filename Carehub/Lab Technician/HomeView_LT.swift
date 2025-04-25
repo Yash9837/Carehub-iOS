@@ -1,35 +1,6 @@
 import SwiftUI
 import FirebaseFirestore
 
-// Patient1 struct (from patients collection)
-struct Patient1: Codable, Identifiable {
-    let id: String // Firestore document ID
-    let fullName: String
-    let generatedID: String
-    let age: String
-    let previousProblems: String
-    let allergies: String
-    let medications: String
-}
-
-// MedicalTest struct (from medicalTests collection)
-struct MedicalTest: Codable, Identifiable {
-    let id: String // Firestore document ID
-    let date: String
-    let notes: String
-    let patientId: String
-    let results: String
-    let status: String
-    let testName: String
-}
-
-// Combined data structure to link MedicalTest with Patient1
-struct PatientWithTest: Identifiable {
-    let id: String // Use medicalTest id
-    let patient: Patient1
-    let medicalTest: MedicalTest
-}
-
 // PatientCard View (updated with navigation)
 struct PatientCard: View {
     let patientWithTest: PatientWithTest

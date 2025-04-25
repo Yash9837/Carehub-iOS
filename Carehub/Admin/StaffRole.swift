@@ -1,7 +1,5 @@
-// StaffRole.swift
-
 import Foundation
-
+import FirebaseFirestore
 
 enum StaffRole: String, CaseIterable, Codable, Identifiable {
     case doctor = "Doctor"
@@ -11,41 +9,52 @@ enum StaffRole: String, CaseIterable, Codable, Identifiable {
     
     var id: String { self.rawValue }
     
-    var prefix: String {
+    var collectionName: String {
         switch self {
-        case .doctor: return "D"
-        case .nurse: return "N"
-        case .labTechnician: return "L"
-        case .admin: return "A"
+        case .doctor: return "doctors"
+        case .nurse: return "nurses"
+        case .labTechnician: return "labtechs"
+        case .admin: return "admins"
         }
     }
 }
 
-// Staff.swift
 struct Staff: Identifiable, Codable {
-    let id: String
+    @DocumentID var id: String?  // Firestore-managed ID
     var fullName: String
     var email: String
     var role: StaffRole
-    var department: String
-    var phoneNumber: String
-    var joinDate: Date
+    var department: String?
+    var phoneNumber: String?
+    var joinDate: Date?
+    var profileImageURL: String?
     
-    // Add CodingKeys if you want to customize the JSON keys
     enum CodingKeys: String, CodingKey {
-        case id, fullName, email, role, department, phoneNumber, joinDate
+        case id
+        case fullName
+        case email
+        case role
+        case department
+        case phoneNumber
+        case joinDate
+        case profileImageURL = "imageUrl"
     }
     
-    init(fullName: String, email: String, role: StaffRole, department: String, phoneNumber: String) {
+    init(id: String? = nil,
+         fullName: String,
+         email: String,
+         role: StaffRole,
+         department: String? = nil,
+         phoneNumber: String? = nil,
+         joinDate: Date? = nil,
+         profileImageURL: String? = nil) {
+        self.id = id
         self.fullName = fullName
         self.email = email
         self.role = role
         self.department = department
         self.phoneNumber = phoneNumber
-        self.joinDate = Date()
-        
-        // Generate ID with prefix and random number
-        let randomNum = String(format: "%06d", Int.random(in: 0..<1000000))
-        self.id = "\(role.prefix)\(randomNum)"
+        self.joinDate = joinDate
+        self.profileImageURL = profileImageURL
     }
 }

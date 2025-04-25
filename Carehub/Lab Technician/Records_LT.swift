@@ -1,64 +1,6 @@
 import SwiftUI
 import FirebaseFirestore
 
-// MARK: - Data Models
-
-struct PatientInfo: Identifiable, Codable {
-    @DocumentID var id: String?
-    let fullName: String
-    let generatedID: String
-    let age: String
-    let previousProblems: String
-    let allergies: String
-    let medications: String
-    
-    enum CodingKeys: String, CodingKey {
-        case id
-        case fullName
-        case generatedID
-        case age
-        case previousProblems
-        case allergies
-        case medications
-    }
-}
-
-struct TestResult: Identifiable, Codable {
-    let id: String
-    let patientId: String
-    let testName: String
-    let date: String
-    let status: String
-    let results: String
-    let notes: String
-    
-    enum CodingKeys: String, CodingKey {
-        case id
-        case patientId
-        case testName
-        case date
-        case status
-        case results
-        case notes
-    }
-    
-    init(id: String = UUID().uuidString,
-         patientId: String,
-         testName: String,
-         date: String,
-         status: String,
-         results: String,
-         notes: String) {
-        self.id = id
-        self.patientId = patientId
-        self.testName = testName
-        self.date = date
-        self.status = status
-        self.results = results
-        self.notes = notes
-    }
-}
-
 // MARK: - UI Components
 
 struct PatientRecordCard: View {
