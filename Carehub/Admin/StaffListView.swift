@@ -1,9 +1,3 @@
-//
-//  StaffListView.swift
-//  Carehub
-//
-//  Created by Yash's Mackbook on 19/04/25.
-//
 
 import SwiftUI
 // StaffListView.swift
@@ -21,8 +15,8 @@ struct StaffListView: View {
         } else {
             return roleFiltered.filter {
                 $0.fullName.localizedCaseInsensitiveContains(searchText) ||
-                $0.id.localizedCaseInsensitiveContains(searchText) ||
-                $0.department.localizedCaseInsensitiveContains(searchText)
+                $0.id!.localizedCaseInsensitiveContains(searchText) ||
+                $0.department!.localizedCaseInsensitiveContains(searchText)
             }
         }
     }
@@ -77,9 +71,17 @@ struct StaffListView: View {
     private func deleteStaff(at offsets: IndexSet) {
         offsets.forEach { index in
             let staff = filteredStaff[index]
-            staffManager.deleteStaff(staff)
+            staffManager.deleteStaff(staff) { success in
+                if success {
+                    print("Successfully deleted staff")
+                } else {
+                    print("Failed to delete staff")
+                }
+            }
         }
     }
+
+
 }
 
 // StaffRowView.swift
@@ -121,7 +123,7 @@ struct StaffRowView: View {
                     Text("•")
                         .foregroundColor(.secondary)
                     
-                    Text(staff.department)
+                    Text(staff.department!)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -129,7 +131,7 @@ struct StaffRowView: View {
             
             Spacer()
             
-            Text(staff.id)
+            Text(staff.id!)
                 .font(.system(.subheadline, design: .monospaced))
                 .foregroundColor(.secondary)
         }

@@ -40,7 +40,7 @@ struct RecentActivityView: View {
     @ObservedObject var staffManager: StaffManager
     
     var recentStaff: [Staff] {
-        Array(staffManager.staffList.sorted(by: { $0.joinDate > $1.joinDate }).prefix(3))
+        Array(staffManager.staffList.sorted(by: { $0.joinDate! > $1.joinDate! }).prefix(3))
     }
     
     var body: some View {
@@ -68,7 +68,7 @@ struct RecentActivityView: View {
                         
                         Spacer()
                         
-                        Text(staff.joinDate.formatted(date: .numeric, time: .omitted))
+                        Text(staff.joinDate!.formatted(date: .numeric, time: .omitted))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
