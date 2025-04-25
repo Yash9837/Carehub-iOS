@@ -8,22 +8,47 @@
 import SwiftUI
 import FirebaseFirestore
 
-struct Billing: Identifiable {
+struct Billing: Identifiable, Codable {
     var id: String { billingId }
-    var billingId: String
-    var bills: [BillItem]
-    var appointmentId: String
-    var billingStatus: String
-    var date: Date
-    var doctorId: String
-    var insuranceAmt: Double
-    var paidAmt: Double
-    var patientId: String
-    var paymentMode: String
+    let billingId: String
+    let bills: [BillItem]
+    let appointmentId: String
+    let billingStatus: String
+    let date: Date
+    let doctorId: String
+    let insuranceAmt: Double
+    let paidAmt: Double
+    let patientId: String
+    let paymentMode: String
+    var billURL: String?
+    
+    func toDictionary() -> [String: Any] {
+        return [
+            "billingId": billingId,
+            "bills": bills.map { $0.toDictionary() },
+            "appointmentId": appointmentId,
+            "billingStatus": billingStatus,
+            "date": Timestamp(date: date),
+            "doctorId": doctorId,
+            "insuranceAmt": insuranceAmt,
+            "paidAmt": paidAmt,
+            "patientId": patientId,
+            "paymentMode": paymentMode,
+            "billURL": billURL
+        ]
+    }
 }
 
-struct BillItem {
-    var fee: Double
-    var isPaid: Bool
-    var itemName: String
+struct BillItem: Codable {
+    let fee: Double
+    let isPaid: Bool
+    let itemName: String
+    
+    func toDictionary() -> [String: Any] {
+        return [
+            "fee": fee,
+            "isPaid": isPaid,
+            "itemName": itemName
+        ]
+    }
 }

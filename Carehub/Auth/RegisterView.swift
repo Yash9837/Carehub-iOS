@@ -7,7 +7,7 @@ struct CareHubTextField: View {
     let isSecure: Bool
     var isValid: Bool = true
     let icon: String
-    
+   
     var body: some View {
         HStack {
             Image(systemName: icon)
@@ -46,7 +46,7 @@ struct RegisterView: View {
         case personalInfo
         
         var progress: Double {
-            return Double(rawValue) / 3.0
+            return Double(rawValue) / 4.0
         }
         
         var title: String {
@@ -580,7 +580,7 @@ struct RegisterView: View {
         let trimmedPassword = password.trimmingCharacters(in: .whitespaces)
         return !trimmedPassword.isEmpty && trimmedPassword.count >= 6
     }
-    
+
     private func calculateAge(from dob: String) -> Int? {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "dd/MM/yyyy"
