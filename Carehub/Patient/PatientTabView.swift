@@ -22,12 +22,6 @@ struct PatientTabView: View {
                     Text("Home")
                 }
             
-            ScheduleAppointmentView()
-                .tabItem {
-                    Image(systemName: "calendar")
-                    Text("Booking")
-                }
-            
             DoctorView()
                 .tabItem {
                     Image(systemName: "stethoscope")
@@ -44,7 +38,6 @@ struct PatientTabView: View {
         .accentColor(Color(red: 0.43, green: 0.34, blue: 0.99))
     }
 }
-
 #Preview {
     let samplePatient = PatientF(
         emergencyContact: [EmergencyContact(Number: "1234567890", name: "Emergency Contact")],

@@ -1,13 +1,4 @@
-//
-//  AddStaffView.swift
-//  Carehub
-//
-//  Created by Yash's Mackbook on 19/04/25.
-//
-
-// AddStaffView.swift
 import SwiftUI
-
 struct AddStaffView: View {
     @ObservedObject var staffManager: StaffManager
     @Environment(\.dismiss) var dismiss
@@ -23,7 +14,7 @@ struct AddStaffView: View {
     @State private var alertMessage = ""
     @State private var profileImage: UIImage?
     @State private var showImagePicker = false
-    
+
     let departments = ["Cardiology", "Neurology", "Pediatrics", "Oncology", "Radiology", "Pathology", "Emergency"]
     
     var body: some View {
@@ -56,7 +47,6 @@ struct AddStaffView: View {
                         }
                     }
                 }
-                
                 Section(header: Text("Professional Information")) {
                     Picker("Role", selection: $selectedRole) {
                         ForEach(StaffRole.allCases) { role in

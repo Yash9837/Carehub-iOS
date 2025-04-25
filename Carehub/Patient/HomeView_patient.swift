@@ -7,6 +7,7 @@ struct HomeView_patient: View {
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     @State private var upcomingSchedules: [(doctorName: String, specialty: String, date: Date, imageName: String)] = []
     @State private var isLoading = true
+    @State private var navigateToBooking = false
     private let currentPatientId = "PT001"
     
     let recentPrescriptions = [
@@ -29,6 +30,7 @@ struct HomeView_patient: View {
                 
                 ScrollView {
                     VStack(spacing: 0) {
+                        // Greeting Section
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Hello, \(patient.username)")
@@ -56,6 +58,52 @@ struct HomeView_patient: View {
                         .padding(.top, 20)
                         .padding(.bottom, 16)
                         
+                        // Book Appointment Card
+                        Button(action: {
+                            navigateToBooking = true
+                        }) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(LinearGradient(
+                                        gradient: Gradient(colors: [purpleColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ))
+                                    .shadow(color: purpleColor.opacity(0.2), radius: 10, x: 0, y: 5)
+                                
+                                HStack(spacing: 16) {
+                                    Image(systemName: "calendar.badge.plus")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 50, height: 50)
+                                        .foregroundColor(.white)
+                                        .padding(.leading, 16)
+                                    
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("Book an Appointment")
+                                            .font(.system(size: 18, weight: .bold))
+                                            .foregroundColor(.white)
+                                        
+                                        Text("Schedule with your preferred doctor")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(.white.opacity(0.8))
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(.white)
+                                        .font(.system(size: 18))
+                                        .padding(.trailing, 16)
+                                }
+                                .padding(.vertical, 16)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 20)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        // Upcoming Appointments Section
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Text("Upcoming Appointment")
@@ -97,6 +145,7 @@ struct HomeView_patient: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                         
+                        // Recent Prescriptions & Reports Section
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Text("Recent Prescriptions & Reports")
@@ -128,6 +177,7 @@ struct HomeView_patient: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                         
+                        // Previously Visited Doctors Section
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Text("Previously Visited Doctors")
@@ -164,6 +214,9 @@ struct HomeView_patient: View {
             .navigationBarBackButtonHidden(true)
             .onAppear {
                 fetchUpcomingAppointments()
+            }
+            .navigationDestination(isPresented: $navigateToBooking) {
+                ScheduleAppointmentView()
             }
         }
     }
