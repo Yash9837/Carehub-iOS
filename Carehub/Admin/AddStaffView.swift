@@ -5,7 +5,10 @@
 //  Created by Yash's Mackbook on 19/04/25.
 //
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import SwiftUI
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 

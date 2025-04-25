@@ -1,4 +1,5 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 //
 //  AdminTabView.swift
 //  Carehub
@@ -35,6 +36,17 @@ struct AdminTabView: View {
     @State private var showLogoutAlert = false
     private let logger = Logger(subsystem: "com.yourapp.Carehub", category: "AdminTab")
 >>>>>>> Stashed changes
+=======
+import SwiftUI
+import os.log
+
+struct AdminTabView: View {
+    @StateObject private var authManager = AuthManager.shared
+    @StateObject private var staffManager = StaffManager()
+    @State private var selectedTab = 0
+    @State private var showLogoutAlert = false
+    private let logger = Logger(subsystem: "com.yourapp.Carehub", category: "AdminTab")
+>>>>>>> Stashed changes
     
     var body: some View {
         ZStack {
@@ -55,8 +67,11 @@ struct AdminTabView: View {
     private func mainTabView(admin: Staff) -> some View {
         TabView(selection: $selectedTab) {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             AdminDashboardView(staffManager: staffManager, currentAdmin: currentAdmin)
 =======
+=======
+>>>>>>> Stashed changes
             AdminDashboardView(staffManager: staffManager)
 >>>>>>> Stashed changes
                 .tabItem {
@@ -77,7 +92,11 @@ struct AdminTabView: View {
                 .tag(2)
             
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             AdminSettingsView()
+=======
+            AdminProfileView(admin: admin)
+>>>>>>> Stashed changes
 =======
             AdminProfileView(admin: admin)
 >>>>>>> Stashed changes
@@ -88,6 +107,7 @@ struct AdminTabView: View {
         }
         .accentColor(.purple)
         .navigationBarBackButtonHidden(true)
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
     }
 }
@@ -116,12 +136,15 @@ struct AdminDashboardView: View {
                             .font(.title2)
                     }                }
 =======
+=======
+>>>>>>> Stashed changes
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Logout") {
                     logger.debug("Logout button tapped")
                     showLogoutAlert = true
                 }
+<<<<<<< Updated upstream
 >>>>>>> Stashed changes
             }
             
@@ -277,4 +300,41 @@ struct  QuickActionButton1: View {
     }
 }
 =======
+>>>>>>> Stashed changes
+=======
+            }
+        }
+        .alert("Logout", isPresented: $showLogoutAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Logout", role: .destructive) {
+                logger.debug("User confirmed logout")
+                authManager.logout()
+            }
+        } message: {
+            Text("Are you sure you want to logout?")
+        }
+        .onAppear {
+            logger.debug("AdminTabView appeared for user")
+        }
+    }
+    
+    private var accessDeniedView: some View {
+        VStack(spacing: 20) {
+            Text("Access Denied")
+                .font(.title)
+            Text(authManager.errorMessage ?? "You don't have admin privileges")
+            
+            Button("Logout") {
+                logger.debug("Logging out unauthorized user")
+                authManager.logout()
+            }
+            .padding()
+        }
+        .onAppear {
+            if authManager.currentStaffMember?.role != .admin {
+                logger.error("Unauthorized access attempt by user: \(authManager.currentStaffMember?.id ?? "unknown")")
+            }
+        }
+    }
+}
 >>>>>>> Stashed changes

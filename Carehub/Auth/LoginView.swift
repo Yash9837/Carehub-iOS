@@ -1,5 +1,6 @@
 import SwiftUI
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
 enum Role {
     case patient
@@ -63,6 +64,9 @@ struct CustomTextField: UIViewRepresentable {
 =======
 import FirebaseAuth
 >>>>>>> Stashed changes
+=======
+import FirebaseAuth
+>>>>>>> Stashed changes
 
 struct LoginView: View {
     enum Role { case patient, staff }
@@ -70,6 +74,7 @@ struct LoginView: View {
     @State private var selectedRole: Role = .patient // Default to patient
     @State private var email: String = ""
     @State private var password: String = ""
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
     @State private var navigateToTab = false
     @State private var tabDestination: AnyView?
@@ -169,6 +174,18 @@ struct LoginView: View {
     var body: some View {
         NavigationStack {
             ZStack {
+=======
+    @State private var showAlert = false
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    
+    @StateObject private var authManager = AuthManager.shared
+    @State private var navigateToDashboard = false
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+>>>>>>> Stashed changes
                 Color(.systemBackground).ignoresSafeArea()
                 
                 VStack(spacing: 30) {
@@ -207,6 +224,9 @@ struct LoginView: View {
                             Text("Login")
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                         }
                     }
@@ -223,6 +243,7 @@ struct LoginView: View {
             }
             .alert("Login Error", isPresented: $showAlert) {
                 Button("OK", role: .cancel) { }
+<<<<<<< Updated upstream
             } message: {
                 Text(errorMessage ?? "Unknown error occurred")
             }
@@ -296,10 +317,18 @@ struct LoginFormView: View {
                         .underline()
                         .fontWeight(.semibold)
 =======
+=======
+            } message: {
+                Text(errorMessage ?? "Unknown error occurred")
+            }
+>>>>>>> Stashed changes
             .onChange(of: authManager.errorMessage) { newValue in
                 if let newValue = newValue {
                     errorMessage = newValue
                     showAlert = true
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                 }
             }
@@ -320,6 +349,7 @@ struct LoginFormView: View {
                         authManager.logout()
                     }
                 }
+<<<<<<< Updated upstream
             }
         } else if selectedRole == .staff, let staff = authManager.currentStaffMember {
             switch staff.role {
@@ -352,6 +382,36 @@ struct LoginFormView: View {
         .scaleEffect(animate ? 1 : 0.9)
         .opacity(animate ? 1 : 0)
 =======
+=======
+            }
+        } else if selectedRole == .staff, let staff = authManager.currentStaffMember {
+            switch staff.role {
+            case .admin:
+                AdminTabView()
+            case .doctor:
+                DoctorTabView()
+            case .nurse:
+                AdminTabView()
+            case .labTechnician:
+                LabTechTabView()
+            }
+        } else {
+            VStack {
+                Text("No staff data found")
+                Button("Try Again") {
+                    authManager.logout()
+                }
+            }
+        }
+    }
+    
+    private func login() {
+        guard !email.isEmpty, !password.isEmpty else {
+            errorMessage = "Please enter both email and password"
+            showAlert = true
+            return
+        }
+>>>>>>> Stashed changes
         
         guard password.count >= 6 else {
             errorMessage = "Password must be at least 6 characters long"
@@ -387,6 +447,9 @@ struct LoginFormView: View {
                 }
             }
         }
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     }
 }

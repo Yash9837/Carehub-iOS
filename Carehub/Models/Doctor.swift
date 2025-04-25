@@ -1,4 +1,5 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 //
 //  Doctor.swift
 //  Carehub
@@ -29,6 +30,8 @@
 //    var note: String
 //    var patientID: String
 //}
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 

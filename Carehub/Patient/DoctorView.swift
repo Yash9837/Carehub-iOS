@@ -2,6 +2,9 @@ import SwiftUI
 <<<<<<< Updated upstream
 =======
 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 struct DoctorView: View {
     @State private var specialties: [String] = []
@@ -218,6 +221,7 @@ struct SpecialtyDoctorsView: View {
                         LazyVStack(spacing: 0) {
                             ForEach(filteredDoctors, id: \.id) { doctor in
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                                 Button(action: {
                                     print("Selected doctor: \(doctor.doctor_name)")
                                 }) {
@@ -226,11 +230,16 @@ struct SpecialtyDoctorsView: View {
                                         specialty: selectedSpecialty,
                                         experience: doctor.doctor_experience ?? 0, // Safely unwrap with default
 =======
+=======
+>>>>>>> Stashed changes
                                 NavigationLink(destination: DoctorDetailView(doctor: doctor, specialty: selectedSpecialty)) {
                                     DoctorCardView(
                                         name: doctor.doctor_name,
                                         specialty: selectedSpecialty,
                                         experience: doctor.doctor_experience ?? 0,
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                                         imageName: "person.circle.fill"
                                     )
@@ -264,7 +273,11 @@ struct DoctorCardView: View {
     let name: String
     let specialty: String
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     let experience: Int // Keep as Int since we provide a default
+=======
+    let experience: Int
+>>>>>>> Stashed changes
 =======
     let experience: Int
 >>>>>>> Stashed changes
@@ -316,6 +329,7 @@ struct DoctorCardView: View {
             Spacer()
             
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             Button(action: {
                 print("Book appointment for \(name)")
             }) {
@@ -331,10 +345,15 @@ struct DoctorCardView: View {
             }
             .buttonStyle(PlainButtonStyle())
 =======
+=======
+>>>>>>> Stashed changes
             Image(systemName: "chevron.right")
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                 .font(.system(size: 14, weight: .semibold))
                 .padding(.trailing, 8)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         }
         .padding(.vertical, 14)
@@ -348,7 +367,10 @@ struct DoctorCardView: View {
         .padding(.vertical, 8)
     }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 }
 
 // New Doctor Detail View
@@ -480,6 +502,9 @@ extension DoctorDetailView {
         // This would be replaced with actual navigation code
         print("Navigate to ScheduleAppointmentView for \(doctor.doctor_name)")
     }
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 }
 

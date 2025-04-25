@@ -121,7 +121,11 @@ struct ScheduleAppointmentView: View {
             Button("OK", role: .cancel) { }
         } message: {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             Text("Already booked a slot for this day. Please try again later.")
+=======
+            Text(errorMessage)
+>>>>>>> Stashed changes
 =======
             Text(errorMessage)
 >>>>>>> Stashed changes
@@ -537,6 +541,7 @@ struct ScheduleAppointmentView: View {
         
         let calendar = Calendar.current
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         let startOfSelectedDate = calendar.startOfDay(for: selectedDate)
         let endOfSelectedDate = calendar.date(byAdding: .day, value: 1, to: startOfSelectedDate)!
         
@@ -548,6 +553,8 @@ struct ScheduleAppointmentView: View {
             .whereField("Date", isGreaterThanOrEqualTo: startOfSelectedDate)
             .whereField("Date", isLessThan: endOfSelectedDate)
 =======
+=======
+>>>>>>> Stashed changes
         let db = Firestore.firestore()
         
         // Debug: Print the selected date
@@ -556,6 +563,9 @@ struct ScheduleAppointmentView: View {
         // Fetch all appointments for the patient
         db.collection("appointments")
             .whereField("patientId", isEqualTo: currentPatientId)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
             .getDocuments { [self] (querySnapshot, error) in
                 if let error = error {
@@ -565,6 +575,7 @@ struct ScheduleAppointmentView: View {
                     return
                 }
                 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
                 guard let documents = querySnapshot?.documents, documents.isEmpty else {
                     errorMessage = "You already have an appointment scheduled for this day. Please choose another date."
@@ -576,6 +587,8 @@ struct ScheduleAppointmentView: View {
                 // No existing appointment - proceed to create new one
                 createNewAppointment()
 =======
+=======
+>>>>>>> Stashed changes
                 guard let documents = querySnapshot?.documents else {
                     print("No existing appointments found for patient \(currentPatientId). Proceeding to create new appointment.")
                     createNewAppointment()
@@ -608,19 +621,28 @@ struct ScheduleAppointmentView: View {
                     print("No appointment found for the selected date. Proceeding to create new appointment.")
                     createNewAppointment()
                 }
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
             }
     }
     
     private func createNewAppointment() {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         let appointmentId = "APT\(UUID().uuidString.prefix(6))"
 =======
+=======
+>>>>>>> Stashed changes
         // Generate appointment ID in the same format as your system (e.g., APT081, APT089E56, etc.)
         let randomNumber = Int.random(in: 0..<10000)
         let randomLetters = String(format: "%02X", Int.random(in: 0..<256))
         let appointmentId = "APT\(randomNumber)\(randomLetters)"
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         let calendar = Calendar.current
         
@@ -648,7 +670,11 @@ struct ScheduleAppointmentView: View {
         // Find doctor_id based on selectedDoctor
         let doctor = DoctorData.doctors[selectedSpecialty]?.first { $0.doctor_name == selectedDoctor }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         let doctorId = doctor?.id ?? "DOC002" // Default to DOC002 if not found
+=======
+        let doctorId = doctor?.id ?? "" // Don't use example ID
+>>>>>>> Stashed changes
 =======
         let doctorId = doctor?.id ?? "" // Don't use example ID
 >>>>>>> Stashed changes
@@ -658,7 +684,11 @@ struct ScheduleAppointmentView: View {
         let appointmentData: [String: Any] = [
             "Date": appointmentDateTime,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "Description": description.isEmpty ? "Annual Checkup" : description,
+=======
+            "Description": description.isEmpty ? "General Checkup" : description,
+>>>>>>> Stashed changes
 =======
             "Description": description.isEmpty ? "General Checkup" : description,
 >>>>>>> Stashed changes
