@@ -251,6 +251,7 @@ struct PaymentHistoryView: View {
                 }
             }
             .navigationTitle("Payment History")
+            .navigationBarTitleDisplayMode(.large)
             .onAppear {
                 viewModel.getBills()
             }

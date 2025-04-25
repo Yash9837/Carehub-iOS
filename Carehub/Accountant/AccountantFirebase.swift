@@ -452,7 +452,7 @@ class PaymentsViewModel: ObservableObject {
         isLoading = true
         error = nil
         
-        db.collection("billing")
+        db.collection("payments")
             .order(by: "date", descending: true)
             .getDocuments { [weak self] snapshot, error in
                 guard let self = self else { return }

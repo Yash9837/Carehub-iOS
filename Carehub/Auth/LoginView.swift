@@ -79,11 +79,6 @@ struct LoginView: View {
                     showAlert = true
                 }
             }
-            .alert("Empty Fields", isPresented: $showEmptyFieldsAlert) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("Please fill in both username and password.")
-            }
         }
     }
     
@@ -173,15 +168,3 @@ struct LoginView_Previews: PreviewProvider {
     }
 }
 
-//// Placeholder for AuthManager
-//class AuthManager {
-//    static let shared = AuthManager()
-//
-//    func login(username: String, password: String, completion: @escaping (Bool) -> Void) {
-//        if username.uppercased().hasPrefix("D") || username.uppercased().hasPrefix("A") {
-//            completion(true)
-//        } else {
-//            completion(false)
-//        }
-//    }
-//}
