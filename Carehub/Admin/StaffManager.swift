@@ -1,32 +1,8 @@
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-//
-//  StaffManager.swift
-//  Carehub
-//
-//  Created by Yash's Mackbook on 19/04/25.
-//
-
-import SwiftUI
-// StaffManager.swift
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
 import FirebaseFirestore
 import Combine
 import FirebaseAuth
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 class StaffManager: ObservableObject {
     @Published var staffList: [Staff] = []
     @Published var isLoading = false
@@ -170,25 +146,4 @@ class StaffManager: ObservableObject {
             }
         }
     }
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    
-    private func loadSampleData() {
-        // Sample data for preview/testing
-        staffList = [
-            Staff(fullName: "Dr. Sarah Johnson", email: "s.johnson@hospital.com", role: .doctor, department: "Cardiology", phoneNumber: "555-0101"),
-            Staff(fullName: "Dr. Michael Chen", email: "m.chen@hospital.com", role: .doctor, department: "Neurology", phoneNumber: "555-0102"),
-            Staff(fullName: "Nurse Emma Wilson", email: "e.wilson@hospital.com", role: .nurse, department: "Pediatrics", phoneNumber: "555-0103"),
-            Staff(fullName: "Nurse David Brown", email: "d.brown@hospital.com", role: .nurse, department: "Emergency", phoneNumber: "555-0104"),
-            Staff(fullName: "Lab Tech Olivia Martinez", email: "o.martinez@hospital.com", role: .labTechnician, department: "Pathology", phoneNumber: "555-0105"),
-            Staff(fullName: "Admin James Taylor", email: "j.taylor@hospital.com", role: .admin, department: "Administration", phoneNumber: "555-0106")
-        ]
-    }
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 }

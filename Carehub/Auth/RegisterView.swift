@@ -5,18 +5,9 @@ struct CareHubTextField: View {
     @Binding var text: String
     let placeholder: String
     let isSecure: Bool
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     var isValid: Bool = true
     let icon: String
     
->>>>>>> Stashed changes
     var body: some View {
         HStack {
             Image(systemName: icon)
@@ -26,41 +17,12 @@ struct CareHubTextField: View {
             
             if isSecure {
                 SecureField(placeholder, text: $text)
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .textFieldStyle(PlainTextFieldStyle())
-            } else {
-                TextField(placeholder, text: $text)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .textFieldStyle(PlainTextFieldStyle())
-=======
                     .font(.system(size: 16))
                     .foregroundColor(.black)
             } else {
                 TextField(placeholder, text: $text)
                     .font(.system(size: 16))
                     .foregroundColor(.black)
->>>>>>> Stashed changes
-=======
-                    .font(.system(size: 16))
-                    .foregroundColor(.black)
-            } else {
-                TextField(placeholder, text: $text)
-                    .font(.system(size: 16))
-                    .foregroundColor(.black)
->>>>>>> Stashed changes
-=======
-                    .font(.system(size: 16))
-                    .foregroundColor(.black)
-            } else {
-                TextField(placeholder, text: $text)
-                    .font(.system(size: 16))
-                    .foregroundColor(.black)
->>>>>>> Stashed changes
             }
         }
         .padding(.vertical, 14)
@@ -80,43 +42,16 @@ struct CareHubTextField: View {
 struct RegisterView: View {
     enum RegistrationStep: Int {
         case credentials = 1
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        case personalInfo
-        case contactInfo
-        case healthInfo
-=======
         case contactInfo
         case personalInfo
->>>>>>> Stashed changes
-=======
-        case contactInfo
-        case personalInfo
->>>>>>> Stashed changes
-=======
-        case contactInfo
-        case personalInfo
->>>>>>> Stashed changes
         
         var progress: Double {
-            return Double(rawValue) / 4.0
+            return Double(rawValue) / 3.0
         }
         
         var title: String {
             switch self {
             case .credentials: return "Create Account"
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            case .personalInfo: return "Personal Information"
-            case .contactInfo: return "Contact Information"
-            case .healthInfo: return "Health Information"
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             case .contactInfo: return "Contact Information"
             case .personalInfo: return "Personal Information"
             }
@@ -135,13 +70,6 @@ struct RegisterView: View {
             case .credentials: return "person.crop.circle.badge.plus"
             case .contactInfo: return "phone.fill"
             case .personalInfo: return "heart.text.square.fill"
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             }
         }
     }
@@ -165,24 +93,8 @@ struct RegisterView: View {
     @State private var medications = ""
     @State private var generatedID = ""
     @State private var showAlert = false
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    @State private var navigateToPatientTab = false
-    @State private var navigateToLogin = false
-    @State private var patient: PatientF?
-=======
     @State private var navigateToLogin = false
     @State private var errorMessage: String?
->>>>>>> Stashed changes
-=======
-    @State private var navigateToLogin = false
-    @State private var errorMessage: String?
->>>>>>> Stashed changes
-=======
-    @State private var navigateToLogin = false
-    @State private var errorMessage: String?
->>>>>>> Stashed changes
     @Environment(\.dismiss) private var dismiss
     
     // Field validation states
@@ -216,17 +128,6 @@ struct RegisterView: View {
                 )
                 .edgesIgnoringSafeArea(.all)
                 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                VStack {
-                    ProgressView(value: currentStep.progress)
-                        .progressViewStyle(LinearProgressViewStyle(tint: Color(red: 0.43, green: 0.34, blue: 0.99)))
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                 VStack(spacing: 0) {
                     VStack(spacing: 5) {
                         ProgressView(value: currentStep.progress)
@@ -239,34 +140,10 @@ struct RegisterView: View {
                                 .foregroundColor(.gray)
                             Spacer()
                         }
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                         .padding(.horizontal)
                     }
                     .padding(.top, 20)
                     
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    Text("Step \(currentStep.rawValue) of 4")
-                        .font(.subheadline)
-                        .foregroundColor(.black)
-                        .padding(.top, 5)
-                    
-                    Text(currentStep.title)
-                        .font(.title.bold())
-                        .foregroundColor(.black)
-                        .padding(.top, 10)
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 12) {
                             Image(systemName: currentStep.icon)
@@ -284,43 +161,13 @@ struct RegisterView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
                     .padding(.bottom, 10)
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                     
                     ScrollView {
                         VStack(spacing: 25) {
                             switch currentStep {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                            case .credentials:
-                                credentialsStep
-                            case .personalInfo:
-                                personalInfoStep
-                            case .contactInfo:
-                                contactInfoStep
-                            case .healthInfo:
-                                healthInfoStep
-=======
                             case .credentials: credentialsStep
                             case .contactInfo: contactInfoStep
                             case .personalInfo: personalInfoStep
->>>>>>> Stashed changes
-=======
-                            case .credentials: credentialsStep
-                            case .contactInfo: contactInfoStep
-                            case .personalInfo: personalInfoStep
->>>>>>> Stashed changes
-=======
-                            case .credentials: credentialsStep
-                            case .contactInfo: contactInfoStep
-                            case .personalInfo: personalInfoStep
->>>>>>> Stashed changes
                             }
                         }
                         .padding(.horizontal, 20)
@@ -346,10 +193,6 @@ struct RegisterView: View {
                                 .cornerRadius(12)
                                 .shadow(color: purpleColor.opacity(0.3), radius: 8, x: 0, y: 4)
                         )
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
@@ -377,117 +220,6 @@ struct RegisterView: View {
                     }
                 }
             }
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            .alert("Required Fields Missing", isPresented: $showAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text("Please fill in all required fields.")
-            }
-            .navigationDestination(isPresented: $navigateToPatientTab) {
-                if let patient = patient {
-                    PatientTabView(username: patient.username, patient: patient)
-                }
-=======
-            .alert("Registration Error", isPresented: $showAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text(errorMessage ?? "An unknown error occurred")
->>>>>>> Stashed changes
-=======
-            .alert("Registration Error", isPresented: $showAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text(errorMessage ?? "An unknown error occurred")
->>>>>>> Stashed changes
-            }
-            .navigationDestination(isPresented: $navigateToLogin) {
-                LoginView()
-            }
-            .sheet(isPresented: $showDatePicker) {
-                VStack {
-                    DatePicker("Select Date of Birth", selection: $selectedDate, in: ...Date(), displayedComponents: .date)
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                        .datePickerStyle(.graphical)
-                        .labelsHidden()
-=======
-                        .datePickerStyle(WheelDatePickerStyle())
-                        .labelsHidden()
-                        .accentColor(purpleColor)
->>>>>>> Stashed changes
-                        .padding()
-                    
-                    Button(action: {
-                        let dateFormatter = DateFormatter()
-                        dateFormatter.dateFormat = "dd/MM/yyyy"
-                        dob = dateFormatter.string(from: selectedDate)
-<<<<<<< Updated upstream
-                        showDatePicker = false
-                    }) {
-                        Text("Done")
-                            .font(.system(.title3, design: .rounded, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                RoundedRectangle(cornerRadius: 15)
-                                    .fill(Color(red: 0.427, green: 0.341, blue: 0.988))
-                                    .shadow(radius: 5)
-                            )
-                            .padding(.horizontal)
-=======
->>>>>>> Stashed changes
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
-                }
-<<<<<<< Updated upstream
-=======
-                        isDobValid = true
-                        showDatePicker = false
-                    }) {
-                        Text("Done")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                LinearGradient(gradient: Gradient(colors: gradientColors), startPoint: .leading, endPoint: .trailing)
-                                    .cornerRadius(12)
-                                    .shadow(color: purpleColor.opacity(0.3), radius: 8, x: 0, y: 4)
-                            )
-=======
-            }
-            .navigationBarBackButtonHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        if currentStep == .credentials {
-                            dismiss()
-                        } else {
-                            withAnimation {
-                                currentStep = RegistrationStep(rawValue: currentStep.rawValue - 1) ?? .credentials
-                                resetValidationStates()
-                            }
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
-                        }
-                        .font(.system(.body, design: .rounded))
-                        .foregroundColor(purpleColor)
->>>>>>> Stashed changes
-                    }
-                    .padding(.horizontal)
-                    .padding(.bottom, 20)
-                }
-<<<<<<< Updated upstream
-                .presentationDetents([.height(300)])
->>>>>>> Stashed changes
-=======
-            }
             .alert("Registration Error", isPresented: $showAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
@@ -495,13 +227,10 @@ struct RegisterView: View {
             }
             .navigationDestination(isPresented: $navigateToLogin) {
                 LoginView()
->>>>>>> Stashed changes
             }
             .sheet(isPresented: $showDatePicker) {
                 VStack {
                     DatePicker("Select Date of Birth", selection: $selectedDate, in: ...Date(), displayedComponents: .date)
-=======
->>>>>>> Stashed changes
                         .datePickerStyle(WheelDatePickerStyle())
                         .labelsHidden()
                         .accentColor(purpleColor)
@@ -534,26 +263,6 @@ struct RegisterView: View {
     }
     
     private var credentialsStep: some View {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        VStack(spacing: 15) {
-            CareHubTextField(text: $fullName, placeholder: "Full Name", isSecure: false)
-                .accessibilityLabel("Full Name")
-            
-            CareHubTextField(text: $username, placeholder: "Username", isSecure: false)
-                .accessibilityLabel("Username")
-            
-            CareHubTextField(text: $email, placeholder: "Email", isSecure: false)
-                .accessibilityLabel("Email")
-            
-            CareHubTextField(text: $password, placeholder: "Password", isSecure: true)
-                .accessibilityLabel("Password")
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
         VStack(spacing: 20) {
             VStack(alignment: .leading, spacing: 15) {
                 CareHubTextField(text: $fullName, placeholder: "Full Name", isSecure: false, isValid: isFullNameValid, icon: "person.fill")
@@ -572,13 +281,6 @@ struct RegisterView: View {
                     .accessibilityLabel("Password")
                     .onChange(of: password) { _ in isPasswordValid = validatePassword(password) }
             }
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             
             HStack {
                 Text("Already have an account?")
@@ -595,223 +297,6 @@ struct RegisterView: View {
         }
     }
     
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    private var personalInfoStep: some View {
-        VStack(spacing: 15) {
-            Button(action: { showDatePicker = true }) {
-                ZStack(alignment: .leading) {
-                    if dob.isEmpty {
-                        Text("Date of Birth (Tap to Select)")
-                            .foregroundColor(.gray)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 6)
-                    }
-                    Text(dob.isEmpty ? "" : dob)
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 6)
-                }
-                .frame(height: 40)
-                .background(Color.white)
-                .cornerRadius(8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                )
-            }
-            .accessibilityLabel("Date of Birth")
-        }
-    }
-    
-    private var contactInfoStep: some View {
-        VStack(spacing: 15) {
-            CareHubTextField(text: $phoneNo, placeholder: "Phone Number", isSecure: false)
-                .keyboardType(.phonePad)
-                .accessibilityLabel("Phone Number")
-            
-            CareHubTextField(text: $address, placeholder: "Address", isSecure: false)
-                .accessibilityLabel("Address")
-            
-            CareHubTextField(text: $aadharNo, placeholder: "Aadhar Number (Optional)", isSecure: false)
-                .keyboardType(.numberPad)
-                .accessibilityLabel("Aadhar Number")
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Emergency Contacts")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.black)
-                
-                ForEach(emergencyContacts) { contact in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            TextField("Name", text: .constant(contact.name))
-                                .font(.system(size: 16))
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 16)
-                                .background(Color.white)
-                                .cornerRadius(8)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                                )
-                                .disabled(true)
-                            
-                            TextField("Number", text: .constant(contact.Number))
-                                .font(.system(size: 16))
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 16)
-                                .background(Color.white)
-                                .cornerRadius(8)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                                )
-                                .disabled(true)
-                        }
-                        
-                        Button(action: {
-                            withAnimation {
-                                emergencyContacts.removeAll { $0.id == contact.id }
-                            }
-                        }) {
-                            Image(systemName: "minus.circle.fill")
-                                .foregroundColor(.red)
-                                .font(.system(size: 22))
-                        }
-                        .padding(.trailing, 8)
-                    }
-                }
-                
-                CareHubTextField(text: $newContactName, placeholder: "New Contact Name", isSecure: false)
-                    .accessibilityLabel("New Contact Name")
-                
-                CareHubTextField(text: $newContactNumber, placeholder: "New Contact Number", isSecure: false)
-                    .keyboardType(.phonePad)
-                    .accessibilityLabel("New Contact Number")
-                
-                Button(action: {
-                    if !newContactName.isEmpty && !newContactNumber.isEmpty {
-                        withAnimation {
-                            emergencyContacts.append(EmergencyContact(Number: newContactNumber, name: newContactName))
-                            newContactName = ""
-                            newContactNumber = ""
-                        }
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: "plus.circle.fill")
-                        Text("Add Contact")
-                    }
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
-=======
-    private var contactInfoStep: some View {
-        VStack(spacing: 20) {
-            CareHubTextField(text: $phoneNo, placeholder: "Phone Number", isSecure: false, isValid: isPhoneValid, icon: "phone.fill")
-                .keyboardType(.phonePad)
-                .accessibilityLabel("Phone Number")
-                .onChange(of: phoneNo) { _ in isPhoneValid = validatePhone(phoneNo) }
-            
-            CareHubTextField(text: $address, placeholder: "Address", isSecure: false, isValid: isAddressValid, icon: "house.fill")
-                .accessibilityLabel("Address")
-                .onChange(of: address) { _ in isAddressValid = true }
-            
-            CareHubTextField(text: $aadharNo, placeholder: "ABHA ID (Optional)", isSecure: false, isValid: true, icon: "creditcard.fill")
-                .keyboardType(.numberPad)
-                .accessibilityLabel("Aadhar Number")
-            
-            VStack(alignment: .leading, spacing: 15) {
-                VStack(spacing: 70) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "person.crop.circle.badge.exclamationmark")
-                            .font(.system(size: 18))
-                            .foregroundColor(purpleColor)
-                        Text("Emergency Contacts")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.black)
-                    }
-                }
-                
-                if !emergencyContacts.isEmpty {
-                    VStack(spacing: 12) {
-                        ForEach(emergencyContacts) { contact in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(contact.name)
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.black)
-                                    Text(contact.Number)
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.gray)
-                                }
-                                Spacer()
-                                Button(action: {
-                                    withAnimation {
-                                        emergencyContacts.removeAll { $0.id == contact.id }
-                                    }
-                                }) {
-                                    Image(systemName: "minus.circle.fill")
-                                        .foregroundColor(.red)
-                                        .font(.system(size: 22))
-                                }
-                            }
-                            .padding(.vertical, 10)
-                            .padding(.horizontal, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(red: 0.97, green: 0.97, blue: 1.0))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color(red: 0.9, green: 0.9, blue: 1.0), lineWidth: 1)
-                                    )
-                            )
-                        }
-                    }
-                }
-                
-                VStack(spacing: 20) {
-                    CareHubTextField(text: $newContactName, placeholder: "Contact Name", isSecure: false, isValid: true, icon: "person.fill")
-                        .accessibilityLabel("New Contact Name")
-                    
-                    CareHubTextField(text: $newContactNumber, placeholder: "Contact Number", isSecure: false, isValid: newContactNumber.isEmpty || validatePhone(newContactNumber), icon: "phone.fill")
-                        .keyboardType(.phonePad)
-                        .accessibilityLabel("New Contact Number")
-                    
-                    Button(action: {
-                        if !newContactName.isEmpty && validatePhone(newContactNumber) {
-                            withAnimation {
-                                emergencyContacts.append(EmergencyContact(Number: newContactNumber, name: newContactName))
-                                newContactName = ""
-                                newContactNumber = ""
-                            }
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "plus.circle.fill")
-                            Text("Add Contact")
-                                .font(.system(size: 16, weight: .medium))
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(
-                            LinearGradient(gradient: Gradient(colors: gradientColors), startPoint: .leading, endPoint: .trailing)
-                                .cornerRadius(10)
-                                .opacity((newContactName.isEmpty || !validatePhone(newContactNumber)) ? 0.6 : 1)
-                        )
-                        .disabled(newContactName.isEmpty || !validatePhone(newContactNumber))
-                    }
->>>>>>> Stashed changes
-                }
-            }
-        }
-    }
-    
-=======
     private var contactInfoStep: some View {
         VStack(spacing: 20) {
             CareHubTextField(text: $phoneNo, placeholder: "Phone Number", isSecure: false, isValid: isPhoneValid, icon: "phone.fill")
@@ -913,110 +398,6 @@ struct RegisterView: View {
         }
     }
     
->>>>>>> Stashed changes
-=======
-    private var contactInfoStep: some View {
-        VStack(spacing: 20) {
-            CareHubTextField(text: $phoneNo, placeholder: "Phone Number", isSecure: false, isValid: isPhoneValid, icon: "phone.fill")
-                .keyboardType(.phonePad)
-                .accessibilityLabel("Phone Number")
-                .onChange(of: phoneNo) { _ in isPhoneValid = validatePhone(phoneNo) }
-            
-            CareHubTextField(text: $address, placeholder: "Address", isSecure: false, isValid: isAddressValid, icon: "house.fill")
-                .accessibilityLabel("Address")
-                .onChange(of: address) { _ in isAddressValid = true }
-            
-            CareHubTextField(text: $aadharNo, placeholder: "ABHA ID (Optional)", isSecure: false, isValid: true, icon: "creditcard.fill")
-                .keyboardType(.numberPad)
-                .accessibilityLabel("Aadhar Number")
-            
-            VStack(alignment: .leading, spacing: 15) {
-                VStack(spacing: 70) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "person.crop.circle.badge.exclamationmark")
-                            .font(.system(size: 18))
-                            .foregroundColor(purpleColor)
-                        Text("Emergency Contacts")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.black)
-                    }
-                }
-                
-                if !emergencyContacts.isEmpty {
-                    VStack(spacing: 12) {
-                        ForEach(emergencyContacts) { contact in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(contact.name)
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.black)
-                                    Text(contact.Number)
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.gray)
-                                }
-                                Spacer()
-                                Button(action: {
-                                    withAnimation {
-                                        emergencyContacts.removeAll { $0.id == contact.id }
-                                    }
-                                }) {
-                                    Image(systemName: "minus.circle.fill")
-                                        .foregroundColor(.red)
-                                        .font(.system(size: 22))
-                                }
-                            }
-                            .padding(.vertical, 10)
-                            .padding(.horizontal, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(red: 0.97, green: 0.97, blue: 1.0))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color(red: 0.9, green: 0.9, blue: 1.0), lineWidth: 1)
-                                    )
-                            )
-                        }
-                    }
-                }
-                
-                VStack(spacing: 20) {
-                    CareHubTextField(text: $newContactName, placeholder: "Contact Name", isSecure: false, isValid: true, icon: "person.fill")
-                        .accessibilityLabel("New Contact Name")
-                    
-                    CareHubTextField(text: $newContactNumber, placeholder: "Contact Number", isSecure: false, isValid: newContactNumber.isEmpty || validatePhone(newContactNumber), icon: "phone.fill")
-                        .keyboardType(.phonePad)
-                        .accessibilityLabel("New Contact Number")
-                    
-                    Button(action: {
-                        if !newContactName.isEmpty && validatePhone(newContactNumber) {
-                            withAnimation {
-                                emergencyContacts.append(EmergencyContact(Number: newContactNumber, name: newContactName))
-                                newContactName = ""
-                                newContactNumber = ""
-                            }
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "plus.circle.fill")
-                            Text("Add Contact")
-                                .font(.system(size: 16, weight: .medium))
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(
-                            LinearGradient(gradient: Gradient(colors: gradientColors), startPoint: .leading, endPoint: .trailing)
-                                .cornerRadius(10)
-                                .opacity((newContactName.isEmpty || !validatePhone(newContactNumber)) ? 0.6 : 1)
-                        )
-                        .disabled(newContactName.isEmpty || !validatePhone(newContactNumber))
-                    }
-                }
-            }
-        }
-    }
-    
->>>>>>> Stashed changes
     private var personalInfoStep: some View {
         VStack(spacing: 20) {
             VStack(alignment: .leading, spacing: 12) {
@@ -1142,14 +523,6 @@ struct RegisterView: View {
         }
     }
     
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     private func summaryRow(icon: String, title: String, value: String) -> some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: icon)
@@ -1229,27 +602,10 @@ struct RegisterView: View {
         return !trimmedPassword.isEmpty && trimmedPassword.count >= 6
     }
     
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     private func calculateAge(from dob: String) -> Int? {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "dd/MM/yyyy"
         guard let birthDate = dateFormatter.date(from: dob) else { return nil }
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
         let currentDate = DateComponents(year: 2025, month: 4, day: 24).date!
         let calendar = Calendar.current
         let components = calendar.dateComponents([.year], from: birthDate, to: currentDate)
@@ -1260,41 +616,6 @@ struct RegisterView: View {
         let impact = UIImpactFeedbackGenerator(style: .medium)
         impact.impactOccurred()
         
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        switch currentStep {
-        case .credentials:
-            if fullName.trimmingCharacters(in: .whitespaces).isEmpty ||
-               username.trimmingCharacters(in: .whitespaces).isEmpty ||
-               email.trimmingCharacters(in: .whitespaces).isEmpty ||
-               password.trimmingCharacters(in: .whitespaces).isEmpty {
-                showAlert = true
-                return
-            }
-        case .personalInfo:
-            if dob.trimmingCharacters(in: .whitespaces).isEmpty {
-                showAlert = true
-                return
-            }
-        case .contactInfo:
-            if phoneNo.trimmingCharacters(in: .whitespaces).isEmpty ||
-               address.trimmingCharacters(in: .whitespaces).isEmpty {
-                showAlert = true
-                return
-            }
-        case .healthInfo:
-            break
-        }
-
-        if currentStep == .healthInfo {
-            generatedID = generateUniqueID(name: fullName, role: "Patient")
-            patient = PatientF(
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
         let isValid = validateCurrentStep()
         
         if !isValid {
@@ -1306,13 +627,6 @@ struct RegisterView: View {
         if currentStep == .personalInfo {
             generatedID = generateUniqueID(name: fullName, role: "Patient")
             let patient = PatientF(
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                 emergencyContact: emergencyContacts,
                 medicalRecords: [],
                 testResults: [],
@@ -1337,16 +651,6 @@ struct RegisterView: View {
                 patientId: generatedID,
                 username: username
             )
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            if let patient = patient, let encoded = try? JSONEncoder().encode(patient) {
-                UserDefaults.standard.set(encoded, forKey: "patientF")
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             
             AuthManager.shared.registerPatient(patient: patient, password: password) { success in
                 DispatchQueue.main.async {
@@ -1357,13 +661,6 @@ struct RegisterView: View {
                         errorMessage = AuthManager.shared.errorMessage ?? "Registration failed"
                     }
                 }
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             }
         } else {
             withAnimation {
