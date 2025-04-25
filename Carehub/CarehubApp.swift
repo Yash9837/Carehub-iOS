@@ -18,7 +18,7 @@ struct YourApp: App {
       
     WindowGroup {
       NavigationStack {
-          SplashView()
+          LabTechTabView()
       }
     }
   }
