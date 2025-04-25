@@ -699,3 +699,4 @@ struct RegisterView_Previews: PreviewProvider {
         RegisterView()
     }
 }
+
