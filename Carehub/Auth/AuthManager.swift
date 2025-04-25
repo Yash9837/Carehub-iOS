@@ -111,10 +111,10 @@ class AuthManager: ObservableObject {
             }
             
             self.logger.debug("Firebase Auth user created with UID: \(user.uid)")
-            var patientData = patient
-            patientData.patientId = user.uid
+            let patientData = patient // Use the patient data as-is, with the custom patientId
             
             do {
+                // Use the Firebase UID as the document ID, but keep patientId as the custom-generated ID
                 try self.db.collection("patients").document(user.uid).setData(from: patientData) { error in
                     self.isLoading = false
                     
@@ -317,4 +317,3 @@ class AuthManager: ObservableObject {
         }
     }
 }
-
