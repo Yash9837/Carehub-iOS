@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 //
 //  Doctor.swift
 //  Carehub
@@ -28,6 +29,8 @@
 //    var note: String
 //    var patientID: String
 //}
+=======
+>>>>>>> Stashed changes
 
 import Foundation
 import FirebaseFirestore

@@ -1,4 +1,5 @@
 import SwiftUI
+<<<<<<< Updated upstream
 
 enum Role {
     case patient
@@ -59,13 +60,17 @@ struct CustomTextField: UIViewRepresentable {
         }
     }
 }
+=======
+import FirebaseAuth
+>>>>>>> Stashed changes
 
 struct LoginView: View {
-    @State private var animateButtons = false
-    @State private var showRegister = false
-    @State private var selectedRole: Role = .patient
-    @State private var username: String = ""
+    enum Role { case patient, staff }
+    
+    @State private var selectedRole: Role = .patient // Default to patient
+    @State private var email: String = ""
     @State private var password: String = ""
+<<<<<<< Updated upstream
     @State private var navigateToTab = false
     @State private var tabDestination: AnyView?
     @State private var showInvalidStaffAlert = false
@@ -153,27 +158,75 @@ struct LoginView: View {
                                     showInvalidStaffAlert = true
                                 }
                             }
+=======
+    @State private var showAlert = false
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    
+    @StateObject private var authManager = AuthManager.shared
+    @State private var navigateToDashboard = false
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(.systemBackground).ignoresSafeArea()
+                
+                VStack(spacing: 30) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(.purple)
+                    
+                    Text("CareHub")
+                        .font(.system(size: 36, weight: .bold))
+                    
+                    Picker("Login As", selection: $selectedRole) {
+                        Text("Patient").tag(Role.patient)
+                        Text("Staff").tag(Role.staff)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+                    
+                    VStack(spacing: 20) {
+                        TextField("Email", text: $email)
+                            .textFieldStyle(.roundedBorder)
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+                            .textContentType(.emailAddress)
+                        
+                        SecureField("Password", text: $password)
+                            .textFieldStyle(.roundedBorder)
+                            .textContentType(.password)
+                    }
+                    .padding(.horizontal)
+                    
+                    Button(action: login) {
+                        if isLoading {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Text("Login")
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+>>>>>>> Stashed changes
                         }
                     }
-                )
-            }
-            .toolbar(.hidden, for: .navigationBar)
-            .onAppear {
-                withAnimation(.easeInOut(duration: 0.6).delay(0.1)) {
-                    animateButtons = true
+                    .buttonStyle(.borderedProminent)
+                    .tint(.purple)
+                    .disabled(isLoading || email.isEmpty || password.isEmpty)
+                    
+                    NavigationLink("Don't have an account? Register", destination: RegisterView())
+                        .foregroundColor(.purple)
                 }
             }
-            .navigationDestination(isPresented: $navigateToTab) {
-                tabDestination
+            .navigationDestination(isPresented: $navigateToDashboard) {
+                dashboardContent
             }
-            .navigationDestination(isPresented: $showRegister) {
-                RegisterView()
-            }
-            .alert("Invalid Staff Username", isPresented: $showInvalidStaffAlert) {
-                Button("OK", role: .cancel) {}
+            .alert("Login Error", isPresented: $showAlert) {
+                Button("OK", role: .cancel) { }
             } message: {
-                Text("Staff username should start with 'D' for Doctor or 'A' for Admin.")
+                Text(errorMessage ?? "Unknown error occurred")
             }
+<<<<<<< Updated upstream
             .alert("Empty Fields", isPresented: $showEmptyFieldsAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -242,48 +295,99 @@ struct LoginFormView: View {
                         .foregroundColor(.blue)
                         .underline()
                         .fontWeight(.semibold)
+=======
+            .onChange(of: authManager.errorMessage) { newValue in
+                if let newValue = newValue {
+                    errorMessage = newValue
+                    showAlert = true
+>>>>>>> Stashed changes
                 }
             }
-            .padding(.horizontal, 10)
-
-            Spacer()
         }
-        .padding(.horizontal, 20)
     }
-}
-
-struct LoginButton: View {
-    let title: String
-    let color: Color
-    let icon: String
-    let animate: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: {
-            let impact = UIImpactFeedbackGenerator(style: .medium)
-            impact.impactOccurred()
-            action()
-        }) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(.white)
-                Text(title)
-                    .font(.system(.title3, design: .rounded, weight: .semibold))
-                    .foregroundColor(.white)
+    
+    @ViewBuilder
+    var dashboardContent: some View {
+        if authManager.isLoading {
+            ProgressView("Loading dashboard...")
+        } else if selectedRole == .patient {
+            if let patient = authManager.currentPatient {
+                PatientTabView(username: patient.userData.Name, patient: patient)
+            } else {
+                VStack {
+                    Text("No patient data found")
+                    Button("Try Again") {
+                        authManager.logout()
+                    }
+                }
             }
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 15)
-                    .fill(color)
-                    .shadow(color: color.opacity(0.3), radius: 5, x: 0, y: 3)
-            )
-            .padding(.horizontal, 10)
+        } else if selectedRole == .staff, let staff = authManager.currentStaffMember {
+            switch staff.role {
+            case .admin:
+                AdminTabView()
+            case .doctor:
+                DoctorTabView()
+            case .nurse:
+                AdminTabView()
+            case .labTechnician:
+                LabTechTabView()
+            }
+        } else {
+            VStack {
+                Text("No staff data found")
+                Button("Try Again") {
+                    authManager.logout()
+                }
+            }
         }
+    }
+    
+    private func login() {
+        guard !email.isEmpty, !password.isEmpty else {
+            errorMessage = "Please enter both email and password"
+            showAlert = true
+            return
+        }
+<<<<<<< Updated upstream
         .scaleEffect(animate ? 1 : 0.9)
         .opacity(animate ? 1 : 0)
+=======
+        
+        guard password.count >= 6 else {
+            errorMessage = "Password must be at least 6 characters long"
+            showAlert = true
+            return
+        }
+        
+        isLoading = true
+        
+        AuthManager.shared.login(email: email, password: password) { success in
+            DispatchQueue.main.async {
+                self.isLoading = false
+                
+                if success {
+                    if selectedRole == .patient {
+                        if let patient = authManager.currentPatient {
+                            self.navigateToDashboard = true
+                        } else {
+                            self.errorMessage = "Invalid patient credentials"
+                            self.showAlert = true
+                        }
+                    } else if selectedRole == .staff {
+                        if let staff = authManager.currentStaffMember {
+                            self.navigateToDashboard = true
+                        } else {
+                            self.errorMessage = "Invalid staff credentials"
+                            self.showAlert = true
+                        }
+                    }
+                } else {
+                    self.errorMessage = authManager.errorMessage ?? "Login failed"
+                    self.showAlert = true
+                }
+            }
+        }
+>>>>>>> Stashed changes
     }
 }
 

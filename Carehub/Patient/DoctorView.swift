@@ -1,4 +1,8 @@
 import SwiftUI
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 struct DoctorView: View {
     @State private var specialties: [String] = []
     @State private var isDataLoaded = false
@@ -213,6 +217,7 @@ struct SpecialtyDoctorsView: View {
                         
                         LazyVStack(spacing: 0) {
                             ForEach(filteredDoctors, id: \.id) { doctor in
+<<<<<<< Updated upstream
                                 Button(action: {
                                     print("Selected doctor: \(doctor.doctor_name)")
                                 }) {
@@ -220,6 +225,13 @@ struct SpecialtyDoctorsView: View {
                                         name: doctor.doctor_name,
                                         specialty: selectedSpecialty,
                                         experience: doctor.doctor_experience ?? 0, // Safely unwrap with default
+=======
+                                NavigationLink(destination: DoctorDetailView(doctor: doctor, specialty: selectedSpecialty)) {
+                                    DoctorCardView(
+                                        name: doctor.doctor_name,
+                                        specialty: selectedSpecialty,
+                                        experience: doctor.doctor_experience ?? 0,
+>>>>>>> Stashed changes
                                         imageName: "person.circle.fill"
                                     )
                                 }
@@ -251,7 +263,11 @@ struct SpecialtyDoctorsView: View {
 struct DoctorCardView: View {
     let name: String
     let specialty: String
+<<<<<<< Updated upstream
     let experience: Int // Keep as Int since we provide a default
+=======
+    let experience: Int
+>>>>>>> Stashed changes
     let imageName: String
     
     var body: some View {
@@ -299,6 +315,7 @@ struct DoctorCardView: View {
             
             Spacer()
             
+<<<<<<< Updated upstream
             Button(action: {
                 print("Book appointment for \(name)")
             }) {
@@ -313,6 +330,12 @@ struct DoctorCardView: View {
                     .cornerRadius(8)
             }
             .buttonStyle(PlainButtonStyle())
+=======
+            Image(systemName: "chevron.right")
+                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                .font(.system(size: 14, weight: .semibold))
+                .padding(.trailing, 8)
+>>>>>>> Stashed changes
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 16)
@@ -324,6 +347,140 @@ struct DoctorCardView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
     }
+<<<<<<< Updated upstream
+=======
+}
+
+// New Doctor Detail View
+struct DoctorDetailView: View {
+    let doctor: Doctor
+    let specialty: String
+    @State private var qualifications: [String] = ["MBBS", "MD - General Medicine", "DNB - Cardiology"]
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // Hero Card with doctor info
+                VStack {
+                    HStack(alignment: .top, spacing: 20) {
+                        // Left side - Image
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 100, height: 100)
+                            .foregroundColor(.white)
+                            .padding(8)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.43, green: 0.34, blue: 0.99),
+                                        Color(red: 0.55, green: 0.48, blue: 0.99)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .clipShape(Circle())
+                            .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.3), radius: 8, x: 0, y: 4)
+                        
+                        // Right side - Details
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(doctor.doctor_name)
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.black)
+                            
+                            Text(specialty)
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.gray)
+                            
+                            HStack(spacing: 6) {
+                                Image(systemName: "briefcase.fill")
+                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                    .font(.system(size: 14))
+                                
+                                Text("\(doctor.doctor_experience ?? 0) years experience")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(Color.black.opacity(0.7))
+                            }
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(20)
+                }
+                .background(Color.white)
+                .cornerRadius(16)
+                .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                
+                // Qualifications Section
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Qualifications")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                        .padding(.horizontal, 16)
+                    
+                    VStack(alignment: .leading, spacing: 14) {
+                        ForEach(qualifications, id: \.self) { qualification in
+                            HStack(spacing: 10) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                    .font(.system(size: 16))
+                                
+                                Text(qualification)
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.black)
+                            }
+                        }
+                    }
+                    .padding(16)
+                    .background(Color.white)
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+                    .padding(.horizontal, 16)
+                }
+                
+                // Additional info can be added here (about, services, etc.)
+                
+                Spacer()
+                
+                // Book appointment button
+                Button(action: {
+                    // Navigate to appointment scheduling
+                    print("Navigate to ScheduleAppointmentView")
+                }) {
+                    HStack {
+                        Spacer()
+                        Text("Book Appointment")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.vertical, 16)
+                        Spacer()
+                    }
+                    .background(Color(red: 0.43, green: 0.34, blue: 0.99))
+                    .cornerRadius(12)
+                    .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4), radius: 8, x: 0, y: 4)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .background(Color(red: 0.94, green: 0.94, blue: 1.0))
+        .navigationTitle("Doctor Profile")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// Adding navigation to ScheduleAppointmentView
+extension DoctorDetailView {
+    private func navigateToSchedule(doctor: Doctor) {
+        // Create and present ScheduleAppointmentView
+        // This would be replaced with actual navigation code
+        print("Navigate to ScheduleAppointmentView for \(doctor.doctor_name)")
+    }
+>>>>>>> Stashed changes
 }
 
 struct DoctorView_Previews: PreviewProvider {

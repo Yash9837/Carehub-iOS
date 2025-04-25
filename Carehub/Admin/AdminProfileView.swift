@@ -20,7 +20,7 @@ struct AdminProfileView: View {
         self._admin = State(initialValue: admin)
         self._tempName = State(initialValue: admin.fullName)
         self._tempEmail = State(initialValue: admin.email)
-        self._tempPhone = State(initialValue: admin.phoneNumber)
+        self._tempPhone = State(initialValue: admin.phoneNumber ?? "12345")
     }
     
     var body: some View {
@@ -62,15 +62,15 @@ struct AdminProfileView: View {
             .listRowBackground(Color.clear)
             
             Section("Admin Information") {
-                InfoRow(label: "Staff ID", value: admin.id)
+                InfoRow(label: "Staff ID", value: admin.id ?? "123")
                 InfoRow(label: "Role", value: admin.role.rawValue)
-                InfoRow(label: "Department", value: admin.department)
+                InfoRow(label: "Department", value: admin.department!)
             }
             
             Section("Personal Information") {
                 InfoRow(label: "Full Name", value: admin.fullName)
                 InfoRow(label: "Email", value: admin.email)
-                InfoRow(label: "Phone", value: admin.phoneNumber)
+                InfoRow(label: "Phone", value: admin.phoneNumber ?? "123456")
             }
             
             Section("Account") {
@@ -117,7 +117,7 @@ struct AdminProfileView: View {
     private func resetTempValues() {
         tempName = admin.fullName
         tempEmail = admin.email
-        tempPhone = admin.phoneNumber
+        tempPhone = admin.phoneNumber!
     }
 }
 

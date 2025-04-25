@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 //
 //  AdminTabView.swift
 //  Carehub
@@ -9,9 +10,15 @@ import SwiftUI
 
 // AdminTabView.swift
 // AdminTabView.swift
+=======
+import SwiftUI
+import os.log
+
+>>>>>>> Stashed changes
 struct AdminTabView: View {
-    @State private var selectedTab = 0
+    @StateObject private var authManager = AuthManager.shared
     @StateObject private var staffManager = StaffManager()
+<<<<<<< Updated upstream
     @StateObject private var authManager = AuthManager.shared
     
     var currentAdmin: Staff {
@@ -23,10 +30,35 @@ struct AdminTabView: View {
             phoneNumber: "555-0000"
         )
     }
+=======
+    @State private var selectedTab = 0
+    @State private var showLogoutAlert = false
+    private let logger = Logger(subsystem: "com.yourapp.Carehub", category: "AdminTab")
+>>>>>>> Stashed changes
     
     var body: some View {
+        ZStack {
+            if authManager.isLoading {
+                ProgressView("Loading admin data...")
+                    .onAppear {
+                        logger.debug("Loading admin data...")
+                    }
+            } else if let admin = authManager.currentStaffMember, admin.role == .admin {
+                mainTabView(admin: admin)
+            } else {
+                accessDeniedView
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func mainTabView(admin: Staff) -> some View {
         TabView(selection: $selectedTab) {
+<<<<<<< Updated upstream
             AdminDashboardView(staffManager: staffManager, currentAdmin: currentAdmin)
+=======
+            AdminDashboardView(staffManager: staffManager)
+>>>>>>> Stashed changes
                 .tabItem {
                     Label("Dashboard", systemImage: "house.fill")
                 }
@@ -44,14 +76,19 @@ struct AdminTabView: View {
                 }
                 .tag(2)
             
+<<<<<<< Updated upstream
             AdminSettingsView()
+=======
+            AdminProfileView(admin: admin)
+>>>>>>> Stashed changes
                 .tabItem {
-                    Label("Settings", systemImage: "gearshape.fill")
+                    Label("Profile", systemImage: "person.crop.circle")
                 }
                 .tag(3)
         }
-        .accentColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+        .accentColor(.purple)
         .navigationBarBackButtonHidden(true)
+<<<<<<< Updated upstream
     }
 }
 // AdminDashboardView.swift
@@ -78,6 +115,14 @@ struct AdminDashboardView: View {
                         Image(systemName: "person.crop.circle")
                             .font(.title2)
                     }                }
+=======
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Logout") {
+                    logger.debug("Logout button tapped")
+                    showLogoutAlert = true
+                }
+>>>>>>> Stashed changes
             }
             
         }
@@ -173,40 +218,40 @@ struct AdminDashboardView: View {
                 color: color
             )
         }
-    }
-}
-
-// DashboardCard.swift
-struct DashboardCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundColor(color)
-                
-                Text(title)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+        .alert("Logout", isPresented: $showLogoutAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Logout", role: .destructive) {
+                logger.debug("User confirmed logout")
+                authManager.logout()
             }
-            
-            Text(value)
-                .font(.title)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
+        } message: {
+            Text("Are you sure you want to logout?")
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+        .onAppear {
+            logger.debug("AdminTabView appeared for user")
+        }
+    }
+    
+    private var accessDeniedView: some View {
+        VStack(spacing: 20) {
+            Text("Access Denied")
+                .font(.title)
+            Text(authManager.errorMessage ?? "You don't have admin privileges")
+            
+            Button("Logout") {
+                logger.debug("Logging out unauthorized user")
+                authManager.logout()
+            }
+            .padding()
+        }
+        .onAppear {
+            if authManager.currentStaffMember?.role != .admin {
+                logger.error("Unauthorized access attempt by user: \(authManager.currentStaffMember?.id ?? "unknown")")
+            }
+        }
     }
 }
+<<<<<<< Updated upstream
 
 // QuickActionButton.swift
 struct  QuickActionButton1: View {
@@ -231,3 +276,5 @@ struct  QuickActionButton1: View {
         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
     }
 }
+=======
+>>>>>>> Stashed changes

@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 //
 //  StaffManager.swift
 //  Carehub
@@ -7,29 +8,157 @@
 
 import SwiftUI
 // StaffManager.swift
+=======
+
+import FirebaseFirestore
+import Combine
+import FirebaseAuth
+
+>>>>>>> Stashed changes
 class StaffManager: ObservableObject {
     @Published var staffList: [Staff] = []
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+    
+    // Computed properties
+    var doctors: [Staff] { staffList.filter { $0.role == .doctor } }
+    var nurses: [Staff] { staffList.filter { $0.role == .nurse } }
+    var labTechs: [Staff] { staffList.filter { $0.role == .labTechnician } }
+    var admins: [Staff] { staffList.filter { $0.role == .admin } }
+    
+    private let db = Firestore.firestore()
     
     init() {
-        loadSampleData()
+        fetchAllStaff()
     }
     
-    func addStaff(_ staff: Staff) {
-        staffList.append(staff)
-        // In a real app, you would save to database here
+    func fetchAllStaff() {
+        isLoading = true
+        staffList = []
+        
+        let staffCollections = StaffRole.allCases.map { $0.collectionName }
+        
+        for collection in staffCollections {
+            db.collection(collection).getDocuments { [weak self] snapshot, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    self.errorMessage = error.localizedDescription
+                    self.isLoading = false
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else {
+                    self.isLoading = false
+                    return
+                }
+                
+                do {
+                    let staffMembers = try documents.compactMap { document -> Staff? in
+                        var staff = try document.data(as: Staff.self)
+                        staff.id = document.documentID
+                        return staff
+                    }
+                    
+                    DispatchQueue.main.async {
+                        self.staffList.append(contentsOf: staffMembers)
+                        self.isLoading = false
+                    }
+                } catch {
+                    self.errorMessage = error.localizedDescription
+                    self.isLoading = false
+                }
+            }
+        }
     }
+   
     
-    func updateStaff(_ updatedStaff: Staff) {
-        if let index = staffList.firstIndex(where: { $0.id == updatedStaff.id }) {
-            staffList[index] = updatedStaff
-            // In a real app, you would update database here
+    func addStaff(_ staff: Staff, password: String, completion: @escaping (Bool) -> Void) {
+        isLoading = true
+        AuthManager.shared.createStaff(staff: staff, password: password) { [weak self] (success: Bool) in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                if success {
+                    self.fetchAllStaff() // Refresh the list after adding
+                } else {
+                    self.errorMessage = AuthManager.shared.errorMessage ?? "Failed to create staff"
+                }
+                
+                self.isLoading = false
+                completion(success)
+            }
+        }
+    }
+    // In AuthManager.swift
+   
+    
+    func updateStaff(_ updatedStaff: Staff, completion: @escaping (Bool) -> Void) {
+        guard let id = updatedStaff.id else {
+            errorMessage = "Staff ID missing"
+            completion(false)
+            return
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            try db.collection(updatedStaff.role.collectionName).document(id).setData(from: updatedStaff) { [weak self] error in
+                guard let self = self else { return }
+                self.isLoading = false
+                
+                if let error = error {
+                    self.errorMessage = error.localizedDescription
+                    completion(false)
+                } else {
+                    self.fetchAllStaff()
+                    completion(true)
+                }
+            }
+        } catch {
+            isLoading = false
+            errorMessage = error.localizedDescription
+            completion(false)
         }
     }
     
-    func deleteStaff(_ staff: Staff) {
-        staffList.removeAll { $0.id == staff.id }
-        // In a real app, you would delete from database here
+    func deleteStaff(_ staff: Staff, completion: @escaping (Bool) -> Void) {
+        guard let id = staff.id else {
+            errorMessage = "Staff ID missing"
+            completion(false)
+            return
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        // First delete from authentication
+        Auth.auth().currentUser?.delete { [weak self] error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                self.isLoading = false
+                self.errorMessage = error.localizedDescription
+                completion(false)
+                return
+            }
+            
+            // Then delete from Firestore
+            self.db.collection(staff.role.collectionName).document(id).delete { error in
+                self.isLoading = false
+                
+                if let error = error {
+                    self.errorMessage = error.localizedDescription
+                    completion(false)
+                } else {
+                    self.fetchAllStaff()
+                    completion(true)
+                }
+            }
+        }
     }
+<<<<<<< Updated upstream
     
     private func loadSampleData() {
         // Sample data for preview/testing
@@ -42,4 +171,6 @@ class StaffManager: ObservableObject {
             Staff(fullName: "Admin James Taylor", email: "j.taylor@hospital.com", role: .admin, department: "Administration", phoneNumber: "555-0106")
         ]
     }
+=======
+>>>>>>> Stashed changes
 }
