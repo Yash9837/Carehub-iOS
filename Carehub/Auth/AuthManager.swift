@@ -35,6 +35,45 @@ class AuthManager: ObservableObject {
         }
     }
     
+    func sendEmailVerification(completion: @escaping (Bool, String?) -> Void) {
+        guard let user = Auth.auth().currentUser else {
+            logger.error("No user found for email verification")
+            completion(false, "No user found")
+            return
+        }
+        
+        user.sendEmailVerification { [weak self] error in
+            guard let self = self else { return }
+            if let error = error {
+                self.logger.error("Failed to send verification email: \(error.localizedDescription)")
+                completion(false, error.localizedDescription)
+            } else {
+                self.logger.debug("Verification email sent to \(user.email ?? "unknown")")
+                completion(true, nil)
+            }
+        }
+    }
+    
+    func checkEmailVerification(completion: @escaping (Bool, String?) -> Void) {
+        guard let user = Auth.auth().currentUser else {
+            logger.error("No user found for email verification check")
+            completion(false, "No user found")
+            return
+        }
+        
+        user.reload { [weak self] error in
+            guard let self = self else { return }
+            if let error = error {
+                self.logger.error("Failed to reload user: \(error.localizedDescription)")
+                completion(false, error.localizedDescription)
+            } else {
+                let isVerified = user.isEmailVerified
+                self.logger.debug("Email verification status for \(user.email ?? "unknown"): \(isVerified)")
+                completion(isVerified, isVerified ? nil : "Email not yet verified")
+            }
+        }
+    }
+    
     func createStaff(staff: Staff, password: String, completion: @escaping (Bool) -> Void) {
         isLoading = true
         errorMessage = nil
@@ -111,33 +150,44 @@ class AuthManager: ObservableObject {
             }
             
             self.logger.debug("Firebase Auth user created with UID: \(user.uid)")
-            let patientData = patient // Use the patient data as-is, with the custom patientId
             
-            do {
-                // Use the Firebase UID as the document ID, but keep patientId as the custom-generated ID
-                try self.db.collection("patients").document(user.uid).setData(from: patientData) { error in
+            // Send email verification
+            self.sendEmailVerification { success, errorMessage in
+                if !success {
                     self.isLoading = false
-                    
-                    if let error = error {
-                        self.errorMessage = error.localizedDescription
-                        self.logger.error("Firestore write error: \(error.localizedDescription)")
-                        completion(false)
-                    } else {
-                        self.logger.debug("Patient data stored in Firestore for UID: \(user.uid)")
-                        completion(true)
-                    }
+                    self.errorMessage = errorMessage ?? "Failed to send verification email"
+                    self.logger.error("Failed to send verification email: \(errorMessage ?? "Unknown error")")
+                    completion(false)
+                    return
                 }
-            } catch {
-                self.isLoading = false
-                self.errorMessage = error.localizedDescription
-                self.logger.error("Encoding error: \(error.localizedDescription)")
-                completion(false)
+                
+                // Store patient data after sending verification email
+                let patientData = patient
+                do {
+                    try self.db.collection("patients").document(user.uid).setData(from: patientData) { error in
+                        self.isLoading = false
+                        
+                        if let error = error {
+                            self.errorMessage = error.localizedDescription
+                            self.logger.error("Firestore write error: \(error.localizedDescription)")
+                            completion(false)
+                        } else {
+                            self.logger.debug("Patient data stored in Firestore for UID: \(user.uid)")
+                            completion(true)
+                        }
+                    }
+                } catch {
+                    self.isLoading = false
+                    self.errorMessage = error.localizedDescription
+                    self.logger.error("Encoding error: \(error.localizedDescription)")
+                    completion(false)
+                }
             }
         }
     }
     
-    func login(email: String, password: String, completion: @escaping (Bool) -> Void) {
-        logger.debug("Attempting login for email: \(email), password length: \(password.count)")
+    func login(email: String, password: String, role: LoginView.Role, completion: @escaping (Bool) -> Void) {
+        logger.debug("Attempting login for email: \(email), password length: \(password.count), role: \(role == .patient ? "patient" : "staff")")
         isLoading = true
         errorMessage = nil
         
@@ -152,6 +202,15 @@ class AuthManager: ObservableObject {
             
             guard let user = result?.user else {
                 self.handleLoginError(nil)
+                completion(false)
+                return
+            }
+            
+            // Check email verification only for patients
+            if role == .patient && !user.isEmailVerified {
+                self.isLoading = false
+                self.errorMessage = "Please verify your email before logging in."
+                self.logger.error("Login failed: Email not verified for user \(user.uid)")
                 completion(false)
                 return
             }
