@@ -44,6 +44,7 @@ struct RegisterView: View {
         case credentials = 1
         case contactInfo
         case personalInfo
+        case emailVerification
         
         var progress: Double {
             return Double(rawValue) / 4.0
@@ -54,6 +55,7 @@ struct RegisterView: View {
             case .credentials: return "Create Account"
             case .contactInfo: return "Contact Information"
             case .personalInfo: return "Personal Information"
+            case .emailVerification: return "Verify Email"
             }
         }
         
@@ -62,6 +64,7 @@ struct RegisterView: View {
             case .credentials: return "Let's get started with your account"
             case .contactInfo: return "How can we reach you?"
             case .personalInfo: return "Your personal and health background"
+            case .emailVerification: return "Please verify your email address"
             }
         }
         
@@ -70,6 +73,7 @@ struct RegisterView: View {
             case .credentials: return "person.crop.circle.badge.plus"
             case .contactInfo: return "phone.fill"
             case .personalInfo: return "heart.text.square.fill"
+            case .emailVerification: return "envelope.fill"
             }
         }
     }
@@ -135,7 +139,7 @@ struct RegisterView: View {
                             .padding(.horizontal)
                         
                         HStack {
-                            Text("Step \(currentStep.rawValue) of 3")
+                            Text("Step \(currentStep.rawValue) of 4")
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
                             Spacer()
@@ -168,6 +172,7 @@ struct RegisterView: View {
                             case .credentials: credentialsStep
                             case .contactInfo: contactInfoStep
                             case .personalInfo: personalInfoStep
+                            case .emailVerification: emailVerificationStep
                             }
                         }
                         .padding(.horizontal, 20)
@@ -179,10 +184,10 @@ struct RegisterView: View {
                     
                     Button(action: handleNextButton) {
                         HStack {
-                            Text(currentStep == .personalInfo ? "Complete Registration" : "Continue")
+                            Text(currentStep == .emailVerification ? "Verify Email" : currentStep == .personalInfo ? "Complete Registration" : "Continue")
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundColor(.white)
-                            Image(systemName: currentStep == .personalInfo ? "checkmark.circle.fill" : "arrow.right.circle.fill")
+                            Image(systemName: currentStep == .emailVerification ? "checkmark.shield.fill" : currentStep == .personalInfo ? "checkmark.circle.fill" : "arrow.right.circle.fill")
                                 .font(.system(size: 18))
                                 .foregroundColor(.white)
                         }
@@ -502,6 +507,41 @@ struct RegisterView: View {
         }
     }
     
+    private var emailVerificationStep: some View {
+        VStack(spacing: 20) {
+            Text("We’ve sent a verification email to \(email).")
+                .font(.system(size: 16))
+                .foregroundColor(.black)
+                .multilineTextAlignment(.center)
+            
+            Text("Please click the link in the email to verify your account.")
+                .font(.system(size: 14))
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+            
+            Button(action: {
+                AuthManager.shared.sendEmailVerification { success, errorMessage in
+                    DispatchQueue.main.async {
+                        if !success {
+                            showAlert = true
+                            self.errorMessage = errorMessage ?? "Failed to resend verification email"
+                        } else {
+                            showAlert = true
+                            self.errorMessage = "Verification email resent. Please check your inbox or spam folder."
+                        }
+                    }
+                }
+            }) {
+                Text("Resend Verification Email")
+                    .font(.system(size: 16))
+                    .foregroundColor(purpleColor)
+                    .underline()
+            }
+            .accessibilityLabel("Resend Verification Email")
+        }
+        .padding(.horizontal, 20)
+    }
+    
     private func summaryRow(icon: String, title: String, value: String) -> some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: icon)
@@ -557,6 +597,9 @@ struct RegisterView: View {
         case .personalInfo:
             isDobValid = !dob.trimmingCharacters(in: .whitespaces).isEmpty
             return isDobValid
+            
+        case .emailVerification:
+            return true // Validation handled by Firebase
         }
     }
     
@@ -580,7 +623,7 @@ struct RegisterView: View {
         let trimmedPassword = password.trimmingCharacters(in: .whitespaces)
         return !trimmedPassword.isEmpty && trimmedPassword.count >= 6
     }
-
+    
     private func calculateAge(from dob: String) -> Int? {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "dd/MM/yyyy"
@@ -634,10 +677,24 @@ struct RegisterView: View {
             AuthManager.shared.registerPatient(patient: patient, password: password) { success in
                 DispatchQueue.main.async {
                     if success {
-                        navigateToLogin = true
+                        withAnimation {
+                            currentStep = .emailVerification
+                            resetValidationStates()
+                        }
                     } else {
                         showAlert = true
                         errorMessage = AuthManager.shared.errorMessage ?? "Registration failed"
+                    }
+                }
+            }
+        } else if currentStep == .emailVerification {
+            AuthManager.shared.checkEmailVerification { isVerified, errorMessage in
+                DispatchQueue.main.async {
+                    if isVerified {
+                        navigateToLogin = true
+                    } else {
+                        showAlert = true
+                        self.errorMessage = errorMessage ?? "Email not yet verified. Please check your inbox or spam folder."
                     }
                 }
             }
