@@ -1,56 +1,64 @@
-
 import SwiftUI
-// StaffListView.swift
+
 struct StaffListView: View {
     @ObservedObject var staffManager: StaffManager
     @State private var searchText = ""
     @State private var showingAddStaff = false
     @State private var selectedRole: StaffRole? = nil
-    
+    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+
     var filteredStaff: [Staff] {
         let roleFiltered = selectedRole == nil ? staffManager.staffList : staffManager.staffList.filter { $0.role == selectedRole }
-        
-        if searchText.isEmpty {
-            return roleFiltered
-        } else {
-            return roleFiltered.filter {
-                $0.fullName.localizedCaseInsensitiveContains(searchText) ||
-                $0.id!.localizedCaseInsensitiveContains(searchText) ||
-                $0.department!.localizedCaseInsensitiveContains(searchText)
-            }
+        return searchText.isEmpty ? roleFiltered : roleFiltered.filter {
+            $0.fullName.localizedCaseInsensitiveContains(searchText) ||
+            ($0.id?.localizedCaseInsensitiveContains(searchText) ?? false) ||
+            ($0.department?.localizedCaseInsensitiveContains(searchText) ?? false)
         }
     }
     
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    ForEach(filteredStaff) { staff in
-                        NavigationLink(destination: StaffDetailView(staff: staff, staffManager: staffManager)) {
-                            StaffRowView(staff: staff)
-                        }
-                    }
-                    .onDelete(perform: deleteStaff)
-                } header: {
-                    VStack(alignment: .leading, spacing: 10) {
-                        SearchBar(text: $searchText, placeholder: "Search staff...")
-                        
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                RoleFilterButton(role: nil, selectedRole: $selectedRole)
-                                
-                                ForEach(StaffRole.allCases) { role in
-                                    RoleFilterButton(role: role, selectedRole: $selectedRole)
+            ZStack {
+                Color(red: 0.94, green: 0.94, blue: 1.0)
+                    .edgesIgnoringSafeArea(.all)
+                
+                ScrollView {
+                    LazyVStack(spacing: 15) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.white)
+                                .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
+                            VStack(alignment: .leading, spacing: 10) {
+                                SearchBar(text: $searchText, placeholder: "Search staff...")
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        RoleFilterButton(role: nil, selectedRole: $selectedRole)
+                                        ForEach(StaffRole.allCases) { role in
+                                            RoleFilterButton(role: role, selectedRole: $selectedRole)
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
                                 }
                             }
-                            .padding(.vertical, 4)
+                            .padding()
                         }
+                        
+                        ForEach(filteredStaff) { staff in
+                            NavigationLink(destination: StaffDetailView(staff: staff, staffManager: staffManager)) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(Color.white)
+                                        .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
+                                    StaffRowView(staff: staff)
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                        }
+                        .onDelete(perform: deleteStaff)
                     }
-                    .padding(.bottom, 8)
-                    .background(Color(.systemGroupedBackground))
+                    .padding(.top, 10)
                 }
             }
-            .listStyle(.insetGrouped)
             .navigationTitle("Staff Management")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -59,6 +67,7 @@ struct StaffListView: View {
                     } label: {
                         Image(systemName: "plus")
                             .font(.headline)
+                            .foregroundColor(purpleColor)
                     }
                 }
             }
@@ -80,70 +89,68 @@ struct StaffListView: View {
             }
         }
     }
-
-
 }
 
-// StaffRowView.swift
 struct StaffRowView: View {
     let staff: Staff
-    
+    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+
     var roleColor: Color {
         switch staff.role {
         case .doctor: return .green
         case .nurse: return .orange
         case .labTechnician: return .purple
-        case .admin: return .blue
+        case .admin: return purpleColor
         }
+    }
+    
+    var displayId: String {
+        guard let id = staff.id else { return "Unknown ID" }
+        return id.count > 6 ? String(id.prefix(6)) : id
     }
     
     var body: some View {
         HStack(spacing: 12) {
-            // Role icon
             ZStack {
                 Circle()
                     .fill(roleColor.opacity(0.2))
                     .frame(width: 40, height: 40)
-                
-                Image(systemName: staff.role == .doctor ? "stethoscope" : 
-                      staff.role == .nurse ? "cross.case.fill" : 
+                Image(systemName: staff.role == .doctor ? "stethoscope" :
+                      staff.role == .nurse ? "cross.case.fill" :
                       staff.role == .labTechnician ? "testtube.2" : "person.fill")
                     .foregroundColor(roleColor)
             }
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(staff.fullName)
-                    .font(.headline)
-                
+                    .font(.system(size: 16, weight: .medium))
                 HStack(spacing: 6) {
                     Text(staff.role.rawValue)
-                        .font(.subheadline)
+                        .font(.system(size: 14))
                         .foregroundColor(roleColor)
-                    
                     Text("•")
-                        .foregroundColor(.secondary)
-                    
-                    Text(staff.department!)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.gray)
+                    Text(staff.department ?? "N/A")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
                 }
             }
             
             Spacer()
             
-            Text(staff.id!)
-                .font(.system(.subheadline, design: .monospaced))
-                .foregroundColor(.secondary)
+            Text(displayId)
+                .font(.system(size: 14, design: .monospaced))
+                .foregroundColor(.gray)
         }
-        .padding(.vertical, 8)
+        .padding()
     }
 }
 
-// RoleFilterButton.swift
 struct RoleFilterButton: View {
     let role: StaffRole?
     @Binding var selectedRole: StaffRole?
-    
+    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+
     var isSelected: Bool {
         role == selectedRole
     }
@@ -153,12 +160,12 @@ struct RoleFilterButton: View {
     }
     
     var color: Color {
-        guard let role = role else { return .blue }
+        guard let role = role else { return purpleColor }
         switch role {
         case .doctor: return .green
         case .nurse: return .orange
         case .labTechnician: return .purple
-        case .admin: return .blue
+        case .admin: return purpleColor
         }
     }
     
@@ -167,7 +174,7 @@ struct RoleFilterButton: View {
             selectedRole = role
         } label: {
             Text(title)
-                .font(.subheadline)
+                .font(.system(size: 14))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(isSelected ? color.opacity(0.2) : Color(.systemBackground))
