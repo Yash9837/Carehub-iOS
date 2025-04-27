@@ -135,7 +135,7 @@ struct LoginView: View {
         
         isLoading = true
         
-        AuthManager.shared.login(email: email, password: password) { success in
+        AuthManager.shared.login(email: email, password: password, role: selectedRole) { success in
             DispatchQueue.main.async {
                 self.isLoading = false
                 
