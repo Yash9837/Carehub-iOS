@@ -1,4 +1,3 @@
-
 import FirebaseFirestore
 import Combine
 import FirebaseAuth
@@ -22,44 +21,79 @@ class StaffManager: ObservableObject {
     
     func fetchAllStaff() {
         isLoading = true
-        staffList = []
+        staffList.removeAll() // Clear existing data to avoid duplication
+        errorMessage = nil
         
+        let dispatchGroup = DispatchGroup()
         let staffCollections = StaffRole.allCases.map { $0.collectionName }
         
         for collection in staffCollections {
-            db.collection(collection).getDocuments { [weak self] snapshot, error in
-                guard let self = self else { return }
+            dispatchGroup.enter()
+            // Fetch all fields, filter manually
+            db.collection(collection).getDocuments { [weak self] (snapshot, error: Error?) in
+                guard let self = self else {
+                    dispatchGroup.leave()
+                    return
+                }
+                
+                defer { dispatchGroup.leave() } // Ensure leave is called even with errors
                 
                 if let error = error {
-                    self.errorMessage = error.localizedDescription
-                    self.isLoading = false
+                    self.errorMessage = (self.errorMessage ?? "") + "\nError fetching \(collection): \(error.localizedDescription)"
+                    print("Error fetching \(collection): \(error.localizedDescription)")
                     return
                 }
                 
                 guard let documents = snapshot?.documents else {
-                    self.isLoading = false
+                    print("No documents found in \(collection)")
                     return
                 }
                 
                 do {
                     let staffMembers = try documents.compactMap { document -> Staff? in
-                        var staff = try document.data(as: Staff.self)
-                        staff.id = document.documentID
-                        return staff
+                        let data = document.data()
+                        // Map Firestore fields to model fields
+                        let fullName = data["Doctor_name"] as? String ?? data["name"] as? String ?? data["fullName"] as? String ?? "Unknown"
+                        let email = data["email"] as? String ?? data["Email"] as? String ?? ""
+                        let roleString = data["role"] as? String ?? ""
+                        let role = StaffRole(rawValue: roleString) ?? .doctor // Default to doctor if unknown
+                        let department = data["Filed_name"] as? String ?? data["department"] as? String
+                        let phoneNumber = data["phoneNumber"] as? String ?? data["phoneNo"] as? String
+                        let joinDate = (data["joinDate"] as? Timestamp)?.dateValue() ?? (data["createdAt"] as? Timestamp)?.dateValue()
+                        let profileImageURL = data["imageURL"] as? String ?? data["ImageURL"] as? String ?? ""// Map Firestore imageURL to profileImageURL
+                        
+                        return Staff(
+                            id: document.documentID,
+                            fullName: fullName,
+                            email: email,
+                            role: role,
+                            department: department,
+                            phoneNumber: phoneNumber,
+                            joinDate: joinDate,
+                            profileImageURL: profileImageURL
+                        )
                     }
                     
                     DispatchQueue.main.async {
                         self.staffList.append(contentsOf: staffMembers)
-                        self.isLoading = false
+                        print("Fetched \(staffMembers.count) staff from \(collection)")
                     }
                 } catch {
-                    self.errorMessage = error.localizedDescription
-                    self.isLoading = false
+                    self.errorMessage = (self.errorMessage ?? "") + "\nDecoding error in \(collection): \(error.localizedDescription)"
+                    print("Decoding error in \(collection): \(error.localizedDescription)")
                 }
             }
         }
+        
+        dispatchGroup.notify(queue: .main) { [weak self] in
+            guard let self = self else { return }
+            self.isLoading = false
+            if self.staffList.isEmpty && self.errorMessage == nil {
+                self.errorMessage = "No staff data found in any collection"
+            }
+            print("Total staff fetched: \(self.staffList.count)")
+        }
     }
-   
     
     func addStaff(_ staff: Staff, password: String, completion: @escaping (Bool) -> Void) {
         isLoading = true
@@ -78,8 +112,6 @@ class StaffManager: ObservableObject {
             }
         }
     }
-    // In AuthManager.swift
-   
     
     func updateStaff(_ updatedStaff: Staff, completion: @escaping (Bool) -> Void) {
         guard let id = updatedStaff.id else {
@@ -121,28 +153,16 @@ class StaffManager: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        // First delete from authentication
-        Auth.auth().currentUser?.delete { [weak self] error in
+        self.db.collection(staff.role.collectionName).document(id).delete { [weak self] error in
             guard let self = self else { return }
+            self.isLoading = false
             
             if let error = error {
-                self.isLoading = false
                 self.errorMessage = error.localizedDescription
                 completion(false)
-                return
-            }
-            
-            // Then delete from Firestore
-            self.db.collection(staff.role.collectionName).document(id).delete { error in
-                self.isLoading = false
-                
-                if let error = error {
-                    self.errorMessage = error.localizedDescription
-                    completion(false)
-                } else {
-                    self.fetchAllStaff()
-                    completion(true)
-                }
+            } else {
+                self.fetchAllStaff()
+                completion(true)
             }
         }
     }
