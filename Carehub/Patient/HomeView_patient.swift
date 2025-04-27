@@ -3,12 +3,11 @@ import FirebaseFirestore
 
 struct HomeView_patient: View {
     let patient: PatientF
-    @Environment(\.colorScheme) private var colorScheme
-    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
-    @State private var upcomingSchedules: [(doctorName: String, specialty: String, date: Date, imageName: String)] = []
+    @Environment(\.colorScheme) var colorScheme
+    let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    @State private var upcomingSchedules: [Appointment] = []
     @State private var isLoading = true
     @State private var navigateToBooking = false
-    private let currentPatientId = "PT001"
     
     let recentPrescriptions = [
         (type: "Prescription", doctorName: "Dr. Kenny Adeola", date: "Nov 15, 2023", title: "Blood Test Results"),
@@ -130,12 +129,12 @@ struct HomeView_patient: View {
                             } else {
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 16) {
-                                        ForEach(upcomingSchedules, id: \.doctorName) { schedule in
+                                        ForEach(upcomingSchedules) { appointment in
                                             AppointmentCard(
-                                                doctorName: schedule.doctorName,
-                                                specialty: schedule.specialty,
-                                                date: formatDate(schedule.date),
-                                                imageName: schedule.imageName
+                                                doctorName: appointment.description,
+                                                specialty: "",
+                                                date: formatDate(appointment.date ?? Date()),
+                                                imageName: "doctor1"
                                             )
                                         }
                                     }
@@ -216,7 +215,7 @@ struct HomeView_patient: View {
                 fetchUpcomingAppointments()
             }
             .navigationDestination(isPresented: $navigateToBooking) {
-                ScheduleAppointmentView()
+                ScheduleAppointmentView(patientId: patient.patientId)
             }
         }
     }
@@ -228,35 +227,61 @@ struct HomeView_patient: View {
         let oneMonthFromNow = calendar.date(byAdding: .month, value: 1, to: now) ?? now
         
         db.collection("appointments")
-            .whereField("patientId", isEqualTo: currentPatientId)
-            .whereField("Date", isGreaterThanOrEqualTo: now)
-            .whereField("Date", isLessThan: oneMonthFromNow)
-            .whereField("Status", isEqualTo: "scheduled")
+            .whereField("patientId", isEqualTo: patient.patientId)
+            .whereField("status", isEqualTo: "scheduled")
+            .whereField("date", isGreaterThanOrEqualTo: now)
+            .whereField("date", isLessThan: oneMonthFromNow)
             .getDocuments { (querySnapshot, error) in
                 if let error = error {
                     print("Error fetching appointments: \(error.localizedDescription)")
                     isLoading = false
-                    upcomingSchedules = [
-                        (doctorName: "Dr. Smith", specialty: "Cardiologist", date: Date(), imageName: "doctor1")
-                    ]
                     return
                 }
                 
-                var schedules: [(doctorName: String, specialty: String, date: Date, imageName: String)] = []
+                var schedules: [Appointment] = []
                 for document in querySnapshot?.documents ?? [] {
-                    if let doctorName = document.data()["doctorName"] as? String,
-                       let specialty = document.data()["specialty"] as? String,
-                       let date = (document.data()["Date"] as? Timestamp)?.dateValue(),
-                       let imageName = document.data()["imageName"] as? String {
-                        schedules.append((doctorName: doctorName, specialty: specialty, date: date, imageName: imageName))
+                    print("Document data: \(document.data())")
+                    if let apptId = document.data()["apptId"] as? String,
+                       let patientId = document.data()["patientId"] as? String,
+                       let description = document.data()["description"] as? String,
+                       let docId = document.data()["docId"] as? String,
+                       let status = document.data()["status"] as? String,
+                       let billingStatus = document.data()["billingStatus"] as? String,
+                       let amount = document.data()["amount"] as? Double,
+                       let date = (document.data()["date"] as? Timestamp)?.dateValue(),
+                       let doctorsNotes = document.data()["doctorsNotes"] as? String,
+                       let prescriptionId = document.data()["prescriptionId"] as? String,
+                       let followUpRequired = document.data()["followUpRequired"] as? Bool,
+                       let followUpDate = (document.data()["followUpDate"] as? Timestamp)?.dateValue() {
+                        let appointment = Appointment(
+                            id: document.documentID,
+                            apptId: apptId,
+                            patientId: patientId,
+                            description: description,
+                            docId: docId,
+                            status: status,
+                            billingStatus: billingStatus,
+                            amount: amount,
+                            date: date,
+                            doctorsNotes: doctorsNotes,
+                            prescriptionId: prescriptionId,
+                            followUpRequired: followUpRequired,
+                            followUpDate: followUpDate
+                        )
+                        schedules.append(appointment)
+                    } else {
+                        print("Missing or invalid fields in document: \(document.documentID)")
                     }
                 }
-                upcomingSchedules = schedules.sorted { $0.date < $1.date }
+                print("Fetched schedules: \(schedules)")
+                upcomingSchedules = schedules.sorted { ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast) }
                 isLoading = false
+                print("Updated upcomingSchedules: \(upcomingSchedules), isLoading: \(isLoading)")
             }
     }
     
-    private func formatDate(_ date: Date) -> String {
+    private func formatDate(_ date: Date?) -> String {
+        guard let date = date else { return "No date" }
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
@@ -264,12 +289,59 @@ struct HomeView_patient: View {
     }
 }
 
+// Define PreviouslyVisitedDoctorCard
+struct PreviouslyVisitedDoctorCard: View {
+    let name: String
+    let specialty: String
+    let lastVisit: String
+    let imageName: String
+    let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(imageName)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 60, height: 60)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(purpleColor, lineWidth: 2))
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(name)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.black)
+                
+                Text(specialty)
+                    .font(.system(size: 14))
+                    .foregroundColor(.gray)
+                
+                Text("Last Visit: \(lastVisit)")
+                    .font(.system(size: 12))
+                    .foregroundColor(.gray)
+            }
+            
+            Spacer()
+            
+            Button(action: {}) {
+                Image(systemName: "phone.fill")
+                    .foregroundColor(purpleColor)
+                    .font(.system(size: 18))
+            }
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 3)
+    }
+}
+
+// Existing subviews (unchanged)
 struct AppointmentCard: View {
     let doctorName: String
     let specialty: String
     let date: String
     let imageName: String
-    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     
     var body: some View {
         ZStack {
@@ -332,7 +404,7 @@ struct MedicalRecordCard: View {
     let doctorName: String
     let date: String
     let title: String
-    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
 
     var body: some View {
         ZStack {
@@ -371,127 +443,16 @@ struct MedicalRecordCard: View {
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.white.opacity(0.8))
                     
-                    HStack(spacing: 6) {
-                        Image(systemName: "calendar")
-                            .foregroundColor(.white)
-                            .font(.system(size: 14))
-                        
-                        Text(date)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
-                    }
+                    Text(date)
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.7))
                 }
                 
                 Spacer()
             }
             .padding(16)
         }
-        .frame(width: 300, height: 120)
+        .frame(width: 250, height: 100)
     }
 }
 
-struct PreviouslyVisitedDoctorCard: View {
-    let name: String
-    let specialty: String
-    let lastVisit: String
-    let imageName: String
-    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            Group {
-                if UIImage(named: imageName) != nil {
-                    Image(imageName)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 50, height: 50)
-                        .clipShape(Circle())
-                } else {
-                    Image(systemName: "person.circle.fill")
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 50, height: 50)
-                        .foregroundColor(purpleColor)
-                        .clipShape(Circle())
-                }
-            }
-            .overlay(
-                Circle()
-                    .stroke(LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color(red: 0.43, green: 0.34, blue: 0.99),
-                            Color(red: 0.55, green: 0.48, blue: 0.99)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ), lineWidth: 2)
-            )
-            .shadow(color: purpleColor.opacity(0.2), radius: 5, x: 0, y: 3)
-            
-            VStack(alignment: .leading, spacing: 6) {
-                Text(name)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.black)
-                
-                Text(specialty)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.gray)
-                
-                HStack(spacing: 4) {
-                    Image(systemName: "clock.fill")
-                        .foregroundColor(purpleColor)
-                        .font(.system(size: 12))
-                    
-                    Text("Last visit: \(lastVisit)")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.gray)
-                }
-            }
-            
-            Spacer()
-            
-            Button(action: {}) {
-                Text("Book")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(purpleColor)
-                    .cornerRadius(8)
-            }
-        }
-        .padding(16)
-        .background(Color.white)
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
-    }
-}
-
-#Preview {
-    let samplePatient = PatientF(
-        emergencyContact: [],
-        medicalRecords: [],
-        testResults: [],
-        userData: UserData(
-            Address: "123 Main St",
-            Dob: "01/01/1998",
-            Email: "vansh@example.com",
-            Name: "Vansh Patel",
-            Password: "hashedpassword",
-            aadharNo: "123456789012",
-            phoneNo: "9876543210"
-        ),
-        vitals: Vitals(
-            allergies: [],
-            bp: [],
-            heartRate: [],
-            height: [],
-            temperature: [],
-            weight: []
-        ),
-        lastModified: Date(),
-        patientId: "P123456",
-        username: "vansh123"
-    )
-    HomeView_patient(patient: samplePatient)
-}

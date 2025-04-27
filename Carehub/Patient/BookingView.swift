@@ -2,6 +2,7 @@ import SwiftUI
 import FirebaseFirestore
 
 struct ScheduleAppointmentView: View {
+    let patientId: String // Add patientId parameter
     @State private var selectedSpecialty = ""
     @State private var selectedDoctor = ""
     @State private var selectedDate = Date()
@@ -42,8 +43,6 @@ struct ScheduleAppointmentView: View {
         Color(red: 0.43, green: 0.34, blue: 0.99),
         Color(red: 0.55, green: 0.48, blue: 0.99)
     ]
-    
-    private let currentPatientId = "PT001" // Example patient ID
     
     var body: some View {
         ZStack {
@@ -539,7 +538,7 @@ struct ScheduleAppointmentView: View {
         
         // Fetch all appointments for the patient
         db.collection("appointments")
-            .whereField("patientId", isEqualTo: currentPatientId)
+            .whereField("patientId", isEqualTo: patientId)
             .getDocuments { [self] (querySnapshot, error) in
                 if let error = error {
                     errorMessage = "Error checking appointments: \(error.localizedDescription)"
@@ -549,13 +548,13 @@ struct ScheduleAppointmentView: View {
                 }
                 
                 guard let documents = querySnapshot?.documents else {
-                    print("No existing appointments found for patient \(currentPatientId). Proceeding to create new appointment.")
+                    print("No existing appointments found for patient \(patientId). Proceeding to create new appointment.")
                     createNewAppointment()
                     return
                 }
                 
                 // Debug: Print all existing appointment dates
-                print("Existing appointments for patient \(currentPatientId):")
+                print("Existing appointments for patient \(patientId):")
                 for doc in documents {
                     if let date = (doc.data()["Date"] as? Timestamp)?.dateValue() {
                         print(" - \(formattedDateWithDay(date))")
@@ -614,7 +613,7 @@ struct ScheduleAppointmentView: View {
         
         // Find doctor_id based on selectedDoctor
         let doctor = DoctorData.doctors[selectedSpecialty]?.first { $0.doctor_name == selectedDoctor }
-        let doctorId = doctor?.id ?? "" // Don't use example ID
+        let doctorId = doctor?.id ?? ""
         
         let followUpDate = calendar.date(byAdding: .day, value: 7, to: appointmentDateTime) ?? Date()
         
@@ -628,7 +627,7 @@ struct ScheduleAppointmentView: View {
             "doctorNotes": "",
             "followUpDate": followUpDate,
             "followUpRequired": false,
-            "patientId": currentPatientId,
+            "patientId": patientId,
             "prescriptionId": ""
         ]
         
@@ -657,7 +656,7 @@ struct ScheduleAppointmentView: View {
 struct ScheduleAppointmentView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            ScheduleAppointmentView()
+            ScheduleAppointmentView(patientId: "P123456")
         }
     }
 }
