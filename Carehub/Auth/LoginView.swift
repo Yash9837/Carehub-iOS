@@ -4,7 +4,7 @@ import FirebaseAuth
 struct LoginView: View {
     enum Role { case patient, staff }
     
-    @State private var selectedRole: Role = .patient // Default to patient
+    @State private var selectedRole: Role = .patient
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var showAlert = false
@@ -17,7 +17,6 @@ struct LoginView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Replace solid background with gradient background
                 LinearGradient(
                     colors: [
                         Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4),
@@ -168,7 +167,7 @@ struct LoginView: View {
             case .doctor:
                 DoctorTabView()
             case .nurse:
-                AdminTabView()
+                NurseVitalsEntryView(nurseId: staff.id ?? "NUR001") // Use NurseVitalsEntryView with nurseId
             case .labTechnician:
                 LabTechTabView()
             }

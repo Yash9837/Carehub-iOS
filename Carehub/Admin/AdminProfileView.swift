@@ -6,9 +6,10 @@ struct AdminProfileView: View {
     @State private var tempName: String
     @State private var tempEmail: String
     @State private var tempPhone: String
+    @State private var showLoginView = false // State to trigger navigation to LoginView
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     private let gradientColors = [Color(red: 0.43, green: 0.34, blue: 0.99), Color(red: 0.55, green: 0.48, blue: 0.99)]
-
+    
     init(admin: Staff) {
         self._admin = State(initialValue: admin)
         self._tempName = State(initialValue: admin.fullName)
@@ -46,6 +47,10 @@ struct AdminProfileView: View {
                     }
                 }
             }
+            // Full-screen cover for LoginView
+            .fullScreenCover(isPresented: $showLoginView) {
+                LoginView() // Replace with your actual LoginView
+            }
         }
     }
     
@@ -61,7 +66,7 @@ struct AdminProfileView: View {
                     
                     VStack {
                         StaffAvatarView(role: admin.role)
-                            .frame(width: 80, height: 80) // Slightly smaller avatar for better proportion
+                            .frame(width: 80, height: 80)
                         Text(admin.fullName)
                             .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.white)
@@ -116,9 +121,10 @@ struct AdminProfileView: View {
                         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
                     VStack(spacing: 12) {
                         Button(action: {
-                            // Handle password change
+                            // Trigger navigation to LoginView
+                            showLoginView = true
                         }) {
-                            Text("Change Password")
+                            Text("Logout")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(.red)
                                 .frame(maxWidth: .infinity)
@@ -148,13 +154,13 @@ struct AdminProfileView: View {
                 Section(header: Text("Personal Information")
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.black)) {
-                    TextField("Full Name", text: $tempName)
-                    TextField("Email", text: $tempEmail)
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-                    TextField("Phone Number", text: $tempPhone)
-                        .keyboardType(.phonePad)
-                }
+                        TextField("Full Name", text: $tempName)
+                        TextField("Email", text: $tempEmail)
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+                        TextField("Phone Number", text: $tempPhone)
+                            .keyboardType(.phonePad)
+                    }
                 
                 Section {
                     Button(role: .destructive) {
@@ -180,6 +186,6 @@ struct AdminProfileView: View {
     private func resetTempValues() {
         tempName = admin.fullName
         tempEmail = admin.email
-        tempPhone = admin.phoneNumber!
+        tempPhone = admin.phoneNumber ?? "12345"
     }
 }

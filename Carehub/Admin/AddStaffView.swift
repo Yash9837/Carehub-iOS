@@ -240,7 +240,6 @@ struct StaffDetailView: View {
                 .fill(Color.white)
                 .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
                 .padding(.horizontal, 20)
-            
             Form {
                 Section(header: Text("Personal Information")
                     .font(.system(size: 18, weight: .bold))

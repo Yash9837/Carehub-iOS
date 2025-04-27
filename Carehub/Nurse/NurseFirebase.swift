@@ -37,7 +37,6 @@ class FirebaseService {
         }
     }
 
-
     // MARK: - Vitals Methods
 
     func fetchPatientVitals(patientID: String, completion: @escaping (Result<[String: Any], Error>) -> Void) {
@@ -81,7 +80,6 @@ class FirebaseService {
             completion(.success(result))
         }
     }
-
 
     func savePatientVitals(patientID: String, vitals: [String: Any], completion: @escaping (Result<Void, Error>) -> Void) {
         let documentRef = db.collection("patients").document(patientID)
@@ -200,6 +198,44 @@ class NurseViewModel: ObservableObject {
                     self.error = err
                 }
             }
+        }
+    }
+}
+
+struct Nurse: Identifiable, Codable {
+    let id: String
+    let name: String
+    let nurseld: String
+    let phoneNo: String?
+    let email: String
+    let shift: Shift?
+    let createdAt: Timestamp?
+    
+    struct Shift: Codable {
+        let startTime: String
+        let endTime: String
+    }
+    
+    init?(from data: [String: Any]) {
+        guard let id = data["id"] as? String,
+              let name = data["fullName"] as? String,
+              let email = data["email"] as? String else {
+            return nil
+        }
+        
+        self.id = id
+        self.name = name
+        self.nurseld = id // Map id to nurseld
+        self.email = email
+        self.phoneNo = data["phoneNumber"] as? String
+        self.createdAt = data["createdAt"] as? Timestamp
+        
+        if let shiftData = data["shift"] as? [String: String],
+           let startTime = shiftData["startTime"],
+           let endTime = shiftData["endTime"] {
+            self.shift = Shift(startTime: startTime, endTime: endTime)
+        } else {
+            self.shift = nil
         }
     }
 }

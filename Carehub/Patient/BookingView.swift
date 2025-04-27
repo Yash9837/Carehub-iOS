@@ -581,9 +581,8 @@ struct ScheduleAppointmentView: View {
                 }
             }
     }
-    
     private func createNewAppointment() {
-        // Generate appointment ID in the same format as your system (e.g., APT081, APT089E56, etc.)
+        // Generate appointment ID
         let randomNumber = Int.random(in: 0..<10000)
         let randomLetters = String(format: "%02X", Int.random(in: 0..<256))
         let appointmentId = "APT\(randomNumber)\(randomLetters)"
@@ -618,17 +617,18 @@ struct ScheduleAppointmentView: View {
         let followUpDate = calendar.date(byAdding: .day, value: 7, to: appointmentDateTime) ?? Date()
         
         let appointmentData: [String: Any] = [
-            "Date": appointmentDateTime,
-            "Description": description.isEmpty ? "General Checkup" : description,
-            "Status": "scheduled",
+            "date": Timestamp(date: appointmentDateTime), // Changed "Date" to "date" for consistency
+            "description": description.isEmpty ? "General Checkup" : description,
+            "status": "scheduled",
             "apptId": appointmentId,
             "billingStatus": "pending",
             "docId": doctorId,
-            "doctorNotes": "",
-            "followUpDate": followUpDate,
+            "doctorsNotes": "",
+            "followUpDate": Timestamp(date: followUpDate),
             "followUpRequired": false,
             "patientId": patientId,
-            "prescriptionId": ""
+            "prescriptionId": "",
+            "amount": 0.0 // Added default amount to match Appointment struct
         ]
         
         let db = Firestore.firestore()

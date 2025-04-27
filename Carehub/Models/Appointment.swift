@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct Appointment: Identifiable {
-    let id: String
+    var id: String
     let apptId: String
     let patientId: String
     let description: String

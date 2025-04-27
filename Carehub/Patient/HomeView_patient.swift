@@ -131,10 +131,11 @@ struct HomeView_patient: View {
                                     HStack(spacing: 16) {
                                         ForEach(upcomingSchedules) { appointment in
                                             AppointmentCard(
-                                                doctorName: appointment.description,
-                                                specialty: "",
+                                                doctorName: getDoctorName(for: appointment.docId),
+                                                specialty: getDoctorSpecialty(for: appointment.docId),
                                                 date: formatDate(appointment.date ?? Date()),
-                                                imageName: "doctor1"
+                                                imageName: "doctor1",
+                                                appointment: appointment
                                             )
                                         }
                                     }
@@ -212,12 +213,37 @@ struct HomeView_patient: View {
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .onAppear {
+                loadDoctorData()
                 fetchUpcomingAppointments()
             }
             .navigationDestination(isPresented: $navigateToBooking) {
                 ScheduleAppointmentView(patientId: patient.patientId)
             }
         }
+    }
+    
+    private func loadDoctorData() {
+        DoctorData.fetchDoctors {
+            print("Doctor data loaded: \(DoctorData.specialties)")
+        }
+    }
+    
+    private func getDoctorName(for docId: String) -> String {
+        for specialty in DoctorData.doctors.keys {
+            if let doctor = DoctorData.doctors[specialty]?.first(where: { $0.id == docId }) {
+                return doctor.doctor_name
+            }
+        }
+        return "Unknown Doctor"
+    }
+    
+    private func getDoctorSpecialty(for docId: String) -> String {
+        for specialty in DoctorData.doctors.keys {
+            if DoctorData.doctors[specialty]?.contains(where: { $0.id == docId }) ?? false {
+                return specialty
+            }
+        }
+        return "Unknown Specialty"
     }
     
     private func fetchUpcomingAppointments() {
@@ -229,9 +255,9 @@ struct HomeView_patient: View {
         db.collection("appointments")
             .whereField("patientId", isEqualTo: patient.patientId)
             .whereField("status", isEqualTo: "scheduled")
-            .whereField("date", isGreaterThanOrEqualTo: now)
-            .whereField("date", isLessThan: oneMonthFromNow)
-            .getDocuments { (querySnapshot, error) in
+            .whereField("date", isGreaterThanOrEqualTo: Timestamp(date: now))
+            .whereField("date", isLessThan: Timestamp(date: oneMonthFromNow))
+            .addSnapshotListener { (querySnapshot, error) in
                 if let error = error {
                     print("Error fetching appointments: \(error.localizedDescription)")
                     isLoading = false
@@ -273,10 +299,10 @@ struct HomeView_patient: View {
                         print("Missing or invalid fields in document: \(document.documentID)")
                     }
                 }
-                print("Fetched schedules: \(schedules)")
+                print("Fetched schedules: \(schedules.count) appointments")
                 upcomingSchedules = schedules.sorted { ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast) }
                 isLoading = false
-                print("Updated upcomingSchedules: \(upcomingSchedules), isLoading: \(isLoading)")
+                print("Updated upcomingSchedules: \(upcomingSchedules.count), isLoading: \(isLoading)")
             }
     }
     
@@ -289,7 +315,6 @@ struct HomeView_patient: View {
     }
 }
 
-// Define PreviouslyVisitedDoctorCard
 struct PreviouslyVisitedDoctorCard: View {
     let name: String
     let specialty: String
@@ -335,13 +360,14 @@ struct PreviouslyVisitedDoctorCard: View {
     }
 }
 
-// Existing subviews (unchanged)
 struct AppointmentCard: View {
     let doctorName: String
     let specialty: String
     let date: String
     let imageName: String
+    let appointment: Appointment
     let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    @State private var showDetails = false
     
     var body: some View {
         ZStack {
@@ -359,15 +385,14 @@ struct AppointmentCard: View {
                         Image(imageName)
                             .resizable()
                             .scaledToFill()
-                            .frame(width: 80, height: 80)
+                            .frame(width: 60, height: 60)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     } else {
-                        Image(systemName: "person.fill")
+                        Image(systemName: "person.crop.circle.fill")
                             .resizable()
-                            .scaledToFill()
-                            .frame(width: 80, height: 80)
+                            .scaledToFit()
+                            .frame(width: 60, height: 60)
                             .foregroundColor(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
                 
@@ -396,6 +421,18 @@ struct AppointmentCard: View {
             .padding(16)
         }
         .frame(width: 300, height: 120)
+        .onTapGesture {
+            showDetails = true
+        }
+        .sheet(isPresented: $showDetails) {
+            AppointmentDetailsModal(
+                appointment: appointment,
+                doctorName: doctorName,
+                specialty: specialty,
+                imageName: imageName,
+                isPresented: $showDetails
+            )
+        }
     }
 }
 
@@ -417,22 +454,11 @@ struct MedicalRecordCard: View {
                 .shadow(color: purpleColor.opacity(0.2), radius: 10, x: 0, y: 5)
             
             HStack(spacing: 16) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(LinearGradient(
-                            gradient: Gradient(colors: [purpleColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ))
-                        .frame(width: 60, height: 60)
-                        .shadow(color: purpleColor.opacity(0.2), radius: 5, x: 0, y: 3)
-                    
-                    Image(systemName: "doc.text.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 30, height: 35)
-                        .foregroundColor(.white)
-                }
+                Image(systemName: "doc.text.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 30, height: 35)
+                    .foregroundColor(.white)
                 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(title)
@@ -447,7 +473,6 @@ struct MedicalRecordCard: View {
                         .font(.system(size: 12))
                         .foregroundColor(.white.opacity(0.7))
                 }
-                
                 Spacer()
             }
             .padding(16)
@@ -455,4 +480,3 @@ struct MedicalRecordCard: View {
         .frame(width: 250, height: 100)
     }
 }
-

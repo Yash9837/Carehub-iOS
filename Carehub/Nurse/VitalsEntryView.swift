@@ -2,6 +2,7 @@ import SwiftUI
 import Firebase
 
 struct NurseVitalsEntryView: View {
+    let nurseId: String // Added nurseId parameter
     @State private var patientID = ""
     @State private var bpSystolic = 120
     @State private var bpDiastolic = 80
@@ -93,12 +94,11 @@ struct NurseVitalsEntryView: View {
                 Label("Vitals", systemImage: "heart.text.square")
             }
             
-            // Profile View (placeholder)
-            NurseProfileView(nurseId: "NUR001") // Replace with dynamic ID if needed
+            // Profile View
+            NurseProfileView(nurseId: nurseId) // Pass nurseId
                 .tabItem {
                     Label("Profile", systemImage: "person.crop.circle")
                 }
-
         }
         .accentColor(primaryColor)
     }
@@ -175,7 +175,7 @@ struct NurseVitalsEntryView: View {
                 allergySection
             }
             .padding(.horizontal, 32)
-            .padding(.vertical,4)
+            .padding(.vertical, 4)
             saveButton
                 .padding(.top, 8)
         }
@@ -214,12 +214,12 @@ struct NurseVitalsEntryView: View {
     private func vitalValueButton(title: String, value: String, unit: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.custom("SFProDisplay-Medium",size: 18))
+                .font(.custom("SFProDisplay-Medium", size: 18))
                 .foregroundColor(colorScheme == .dark ? .white : .black)
             
             HStack {
                 Text(value)
-                    .font(.custom("SFProDisplay-Medium",size: 16))
+                    .font(.custom("SFProDisplay-Medium", size: 16))
                     .foregroundStyle(colorScheme == .dark ? .white : .black)
                     .fontWeight(.semibold)
                 Text(unit)
@@ -234,8 +234,9 @@ struct NurseVitalsEntryView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(Color(.tertiaryLabel).opacity(0.2), lineWidth: 1)
-            .cornerRadius(10)
-        )}
+                    .cornerRadius(10)
+            )
+        }
         .frame(maxWidth: .infinity)
     }
     
@@ -253,7 +254,7 @@ struct NurseVitalsEntryView: View {
             Button(action: { activeSheet = sheet }) {
                 HStack {
                     Text(String(format: value.truncatingRemainder(dividingBy: 1) == 0 ? "%.0f" : "%.1f", value))
-                        .font(.custom("SFProDisplay-Medium",size: 18))
+                        .font(.custom("SFProDisplay-Medium", size: 18))
                         .foregroundStyle(colorScheme == .dark ? .white : .black)
                         .fontWeight(.semibold)
                     Text(unit)
@@ -294,8 +295,9 @@ struct NurseVitalsEntryView: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(Color(.tertiaryLabel).opacity(0.2), lineWidth: 1)
-                .cornerRadius(10)
-       ) }
+                    .cornerRadius(10)
+                )
+        }
     }
     
     private var saveButton: some View {
@@ -593,7 +595,7 @@ struct NurseVitalsEntryView: View {
 
 #Preview {
     Group {
-        NurseVitalsEntryView()
+        NurseVitalsEntryView(nurseId: "NUR001")
             .preferredColorScheme(.light)
     }
 }

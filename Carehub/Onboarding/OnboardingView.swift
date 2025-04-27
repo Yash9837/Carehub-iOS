@@ -10,32 +10,30 @@ struct OnboardingView: View {
 
     let pages = [
         OnboardingPage(
-            icon: "stethoscope",
-            title: "Talk to a Doctor",
-            description: "Connects patients with doctors who share their language and ethnicity.",
+            icon: "heart.text.clipboard.fill",
+            title: "Welcome to CareHub",
+            description: "Manage appointments, records, and doctor communication easily",
             buttonTitle: "Next"
         ),
         OnboardingPage(
-            icon: "cross.fill",
-            title: "Call an Ambulance",
-            description: "Request for an ambulance 24/7 through MyDoctor app.",
+            icon: "person.3.fill",
+            title: "Stay Connected with Your Care Team",
+            description: "Access doctors, view results, and get follow-up reminders.",
             buttonTitle: "Next"
         ),
         OnboardingPage(
-            icon: "calendar",
-            title: "Schedule an Appointment",
-            description: "Schedule an appointment with a certified doctor on MyDoctor app.",
+            icon: "lock.shield.fill",
+            title: "Secure and User-Friendly",
+            description: "A secure, intuitive platform for hospital operations.",
             buttonTitle: "Get Started"
         )
     ]
     
     var body: some View {
         ZStack {
-            // Base background (white for both modes)
             Color.white
                 .edgesIgnoringSafeArea(.all)
             
-            // Gradient overlay with purple shade #6D57FC (same for light and dark)
             LinearGradient(
                 colors: [
                     Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4), // #6D57FC
@@ -47,7 +45,6 @@ struct OnboardingView: View {
             )
             .edgesIgnoringSafeArea(.all)
 
-            // Stack of cards with Tinder-style swipe
             ForEach(Array(pages.enumerated().reversed()), id: \.offset) { index, page in
                 if index >= currentPage {
                     OnboardingCard(
@@ -62,9 +59,8 @@ struct OnboardingView: View {
                 }
             }
 
-            // Button at the bottom of the screen
             VStack {
-                Spacer() // Pushes the button to the bottom
+                Spacer()
                 Button(action: {
                     withAnimation {
                         if currentPage == pages.count - 1 {
@@ -146,7 +142,7 @@ struct OnboardingCard: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Spacer() // Pushes content to the top
+            Spacer()
             
             Image(systemName: page.icon)
                 .resizable()
@@ -158,20 +154,19 @@ struct OnboardingCard: View {
             Text(page.title)
                 .font(.title2)
                 .fontWeight(.bold)
-                .foregroundColor(.black) // Consistent black text
+                .foregroundColor(.black)
                 .multilineTextAlignment(.center)
                 .accessibilityLabel("\(page.title) Title")
 
             Text(page.description)
                 .font(.body)
-                .foregroundColor(.gray) // Consistent gray text
+                .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
                 .accessibilityLabel("\(page.title) Description")
 
-            Spacer() // Pushes dots to the bottom
+            Spacer()
             
-            // Pagination dots if not the last page
             if !isLastPage {
                 HStack(spacing: 5) {
                     ForEach(0..<3, id: \.self) { index in
@@ -186,8 +181,8 @@ struct OnboardingCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .frame(height: 400) // Reduced height
-        .background(Color.white) // Consistent white background
+        .frame(height: 400)
+        .background(Color.white)
         .cornerRadius(20)
         .padding(.horizontal, 30)
     }

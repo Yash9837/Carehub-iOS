@@ -11,7 +11,8 @@ struct PatientF: Codable, Identifiable {
     var lastModified: Date
     var patientId: String
     var username: String
-
+    var appointments: [Appointment]?
+    
     enum CodingKeys: String, CodingKey {
         case emergencyContact
         case medicalRecords
