@@ -6,11 +6,8 @@ struct SplashView: View {
     
     var body: some View {
         ZStack {
-            // Base background (white for both modes)
             Color.white
                 .edgesIgnoringSafeArea(.all)
-            
-            // Gradient overlay with purple shade #6D57FC (same for light and dark)
             LinearGradient(
                 colors: [
                     Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4), // #6D57FC
@@ -28,6 +25,7 @@ struct SplashView: View {
                     .scaledToFit()
                     .frame(width: min(UIScreen.main.bounds.width * 0.5, 300))
                     .accessibilityLabel("CareHub Logo")
+                
             } else {
                 VStack(spacing: 8) { // Stack SF Symbol and text
                     Image(systemName: "cross.fill") // Health-related cross icon
@@ -70,3 +68,4 @@ struct SplashView_Previews: PreviewProvider {
         }
     }
 }
+
