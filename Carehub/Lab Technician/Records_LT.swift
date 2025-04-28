@@ -75,7 +75,6 @@ struct Records_LT: View {
     @State private var searchText = ""
     @State private var selectedCategory = "All"
     @State private var patients: [PatientInfo] = []
-    @State private var testResults: [TestResult] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     
@@ -129,10 +128,7 @@ struct Records_LT: View {
                             LazyVStack(spacing: 0) {
                                 ForEach(filteredPatients) { patient in
                                     NavigationLink(
-                                        destination: PatientRecordView(
-                                            patient: patient,
-                                            testResults: testResults.filter { $0.patientId == patient.generatedID }
-                                        )
+                                        destination: PatientRecordView(patient: patient)
                                     ) {
                                         PatientRecordCard(patient: patient)
                                     }
@@ -156,30 +152,24 @@ struct Records_LT: View {
         errorMessage = nil
         
         FirebaseManager.shared.fetchPatients { [self] patients, error in
+            isLoading = false
             if let error = error {
                 errorMessage = error.localizedDescription
-                isLoading = false
                 return
             }
             
             self.patients = patients ?? []
-            
-            FirebaseManager.shared.fetchTestResults(forPatientId: "") { [self] results, error in
-                isLoading = false
-                if let error = error {
-                    errorMessage = error.localizedDescription
-                    return
-                }
-                
-                self.testResults = results ?? []
-            }
+            print("Fetched patients: \(self.patients.map { $0.generatedID })")
         }
     }
 }
 
+
 struct PatientRecordView: View {
     let patient: PatientInfo
-    let testResults: [TestResult]
+    @State private var testResults: [TestResult] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
     
     var body: some View {
         ScrollView {
@@ -248,8 +238,19 @@ struct PatientRecordView: View {
                         .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                         .padding(.bottom, 4)
                     
-                    ForEach(testResults) { result in
-                        TestResultCard(result: result)
+                    if isLoading {
+                        ProgressView("Loading test results...")
+                            .padding()
+                    } else if let error = errorMessage {
+                        Text("Error: \(error)")
+                            .foregroundColor(.red)
+                    } else if testResults.isEmpty {
+                        Text("No test results found.")
+                            .foregroundColor(.gray)
+                    } else {
+                        ForEach(testResults) { result in
+                            TestResultCard(result: result)
+                        }
                     }
                 }
                 .padding()
@@ -263,6 +264,25 @@ struct PatientRecordView: View {
         .background(Color(red: 0.94, green: 0.94, blue: 1.0))
         .navigationTitle("Patient Records")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            loadTestResults()
+        }
+    }
+    
+    private func loadTestResults() {
+        isLoading = true
+        errorMessage = nil
+        
+        FirebaseManager.shared.fetchTestResults(forPatientId: patient.generatedID) { results, error in
+            isLoading = false
+            if let error = error {
+                errorMessage = error.localizedDescription
+                return
+            }
+            
+            self.testResults = results ?? []
+            print("Fetched test results for patient \(patient.generatedID): \(self.testResults.count)")
+        }
     }
 }
 
@@ -285,6 +305,7 @@ struct InfoRow1: View {
         }
     }
 }
+
 
 struct TestResultCard: View {
     let result: TestResult
@@ -350,6 +371,22 @@ struct TestResultCard: View {
                         .foregroundColor(.black)
                 }
             }
+            
+            Button(action: {
+                if let pdfUrl = URL(string: result.pdfUrl) {
+                    UIApplication.shared.open(pdfUrl, options: [:], completionHandler: nil)
+                }
+            }) {
+                Text("View PDF")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(red: 0.43, green: 0.34, blue: 0.99))
+                    .cornerRadius(8)
+            }
+            .padding(.top, 8)
+            .disabled(result.pdfUrl.isEmpty)
         }
         .padding()
         .background(Color.white)
@@ -361,7 +398,6 @@ struct TestResultCard: View {
         )
     }
 }
-
 struct Records_LT_Previews: PreviewProvider {
     static var previews: some View {
         Records_LT()
