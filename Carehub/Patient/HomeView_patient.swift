@@ -8,19 +8,7 @@ struct HomeView_patient: View {
     @State private var upcomingSchedules: [Appointment] = []
     @State private var isLoading = true
     @State private var navigateToBooking = false
-    
-    let recentPrescriptions = [
-        (type: "Prescription", doctorName: "Dr. Kenny Adeola", date: "Nov 15, 2023", title: "Blood Test Results"),
-        (type: "Report", doctorName: "Dr. Rasheed Idris", date: "Nov 10, 2023", title: "CT Scan Report"),
-        (type: "Prescription", doctorName: "Dr. Taiwo", date: "Nov 5, 2023", title: "Antibiotics")
-    ]
-    
-    let previouslyVisitedDoctors = [
-        (name: "Dr. Kenny Adeola", specialty: "General Practitioner", lastVisit: "Nov 15, 2023", imageName: "doctor2"),
-        (name: "Dr. Taiwo", specialty: "General Practitioner", lastVisit: "Oct 28, 2023", imageName: "doctor3"),
-        (name: "Dr. Johnson", specialty: "Pediatrician", lastVisit: "Oct 10, 2023", imageName: "doctor4")
-    ]
-    
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -110,12 +98,6 @@ struct HomeView_patient: View {
                                     .foregroundColor(.black)
                                 
                                 Spacer()
-                                
-                                Button(action: {}) {
-                                    Text("See All")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(purpleColor)
-                                }
                             }
                             
                             if isLoading {
@@ -145,7 +127,7 @@ struct HomeView_patient: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                         
-                        // Recent Prescriptions & Reports Section
+                        // Recent Prescriptions & Reports Section (Removed static data, added message)
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Text("Recent Prescriptions & Reports")
@@ -153,31 +135,17 @@ struct HomeView_patient: View {
                                     .foregroundColor(.black)
                                 
                                 Spacer()
-                                
-                                Button(action: {}) {
-                                    Text("See All")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(purpleColor)
-                                }
                             }
                             
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 16) {
-                                    ForEach(recentPrescriptions, id: \.title) { item in
-                                        MedicalRecordCard(
-                                            type: item.type,
-                                            doctorName: item.doctorName,
-                                            date: item.date,
-                                            title: item.title
-                                        )
-                                    }
-                                }
-                            }
+                            Text("No prescriptions or reports available.")
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
+                                .padding()
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                         
-                        // Previously Visited Doctors Section
+                        // Previously Visited Doctors Section (Removed static data, added message)
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Text("Previously Visited Doctors")
@@ -185,24 +153,12 @@ struct HomeView_patient: View {
                                     .foregroundColor(.black)
                                 
                                 Spacer()
-                                
-                                Button(action: {}) {
-                                    Text("See All")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(purpleColor)
-                                }
                             }
                             
-                            VStack(spacing: 12) {
-                                ForEach(previouslyVisitedDoctors, id: \.name) { doctor in
-                                    PreviouslyVisitedDoctorCard(
-                                        name: doctor.name,
-                                        specialty: doctor.specialty,
-                                        lastVisit: doctor.lastVisit,
-                                        imageName: doctor.imageName
-                                    )
-                                }
-                            }
+                            Text("No previously visited doctors available.")
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
+                                .padding()
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
@@ -214,6 +170,10 @@ struct HomeView_patient: View {
             .navigationBarBackButtonHidden(true)
             .onAppear {
                 loadDoctorData()
+                fetchUpcomingAppointments()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppointmentCancelled"))) { _ in
+                print("Received AppointmentCancelled notification, refreshing appointments")
                 fetchUpcomingAppointments()
             }
             .navigationDestination(isPresented: $navigateToBooking) {
@@ -251,7 +211,7 @@ struct HomeView_patient: View {
         let calendar = Calendar.current
         let now = Date()
         let oneMonthFromNow = calendar.date(byAdding: .month, value: 1, to: now) ?? now
-        
+        print("Starting to fetch appointments for patient: \(patient.patientId)")
         db.collection("appointments")
             .whereField("patientId", isEqualTo: patient.patientId)
             .whereField("status", isEqualTo: "scheduled")
@@ -264,21 +224,30 @@ struct HomeView_patient: View {
                     return
                 }
                 
-                var schedules: [Appointment] = []
+                print("Received snapshot with \(querySnapshot?.documents.count ?? 0) documents")
+                
+                // Clear existing appointments before updating
+                upcomingSchedules = []
+                
                 for document in querySnapshot?.documents ?? [] {
-                    print("Document data: \(document.data())")
-                    if let apptId = document.data()["apptId"] as? String,
-                       let patientId = document.data()["patientId"] as? String,
-                       let description = document.data()["description"] as? String,
+                    print("Processing document ID: \(document.documentID)")
+                    
+                    // Create appointment with required fields
+                    if let patientId = document.data()["patientId"] as? String,
                        let docId = document.data()["docId"] as? String,
-                       let status = document.data()["status"] as? String,
-                       let billingStatus = document.data()["billingStatus"] as? String,
-                       let amount = document.data()["amount"] as? Double,
-                       let date = (document.data()["date"] as? Timestamp)?.dateValue(),
-                       let doctorsNotes = document.data()["doctorsNotes"] as? String,
-                       let prescriptionId = document.data()["prescriptionId"] as? String,
-                       let followUpRequired = document.data()["followUpRequired"] as? Bool,
-                       let followUpDate = (document.data()["followUpDate"] as? Timestamp)?.dateValue() {
+                       let date = (document.data()["date"] as? Timestamp)?.dateValue() {
+                        
+                        // Get optional fields with defaults
+                        let apptId = document.data()["apptId"] as? String ?? document.documentID
+                        let description = document.data()["description"] as? String ?? ""
+                        let status = document.data()["status"] as? String ?? "scheduled"
+                        let billingStatus = document.data()["billingStatus"] as? String ?? "pending"
+                        let amount = document.data()["amount"] as? Double ?? 0.0
+                        let doctorsNotes = document.data()["doctorsNotes"] as? String ?? ""
+                        let prescriptionId = document.data()["prescriptionId"] as? String ?? ""
+                        let followUpRequired = document.data()["followUpRequired"] as? Bool ?? false
+                        let followUpDate = (document.data()["followUpDate"] as? Timestamp)?.dateValue() ?? Date.distantFuture
+                        
                         let appointment = Appointment(
                             id: document.documentID,
                             apptId: apptId,
@@ -294,15 +263,19 @@ struct HomeView_patient: View {
                             followUpRequired: followUpRequired,
                             followUpDate: followUpDate
                         )
-                        schedules.append(appointment)
+                        
+                        upcomingSchedules.append(appointment)
+                        print("Added appointment with date: \(formatDate(date))")
                     } else {
-                        print("Missing or invalid fields in document: \(document.documentID)")
+                        print("Missing required fields in document: \(document.documentID)")
                     }
                 }
-                print("Fetched schedules: \(schedules.count) appointments")
-                upcomingSchedules = schedules.sorted { ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast) }
+                
+                // Sort by date
+                upcomingSchedules.sort { ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast) }
+                
+                print("Updated upcomingSchedules: \(upcomingSchedules.count) appointments")
                 isLoading = false
-                print("Updated upcomingSchedules: \(upcomingSchedules.count), isLoading: \(isLoading)")
             }
     }
     
@@ -314,7 +287,6 @@ struct HomeView_patient: View {
         return formatter.string(from: date)
     }
 }
-
 struct PreviouslyVisitedDoctorCard: View {
     let name: String
     let specialty: String

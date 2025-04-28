@@ -116,7 +116,7 @@ struct ProfileView_doc: View {
 
     private func fetchDoctorData() {
         isLoading = true
-        db.collection("doctors").document("DOC001").getDocument(source: .default) { (document, error) in
+        db.collection("doctors").document("D123456").getDocument(source: .default) { (document, error) in
             defer { isLoading = false }
             if let error = error {
                 errorMessage = error.localizedDescription

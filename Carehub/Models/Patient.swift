@@ -70,7 +70,7 @@ struct Vitals: Codable {
 }
 
 struct VitalEntry: Codable, Identifiable {
-    var id: String = UUID().uuidString
+    var id: String {timestamp.description}
     var timestamp: Date
     var value: String
 }

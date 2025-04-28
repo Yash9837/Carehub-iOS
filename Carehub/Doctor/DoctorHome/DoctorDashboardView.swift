@@ -1,14 +1,11 @@
-
 import SwiftUI
 import FirebaseFirestore
-
-
 struct DoctorDashboardView: View {
     @State private var selectedDate = Date()
     @State private var viewMode: CalendarViewMode = .day
     @State private var appointments: [Appointment] = []
     @State private var doctorName: String = "Doctor"
-    @State private var doctorId: String = "DOC001"
+    @State private var doctorId: String = "D123456"
     
     @State private var showActionSheet = false
     @State private var showImagePicker = false

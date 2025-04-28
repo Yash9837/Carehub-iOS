@@ -1,3 +1,4 @@
+
 import SwiftUI
 
 struct NurseProfileView: View {
@@ -5,7 +6,9 @@ struct NurseProfileView: View {
     @StateObject private var viewModel = NurseViewModel()
     let primaryColor = Color(red: 109/255, green: 87/255, blue: 252/255)
     @State private var isEditingProfile = false
-    @State private var showLoginView = false // State to trigger navigation to LoginView
+    @State private var showLoginView = false
+    @State private var isLoggingOut = false
+
 
     var body: some View {
         NavigationView {
@@ -54,8 +57,9 @@ struct NurseProfileView: View {
                     // Logout Button
                     Section {
                         Button("Logout") {
-                            AuthManager.shared.logout() // Perform logout
-                            showLoginView = true // Trigger navigation to LoginView
+                            isLoggingOut = true
+                            AuthManager.shared.logout()
+                            showLoginView = true
                         }
                         .foregroundColor(.red)
                     }
@@ -102,7 +106,9 @@ struct NurseProfileView: View {
                 }
             }
             .refreshable {
-                viewModel.fetchNurse(byNurseId: nurseId)
+                if !isLoggingOut {
+                    viewModel.fetchNurse(byNurseId: nurseId)
+                }
             }
             .sheet(isPresented: $isEditingProfile) {
                 Text("Edit sheet coming soon!") // Replace with NurseEditProfile if implemented
@@ -112,7 +118,9 @@ struct NurseProfileView: View {
             }
         }
         .onAppear {
-            viewModel.fetchNurse(byNurseId: nurseId)
+            if !isLoggingOut {
+                viewModel.fetchNurse(byNurseId: nurseId)
+            }
         }
     }
 }
