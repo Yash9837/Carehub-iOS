@@ -307,8 +307,12 @@ struct InfoRow1: View {
 }
 
 
+// Updated TestResultCard with loading animation
 struct TestResultCard: View {
     let result: TestResult
+    @State private var pdfLoadError: String?
+    @State private var isNavigating = false // Track navigation state
+    @State private var isLoading = false // Track loading state
     
     var statusColor: Color {
         switch result.status.lowercased() {
@@ -325,9 +329,7 @@ struct TestResultCard: View {
                 Text(result.testName)
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                
                 Spacer()
-                
                 Text(result.date)
                     .font(.system(size: 14))
                     .foregroundColor(.gray)
@@ -337,7 +339,6 @@ struct TestResultCard: View {
                 Text("Status:")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.gray)
-                
                 Text(result.status.capitalized)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(statusColor)
@@ -345,7 +346,6 @@ struct TestResultCard: View {
                     .padding(.vertical, 4)
                     .background(statusColor.opacity(0.2))
                     .cornerRadius(4)
-                
                 Spacer()
             }
             
@@ -354,7 +354,6 @@ struct TestResultCard: View {
                     Text("Results:")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.gray)
-                    
                     Text(result.results)
                         .font(.system(size: 15, weight: .medium))
                 }
@@ -365,28 +364,56 @@ struct TestResultCard: View {
                     Text("Notes:")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.gray)
-                    
                     Text(result.notes)
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.black)
                 }
             }
             
-            Button(action: {
+            if !result.pdfUrl.isEmpty {
                 if let pdfUrl = URL(string: result.pdfUrl) {
-                    UIApplication.shared.open(pdfUrl, options: [:], completionHandler: nil)
+                    NavigationLink(
+                        destination: PDFViewer(pdfUrl: pdfUrl),
+                        isActive: $isNavigating
+                    ) {
+                        EmptyView()
+                    }
+                    
+                    Button(action: {
+                        isLoading = true // Show loading animation
+                        // Simulate a small delay to ensure the loading animation is visible
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            isLoading = false
+                            isNavigating = true // Trigger navigation
+                        }
+                    }) {
+                        if isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .frame(width: 20, height: 20)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                .cornerRadius(8)
+                        } else {
+                            Text("View PDF")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                .cornerRadius(8)
+                        }
+                    }
+                    .padding(.top, 8)
                 }
-            }) {
-                Text("View PDF")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color(red: 0.43, green: 0.34, blue: 0.99))
-                    .cornerRadius(8)
+                if let error = pdfLoadError {
+                    Text(error)
+                        .font(.system(size: 14))
+                        .foregroundColor(.red)
+                        .padding(.top, 8)
+                }
             }
-            .padding(.top, 8)
-            .disabled(result.pdfUrl.isEmpty)
         }
         .padding()
         .background(Color.white)
