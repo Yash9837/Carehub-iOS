@@ -1,2 +1,0 @@
-# Carehub-iOS
-hms
