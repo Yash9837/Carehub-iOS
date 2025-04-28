@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseFirestore
+import PDFKit
 
 struct GenerateBillView: View {
     @StateObject private var viewModel = GenerateBillViewModel()
@@ -155,6 +156,8 @@ struct BillingAppointmentCard: View {
     var isPaid: Bool = false
     @State private var showingActionSheet = false
     @State private var isProcessing = false
+//    @State private var showingPDF = false
+    @State private var pdfURL: URL?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -192,7 +195,6 @@ struct BillingAppointmentCard: View {
                 Spacer()
                 
                 HStack(spacing: 6) {
-                    // Status indicator
                     Circle()
                         .fill(statusColor)
                         .frame(width: 8, height: 8)
@@ -204,18 +206,33 @@ struct BillingAppointmentCard: View {
             }
             
             if !isPaid && viewModel != nil {
-                Button(action: {
-                    showingActionSheet = true
-                }) {
-                    Text("Mark as Paid")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(isProcessing ? Color.gray : Color(hex: "6D57FC"))
-                        .cornerRadius(8)
+                HStack(spacing: 10) {
+                    Button(action: {
+                        handleShowBill()
+                        
+                    }) {
+                        Text("Show Bill")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color(hex: "4A3FC8"))
+                            .cornerRadius(8)
+                    }
+                    
+                    Button(action: {
+                        showingActionSheet = true
+                    }) {
+                        Text("Mark as Paid")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(isProcessing ? Color.gray : Color(hex: "6D57FC"))
+                            .cornerRadius(8)
+                    }
+                    .disabled(isProcessing)
                 }
-                .disabled(isProcessing)
             }
         }
         .padding(16)
@@ -237,30 +254,161 @@ struct BillingAppointmentCard: View {
     }
     
     private var statusColor: Color {
-        if appointment.billingStatus.lowercased() == "paid" {
-            return Color.green
-        } else {
-            return Color.orange
+        switch appointment.billingStatus.lowercased() {
+            case "paid": return Color.green
+            case "pending": return Color.orange
+            default: return Color.red
         }
     }
     
     private func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
-        formatter.timeStyle = .short
         return formatter.string(from: date)
     }
     
     private func markAsPaid() {
-        guard let viewModel = viewModel else { return }
-        
         isProcessing = true
-        viewModel.markAsPaid(appointmentId: appointment.id) { success in
+        viewModel?.markAsPaid(appointmentId: appointment.id) { success in
             isProcessing = false
-            if success {
-                viewModel.fetchAppointments(forPatientId: appointment.patientId)
+        }
+    }
+    
+    private func handleShowBill() {
+        isProcessing = true
+        let db = Firestore.firestore()
+        
+        db.collection("billings")
+            .whereField("appointmentId", isEqualTo: appointment.id)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    isProcessing = false
+                    print("Error fetching billing: \(error.localizedDescription)")
+                    return
+                }
+                
+                if let document = snapshot?.documents.first {
+                    let billingData = document.data()
+                    if let billing = try? Firestore.Decoder().decode(Billing.self, from: billingData) {
+                        handleExistingBilling(billing)
+                    } else {
+                        createNewBilling()
+                    }
+                } else {
+                    createNewBilling()
+                }
+            }
+    }
+    
+    private func handleExistingBilling(_ billing: Billing) {
+        if let billURL = billing.billURL, let url = URL(string: billURL) {
+            pdfURL = url
+            viewModel?.presentPDFViewer(with: pdfURL!)
+            isProcessing = false
+        } else {
+            viewModel?.generateAndUploadBill(for: billing) { result in
+                DispatchQueue.main.async {
+                    isProcessing = false
+                    switch result {
+                    case .success(let url):
+                        pdfURL = url
+                        viewModel?.presentPDFViewer(with: pdfURL!)
+                        updateBillingWithURL(billingId: billing.billingId, url: url)
+                    case .failure(let error):
+                        print("Error generating PDF: \(error.localizedDescription)")
+                    }
+                }
             }
         }
+    }
+    
+    private func createNewBilling() {
+        let db = Firestore.firestore()
+        db.collection("appointments").document(appointment.id).getDocument { snapshot, error in
+            if let error = error {
+                isProcessing = false
+                print("Error fetching appointment: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let data = snapshot?.data() else {
+                isProcessing = false
+                print("Appointment data not found")
+                return
+            }
+            
+            guard let billing = createBillingFromAppointment(data: data, appointmentId: appointment.id) else {
+                isProcessing = false
+                return
+            }
+            
+            viewModel?.generateAndUploadBill(for: billing) { result in
+                DispatchQueue.main.async {
+                    isProcessing = false
+                    switch result {
+                    case .success(let url):
+                        pdfURL = url
+                        viewModel?.presentPDFViewer(with: pdfURL!)
+                        saveNewBilling(billing: billing, url: url)
+                    case .failure(let error):
+                        print("Error generating PDF: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+    }
+    
+    private func updateBillingWithURL(billingId: String, url: URL) {
+        let db = Firestore.firestore()
+        db.collection("billings").document(billingId).updateData([
+            "billURL": url.absoluteString
+        ]) { error in
+            if let error = error {
+                print("Error updating billing: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func saveNewBilling(billing: Billing, url: URL) {
+        var newBilling = billing
+        newBilling.billURL = url.absoluteString
+        
+        let db = Firestore.firestore()
+        db.collection("billings").document(newBilling.billingId).setData(newBilling.toDictionary()) { error in
+            if let error = error {
+                print("Error saving billing: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func createBillingFromAppointment(data: [String: Any], appointmentId: String) -> Billing? {
+        guard
+            let patientId = data["patientId"] as? String,
+            let doctorId = data["docId"] as? String,
+            let timestamp = data["Date"] as? Timestamp,
+            let description = data["Description"] as? String,
+            let amount = data["amount"] as? Double
+        else {
+            print("Missing required fields in appointment data")
+            return nil
+        }
+
+        let billingId = "BIL\(Int(Date().timeIntervalSince1970))"
+        let billItems = [BillItem(fee: amount, isPaid: false, itemName: description)]
+
+        return Billing(
+            billingId: billingId,
+            bills: billItems,
+            appointmentId: appointmentId,
+            billingStatus: "Pending",
+            date: timestamp.dateValue(),
+            doctorId: doctorId,
+            insuranceAmt: 0.0,
+            paidAmt: 0.0,
+            patientId: patientId,
+            paymentMode: "Pending",
+            billURL: nil
+        )
     }
 }
 

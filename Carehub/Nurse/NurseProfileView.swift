@@ -1,9 +1,3 @@
-//
-//  NurseProfileView.swift
-//  Carehub
-//
-//  Created by user@87 on 21/04/25.
-//
 
 import SwiftUI
 
@@ -12,6 +6,9 @@ struct NurseProfileView: View {
     @StateObject private var viewModel = NurseViewModel()
     let primaryColor = Color(red: 109/255, green: 87/255, blue: 252/255)
     @State private var isEditingProfile = false
+    @State private var showLoginView = false
+    @State private var isLoggingOut = false
+
 
     var body: some View {
         NavigationView {
@@ -47,17 +44,9 @@ struct NurseProfileView: View {
                     .listRowBackground(Color.clear)
                     // Contact Info
                     Section(header: Text("Contact Information")) {
-                        LabeledContent("Phone", value: nurse.phoneNo)
+                        LabeledContent("Phone", value: nurse.phoneNo ?? "N/A")
                         LabeledContent("Email", value: nurse.email)
                     }
-
-                    // Shift Info
-                    Section(header: Text("Shift Information")) {
-                        LabeledContent("Start Time", value: nurse.shift.startTime)
-                        LabeledContent("End Time", value: nurse.shift.endTime)
-                    }
-
-                    // Account Info
                     Section(header: Text("Account Details")) {
                         LabeledContent("Nurse ID", value: nurse.nurseld)
                         if let createdAt = nurse.createdAt {
@@ -65,6 +54,15 @@ struct NurseProfileView: View {
                         }
                     }
 
+                    // Logout Button
+                    Section {
+                        Button("Logout") {
+                            isLoggingOut = true
+                            AuthManager.shared.logout()
+                            showLoginView = true
+                        }
+                        .foregroundColor(.red)
+                    }
                 } else if let error = viewModel.error {
                     Section {
                         VStack(spacing: 16) {
@@ -108,22 +106,27 @@ struct NurseProfileView: View {
                 }
             }
             .refreshable {
-                viewModel.fetchNurse(byNurseId: nurseId)
+                if !isLoggingOut {
+                    viewModel.fetchNurse(byNurseId: nurseId)
+                }
             }
             .sheet(isPresented: $isEditingProfile) {
                 Text("Edit sheet coming soon!") // Replace with NurseEditProfile if implemented
             }
+            .fullScreenCover(isPresented: $showLoginView) {
+                LoginView() // Present LoginView in full-screen mode
+            }
         }
         .onAppear {
-            viewModel.fetchNurse(byNurseId: nurseId)
+            if !isLoggingOut {
+                viewModel.fetchNurse(byNurseId: nurseId)
+            }
         }
     }
 }
 
-// Preview
 struct NurseProfileView_Previews: PreviewProvider {
     static var previews: some View {
         NurseProfileView(nurseId: "NUR001")
     }
 }
-

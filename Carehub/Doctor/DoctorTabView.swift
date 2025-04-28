@@ -3,13 +3,13 @@ import SwiftUI
 struct DoctorTabView: View {
     var body: some View {
         TabView {
-            HomeView_doc()
+            DoctorDashboardView()
                 .tabItem {
                     Image(systemName: "house")
                     Text("Home")
                 }
             
-            PatientView()
+            MyPatientsView()
                 .tabItem {
                     Image(systemName: "cross.case")
                     Text("Patient")

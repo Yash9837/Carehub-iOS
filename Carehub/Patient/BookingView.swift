@@ -2,6 +2,8 @@ import SwiftUI
 import FirebaseFirestore
 
 struct ScheduleAppointmentView: View {
+    let patientId: String
+    @Environment(\.presentationMode) var presentationMode
     @State private var selectedSpecialty = ""
     @State private var selectedDoctor = ""
     @State private var selectedDate = Date()
@@ -16,25 +18,58 @@ struct ScheduleAppointmentView: View {
     @State private var isDataLoadFailed = false
     
     private var timeSlots: [String] {
-        var slots = [String]()
-        let calendar = Calendar.current
-        let dateFormatter = DateFormatter()
-        dateFormatter.timeStyle = .short
-        
-        guard let startDate = calendar.date(bySettingHour: 8, minute: 0, second: 0, of: Date()) else {
-            return []
-        }
-        
-        var currentDate = startDate
-        while calendar.component(.hour, from: currentDate) < 18 {
-            slots.append(dateFormatter.string(from: currentDate))
-            guard let newDate = calendar.date(byAdding: .minute, value: 30, to: currentDate) else {
-                break
+           var slots = [String]()
+           let calendar = Calendar.current
+           let dateFormatter = DateFormatter()
+           dateFormatter.timeStyle = .short
+           
+           guard let startDate = calendar.date(bySettingHour: 8, minute: 0, second: 0, of: Date()) else {
+               return []
+           }
+           
+           var currentDate = startDate
+           while calendar.component(.hour, from: currentDate) < 18 {
+               slots.append(dateFormatter.string(from: currentDate))
+               guard let newDate = calendar.date(byAdding: .minute, value: 30, to: currentDate) else {
+                   break
+               }
+               currentDate = newDate
+           }
+           
+           return slots
+       }
+    // Add a function to check if a time slot is available
+    private func isTimeSlotAvailable(_ slot: String) -> Bool {
+        // If the selected date is today, disable past time slots
+        if Calendar.current.isDateInToday(selectedDate) {
+            let timeFormatter = DateFormatter()
+            timeFormatter.dateFormat = "h:mm a"
+            
+            // Parse the slot string to a date
+            guard let slotTime = timeFormatter.date(from: slot) else {
+                return false
             }
-            currentDate = newDate
+            
+            // Get hour and minute components from the slot time
+            let calendar = Calendar.current
+            let components = calendar.dateComponents([.hour, .minute], from: slotTime)
+            
+            // Create a date that combines today's date with the slot time
+            guard let slotDateTime = calendar.date(
+                bySettingHour: components.hour ?? 0,
+                minute: components.minute ?? 0,
+                second: 0,
+                of: Date()
+            ) else {
+                return false
+            }
+            
+            // Return true if the slot time is in the future (adding a small buffer)
+            return slotDateTime > Date().addingTimeInterval(15 * 60) // 15-minute buffer
         }
         
-        return slots
+        // If date is in the future, all slots are available
+        return true
     }
     
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
@@ -42,8 +77,6 @@ struct ScheduleAppointmentView: View {
         Color(red: 0.43, green: 0.34, blue: 0.99),
         Color(red: 0.55, green: 0.48, blue: 0.99)
     ]
-    
-    private let currentPatientId = "PT001" // Example patient ID
     
     var body: some View {
         ZStack {
@@ -110,8 +143,8 @@ struct ScheduleAppointmentView: View {
                 }
             }
         }
-        .navigationTitle("New Appointment")
-        .navigationBarTitleDisplayMode(.inline)
+//        .navigationTitle("New Appointment")
+//        .navigationBarTitleDisplayMode(.inline)
         .alert("Appointment Scheduled", isPresented: $showSuccessAlert) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -366,7 +399,7 @@ struct ScheduleAppointmentView: View {
                         }) {
                             Text(slot)
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(selectedTimeSlot == slot ? .white : purpleColor)
+                                .foregroundColor(slotTextColor(for: slot))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
                                 .background(
@@ -384,12 +417,14 @@ struct ScheduleAppointmentView: View {
                                                 .cornerRadius(10)
                                                 .overlay(
                                                     RoundedRectangle(cornerRadius: 10)
-                                                        .stroke(purpleColor, lineWidth: 1)
+                                                        .stroke(slotBorderColor(for: slot), lineWidth: 1)
                                                 )
                                         }
                                     }
                                 )
                         }
+                        .disabled(!isTimeSlotAvailable(slot))
+                        .opacity(isTimeSlotAvailable(slot) ? 1.0 : 0.5)
                     }
                 }
                 .padding(16)
@@ -402,6 +437,19 @@ struct ScheduleAppointmentView: View {
             )
             .padding(.horizontal, 20)
         }
+    }
+    private func slotTextColor(for slot: String) -> Color {
+        if !isTimeSlotAvailable(slot) {
+            return .gray
+        }
+        return selectedTimeSlot == slot ? .white : purpleColor
+    }
+    
+    private func slotBorderColor(for slot: String) -> Color {
+        if !isTimeSlotAvailable(slot) {
+            return Color.gray.opacity(0.3)
+        }
+        return purpleColor
     }
     
     private var descriptionField: some View {
@@ -539,7 +587,7 @@ struct ScheduleAppointmentView: View {
         
         // Fetch all appointments for the patient
         db.collection("appointments")
-            .whereField("patientId", isEqualTo: currentPatientId)
+            .whereField("patientId", isEqualTo: patientId)
             .getDocuments { [self] (querySnapshot, error) in
                 if let error = error {
                     errorMessage = "Error checking appointments: \(error.localizedDescription)"
@@ -549,13 +597,13 @@ struct ScheduleAppointmentView: View {
                 }
                 
                 guard let documents = querySnapshot?.documents else {
-                    print("No existing appointments found for patient \(currentPatientId). Proceeding to create new appointment.")
+                    print("No existing appointments found for patient \(patientId). Proceeding to create new appointment.")
                     createNewAppointment()
                     return
                 }
                 
                 // Debug: Print all existing appointment dates
-                print("Existing appointments for patient \(currentPatientId):")
+                print("Existing appointments for patient \(patientId):")
                 for doc in documents {
                     if let date = (doc.data()["Date"] as? Timestamp)?.dateValue() {
                         print(" - \(formattedDateWithDay(date))")
@@ -582,9 +630,8 @@ struct ScheduleAppointmentView: View {
                 }
             }
     }
-    
     private func createNewAppointment() {
-        // Generate appointment ID in the same format as your system (e.g., APT081, APT089E56, etc.)
+        // Generate appointment ID
         let randomNumber = Int.random(in: 0..<10000)
         let randomLetters = String(format: "%02X", Int.random(in: 0..<256))
         let appointmentId = "APT\(randomNumber)\(randomLetters)"
@@ -614,50 +661,67 @@ struct ScheduleAppointmentView: View {
         
         // Find doctor_id based on selectedDoctor
         let doctor = DoctorData.doctors[selectedSpecialty]?.first { $0.doctor_name == selectedDoctor }
-        let doctorId = doctor?.id ?? "" // Don't use example ID
+        let doctorId = doctor?.id ?? ""
         
         let followUpDate = calendar.date(byAdding: .day, value: 7, to: appointmentDateTime) ?? Date()
         
         let appointmentData: [String: Any] = [
-            "Date": appointmentDateTime,
-            "Description": description.isEmpty ? "General Checkup" : description,
-            "Status": "scheduled",
+            "date": Timestamp(date: appointmentDateTime), // Changed "Date" to "date" for consistency
+            "description": description.isEmpty ? "General Checkup" : description,
+            "status": "scheduled",
             "apptId": appointmentId,
             "billingStatus": "pending",
             "docId": doctorId,
-            "doctorNotes": "",
-            "followUpDate": followUpDate,
+            "doctorsNotes": "",
+            "followUpDate": Timestamp(date: followUpDate),
             "followUpRequired": false,
-            "patientId": currentPatientId,
-            "prescriptionId": ""
+            "patientId": patientId,
+            "prescriptionId": "",
+            "amount": 0.0 // Added default amount to match Appointment struct
         ]
         
+//        let db = Firestore.firestore()
+//        db.collection("appointments").document(appointmentId).setData(appointmentData) { error in
+//            isLoading = false
+//            if let error = error {
+//                errorMessage = "Failed to schedule appointment: \(error.localizedDescription)"
+//                showErrorAlert = true
+//            } else {
+//                showSuccessAlert = true
+//                resetForm()
+//            }
+//        }
+//    }
+//
+//    private func resetForm() {
+//        selectedSpecialty = ""
+//        selectedDoctor = ""
+//        selectedDate = Date()
+//        selectedTimeSlot = ""
+//        description = ""
+//    }
         let db = Firestore.firestore()
-        db.collection("appointments").document(appointmentId).setData(appointmentData) { error in
-            isLoading = false
-            if let error = error {
-                errorMessage = "Failed to schedule appointment: \(error.localizedDescription)"
-                showErrorAlert = true
-            } else {
-                showSuccessAlert = true
-                resetForm()
+                db.collection("appointments").document(appointmentId).setData(appointmentData) { error in
+                    isLoading = false
+                    if let error = error {
+                        errorMessage = "Failed to schedule appointment: \(error.localizedDescription)"
+                        showErrorAlert = true
+                    } else {
+                        showSuccessAlert = true
+                        
+                        // Add a slight delay before dismissing the view
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            self.presentationMode.wrappedValue.dismiss()
+                        }
+                    }
+                }
             }
-        }
-    }
-    
-    private func resetForm() {
-        selectedSpecialty = ""
-        selectedDoctor = ""
-        selectedDate = Date()
-        selectedTimeSlot = ""
-        description = ""
-    }
 }
 
 struct ScheduleAppointmentView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            ScheduleAppointmentView()
+            ScheduleAppointmentView(patientId: "P123456")
         }
     }
 }

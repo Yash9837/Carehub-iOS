@@ -1,10 +1,3 @@
-//
-//  Patient.swift
-//  Carehub
-//
-//  Created by user@87 on 23/04/25.
-//
-
 import SwiftUI
 import FirebaseFirestore
 
@@ -18,7 +11,8 @@ struct PatientF: Codable, Identifiable {
     var lastModified: Date
     var patientId: String
     var username: String
-
+    var appointments: [Appointment]?
+    
     enum CodingKeys: String, CodingKey {
         case emergencyContact
         case medicalRecords
@@ -76,7 +70,7 @@ struct Vitals: Codable {
 }
 
 struct VitalEntry: Codable, Identifiable {
-    var id: String = UUID().uuidString
+    var id: String {timestamp.description}
     var timestamp: Date
     var value: String
 }
