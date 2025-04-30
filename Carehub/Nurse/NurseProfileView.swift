@@ -47,21 +47,21 @@ struct NurseProfileView: View {
                     .listRowBackground(Color.clear)
                     // Contact Info
                     Section(header: Text("Contact Information")) {
-                        LabeledContent("Phone", value: nurse.phoneNo)
-                        LabeledContent("Email", value: nurse.email)
+                        LabeledContent(label: "Phone", content: nurse.phoneNo ?? "N/A")
+                        LabeledContent(label: "Email", content: nurse.email)
                     }
 
                     // Shift Info
                     Section(header: Text("Shift Information")) {
-                        LabeledContent("Start Time", value: nurse.shift.startTime)
-                        LabeledContent("End Time", value: nurse.shift.endTime)
+                        LabeledContent(label: "Start Time", content: nurse.shift?.startTime ?? "")
+                        LabeledContent(label: "End Time", content: nurse.shift?.endTime ?? "")
                     }
 
                     // Account Info
                     Section(header: Text("Account Details")) {
-                        LabeledContent("Nurse ID", value: nurse.nurseld)
+                        LabeledContent(label: "Nurse ID", content: nurse.nurseld)
                         if let createdAt = nurse.createdAt {
-                            LabeledContent("Created", value: createdAt.dateValue().formatted(date: .abbreviated, time: .shortened))
+                            LabeledContent(label: "Created", content: createdAt.dateValue().formatted(date: .abbreviated, time: .shortened))
                         }
                     }
 

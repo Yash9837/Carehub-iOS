@@ -104,7 +104,7 @@ struct LoginView: View {
             case .doctor:
                 DoctorTabView()
             case .nurse:
-                AdminTabView()
+                NurseTabView(nurseId: staff.id ?? "NUR001")
             case .labTechnician:
                 LabTechTabView()
             }

@@ -42,24 +42,24 @@ struct AccountantProfileView: View {
                     
                     // Contact Information Section
                     Section(header: Text("Contact Information")) {
-                        LabeledContent("Phone", value: accountant.phoneNo)
-                        LabeledContent("Email", value: accountant.email)
+                        LabeledContent(label: "Phone", content: accountant.phoneNo)
+                        LabeledContent(label: "Email", content: accountant.email)
                     }
                     
                     // Shift Information Section
                     Section(header: Text("Shift Information")) {
-                        LabeledContent("Start Time", value: accountant.shift.startTime)
-                        LabeledContent("End Time", value: accountant.shift.endTime)
+                        LabeledContent(label: "Start Time", content: accountant.shift.startTime)
+                        LabeledContent(label: "End Time", content: accountant.shift.endTime)
                     }
                     
                     // Account Details Section
                     Section(header: Text("Account Details")) {
-                        LabeledContent("Employee ID", value: accountant.accountantId)
+                        LabeledContent(label: "Employee ID", content: accountant.accountantId)
                         
                         if let createdAt = accountant.createdAt {
-                            LabeledContent("Account Created", value: createdAt.dateValue().formatted(date: .abbreviated, time: .shortened))
+                            LabeledContent(label: "Account Created", content: createdAt.dateValue().formatted(date: .abbreviated, time: .shortened))
                         } else {
-                            LabeledContent("Account Created", value: "N/A")
+                            LabeledContent(label: "Account Created", content: "N/A")
                         }
                     }
                     
