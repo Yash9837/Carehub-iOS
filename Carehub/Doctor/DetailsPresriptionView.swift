@@ -121,7 +121,6 @@ struct DetailsPresriptionView: View {
             
             DetailRow(title: "Name", value: patient.userData.Name, icon: "person.fill")
             DetailRow(title: "Age", value: age != nil ? "\(age!) years" : "Unknown", icon: "calendar")
-            DetailRow(title: "Username", value: patient.username, icon: "person.crop.circle")
             DetailRow(title: "Contact", value: patient.userData.phoneNo, icon: "phone.fill")
             DetailRow(title: "Email", value: patient.userData.Email, icon: "envelope.fill")
             DetailRow(title: "Address", value: patient.userData.Address, icon: "house.fill")
@@ -539,8 +538,7 @@ struct DetailsPresriptionView: View {
             userData: userData,
             vitals: vitals,
             lastModified: lastModified,
-            patientId: patientId,
-            username: username
+            patientId: patientId
         )
     }
     

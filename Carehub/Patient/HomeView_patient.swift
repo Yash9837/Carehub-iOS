@@ -1,5 +1,127 @@
 import SwiftUI
 import FirebaseFirestore
+import FirebaseAuth
+import CryptoKit
+
+struct Notification: Identifiable {
+    let id: String
+    let title: String
+    let message: String
+    let date: Date
+}
+
+struct NotificationsView: View {
+    let notifications: [Notification]
+    let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    
+    var body: some View {
+        ZStack {
+            Color(red: 0.94, green: 0.94, blue: 1.0)
+                .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 20) {
+                    Text("Notifications")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 20)
+                        .padding(.horizontal, 20)
+                        .accessibilityAddTraits(.isHeader)
+                    
+                    if notifications.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "bell.slash.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 60, height: 60)
+                                .foregroundColor(.gray)
+                            Text("No Updates")
+                                .font(.title3.bold())
+                                .foregroundColor(.primary)
+                            Text("You have no new notifications.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                        .padding(.vertical, 20)
+                        .accessibilityElement(children: .combine)
+                    } else {
+                        ForEach(notifications) { notification in
+                            NotificationCard(
+                                title: notification.title,
+                                message: notification.message,
+                                date: formatDate(notification.date)
+                            )
+                            .padding(.horizontal, 20)
+                            .accessibilityLabel("Notification: \(notification.title), \(notification.message), dated \(formatDate(notification.date))")
+                        }
+                    }
+                }
+                .padding(.bottom, 20)
+            }
+        }
+        .navigationTitle("Notifications")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+}
+
+struct NotificationCard: View {
+    let title: String
+    let message: String
+    let date: String
+    let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.systemBackground))
+                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+            
+            HStack(spacing: 12) {
+                Image(systemName: "bell.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 28, height: 28)
+                    .foregroundColor(purpleColor)
+                    .padding(8)
+                    .background(purpleColor.opacity(0.1))
+                    .clipShape(Circle())
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                    
+                    Text(message)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                    
+                    Text(date)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            .padding()
+            .frame(maxWidth: .infinity)
+        }
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .frame(minHeight: 100)
+    }
+}
+
 
 struct HomeView_patient: View {
     let patient: PatientF
@@ -8,7 +130,21 @@ struct HomeView_patient: View {
     @State private var upcomingSchedules: [Appointment] = []
     @State private var isLoading = true
     @State private var navigateToBooking = false
-
+    @State private var navigateToNotifications = false
+    @State private var listener: ListenerRegistration?
+    @StateObject private var viewModel = AppointmentViewModel()
+    
+    @State private var notifications: [Notification] = [
+        Notification(id: "1", title: "Appointment Reminder", message: "Your appointment with Dr. Kenny Adeola is tomorrow at 10:00 AM.", date: Date()),
+        Notification(id: "2", title: "Prescription Updated", message: "Dr. Taiwo has uploaded a new prescription for you.", date: Date().addingTimeInterval(-86400))
+    ]
+    
+    let previouslyVisitedDoctors = [
+        (name: "Dr. Kenny Adeola", specialty: "General Practitioner", lastVisit: "Nov 15, 2023", imageName: "doctor2"),
+        (name: "Dr. Taiwo", specialty: "General Practitioner", lastVisit: "Oct 28, 2023", imageName: "doctor3"),
+        (name: "Dr. Johnson", specialty: "Pediatrician", lastVisit: "Oct 10, 2023", imageName: "doctor4")
+    ]
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -20,18 +156,20 @@ struct HomeView_patient: View {
                         // Greeting Section
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Hello, \(patient.username)")
+                                Text("Hello, \(patient.userData.Name)")
                                     .font(.system(size: 24, weight: .bold))
                                     .foregroundColor(.black)
                                 
-                                Text("How are you feeling today?")
+                                Text("Welcome to CareHub")
                                     .font(.system(size: 16))
                                     .foregroundColor(.gray)
                             }
                             
                             Spacer()
                             
-                            Button(action: {}) {
+                            Button(action: {
+                                navigateToNotifications = true
+                            }) {
                                 Image(systemName: "bell.fill")
                                     .foregroundColor(purpleColor)
                                     .font(.system(size: 20))
@@ -98,6 +236,14 @@ struct HomeView_patient: View {
                                     .foregroundColor(.black)
                                 
                                 Spacer()
+                                
+                                if !upcomingSchedules.isEmpty {
+                                    NavigationLink(destination: AllAppointmentsView(appointments: upcomingSchedules)) {
+                                        Text("See All")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(purpleColor)
+                                    }
+                                }
                             }
                             
                             if isLoading {
@@ -115,19 +261,20 @@ struct HomeView_patient: View {
                                             AppointmentCard(
                                                 doctorName: getDoctorName(for: appointment.docId),
                                                 specialty: getDoctorSpecialty(for: appointment.docId),
-                                                date: formatDate(appointment.date ?? Date()),
+                                                date: formatDate(appointment.date),
                                                 imageName: "doctor1",
-                                                appointment: appointment
+                                                appointment: .constant(appointment)
                                             )
                                         }
                                     }
+                                    .padding()
                                 }
                             }
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                         
-                        // Recent Prescriptions & Reports Section (Removed static data, added message)
+                        // Recent Prescriptions & Reports Section
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Text("Recent Prescriptions & Reports")
@@ -135,17 +282,49 @@ struct HomeView_patient: View {
                                     .foregroundColor(.black)
                                 
                                 Spacer()
+                                
+                                if !viewModel.recentPrescriptions.isEmpty {
+                                    NavigationLink(destination: AllPrescriptionsView(prescriptions: viewModel.recentPrescriptions)) {
+                                        Text("See All")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(purpleColor)
+                                    }
+                                }
                             }
-                            
-                            Text("No prescriptions or reports available.")
-                                .font(.system(size: 16))
-                                .foregroundColor(.gray)
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 16) {
+                                    ForEach(viewModel.recentPrescriptions) { appointment in
+                                        NavigationLink(
+                                            destination: {
+                                                if let prescriptionIdStr = appointment.prescriptionId,
+                                                   let prescriptionUrl = URL(string: prescriptionIdStr) {
+                                                    PDFKitView(url: prescriptionUrl)
+                                                } else {
+                                                    PDFKitView(url: URL(string: "https://example.com")!)
+                                                }
+                                            },
+                                            label: {
+                                                MedicalRecordCard(
+                                                    type: appointment.status,
+                                                    doctorName: "Dr. \(getDoctorName(for: appointment.docId))",
+                                                    date: formatDate(appointment.date),
+                                                    title: appointment.description
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
                                 .padding()
+                            }
+                            .onAppear {
+                                let currentPatientId = hashPatientId()
+                                viewModel.fetchRecentPrescriptions(forPatientId: currentPatientId)
+                            }
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                         
-                        // Previously Visited Doctors Section (Removed static data, added message)
+                        // Previously Visited Doctors Section
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Text("Previously Visited Doctors")
@@ -153,39 +332,189 @@ struct HomeView_patient: View {
                                     .foregroundColor(.black)
                                 
                                 Spacer()
+                                
+                                if !previouslyVisitedDoctors.isEmpty {
+                                    NavigationLink(destination: AllDoctorsView(doctors: previouslyVisitedDoctors)) {
+                                        Text("See All")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(purpleColor)
+                                    }
+                                }
                             }
-                            
-                            Text("No previously visited doctors available.")
-                                .font(.system(size: 16))
-                                .foregroundColor(.gray)
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 16) {
+                                    ForEach(previouslyVisitedDoctors, id: \.name) { doctor in
+                                        PreviouslyVisitedDoctorCard(
+                                            name: doctor.name,
+                                            specialty: doctor.specialty,
+                                            lastVisit: doctor.lastVisit,
+                                            imageName: doctor.imageName
+                                        )
+                                    }
+                                }
                                 .padding()
+                            }
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                     }
                 }
             }
-            .navigationTitle("Home")
-            .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .onAppear {
-                loadDoctorData()
-                fetchUpcomingAppointments()
+                let currentPatientId = hashPatientId()
+                print("HomeView_patient appeared with patient.patientId: \(patient.patientId), Hashed UID: \(currentPatientId), Firebase UID: \(Auth.auth().currentUser?.uid ?? "No UID")")
+                if patient.patientId != currentPatientId {
+                    print("WARNING: patient.patientId does not match hashed UID. Using hashed UID for queries.")
+                }
+                if listener == nil {
+                    isLoading = true
+                    loadDoctorData {
+                        setupSnapshotListener()
+                    }
+                }
+                fetchNotifications()
             }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppointmentCancelled"))) { _ in
-                print("Received AppointmentCancelled notification, refreshing appointments")
-                fetchUpcomingAppointments()
+            .onDisappear {
+                print("HomeView_patient disappeared, removing listener")
+                listener?.remove()
+                listener = nil
             }
             .navigationDestination(isPresented: $navigateToBooking) {
-                ScheduleAppointmentView(patientId: patient.patientId)
+                let currentPatientId = hashPatientId()
+                ScheduleAppointmentView(patientId: currentPatientId)
+            }
+            .navigationDestination(isPresented: $navigateToNotifications) {
+                NotificationsView(notifications: notifications)
             }
         }
     }
     
-    private func loadDoctorData() {
+    private func hashPatientId() -> String {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            print("No Firebase UID found, using default patientId")
+            return "unknown_user"
+        }
+        let inputData = Data(uid.utf8)
+        let hashed = SHA256.hash(data: inputData)
+        return hashed.compactMap { String(format: "%02x", $0) }.joined()
+    }
+    
+    private func fetchNotifications() {
+        let currentPatientId = hashPatientId()
+        print("Fetching notifications for patientId: \(currentPatientId)")
+        let db = Firestore.firestore()
+        db.collection("notifications")
+            .whereField("patientId", isEqualTo: currentPatientId)
+            .order(by: "date", descending: true)
+            .addSnapshotListener { querySnapshot, error in
+                if let error = error {
+                    print("Error fetching notifications: \(error.localizedDescription)")
+                    return
+                }
+                
+                notifications = querySnapshot?.documents.compactMap { document in
+                    let data = document.data()
+                    guard let title = data["title"] as? String,
+                          let message = data["message"] as? String,
+                          let date = (data["date"] as? Timestamp)?.dateValue() else {
+                        print("Invalid notification data: \(data)")
+                        return nil
+                    }
+                    return Notification(id: document.documentID, title: title, message: message, date: date)
+                } ?? []
+                print("Fetched \(notifications.count) notifications")
+            }
+    }
+    
+    private func loadDoctorData(completion: @escaping () -> Void) {
+        print("Loading doctor data...")
         DoctorData.fetchDoctors {
             print("Doctor data loaded: \(DoctorData.specialties)")
+            completion()
         }
+    }
+    
+    private func setupSnapshotListener() {
+        let currentPatientId = hashPatientId()
+        let db = Firestore.firestore()
+        
+        print("Setting up snapshot listener for patientId: \(currentPatientId)")
+        
+        listener = db.collection("appointments")
+            .whereField("patientId", isEqualTo: currentPatientId)
+            .whereField("status", isEqualTo: "scheduled")
+            .addSnapshotListener { (querySnapshot, error) in
+                if let error = error {
+                    print("Error fetching appointments: \(error.localizedDescription)")
+                    isLoading = false
+                    return
+                }
+                
+                guard let changes = querySnapshot?.documentChanges else {
+                    print("No document changes received")
+                    isLoading = false
+                    return
+                }
+                
+                var schedules: [Appointment] = upcomingSchedules
+                for change in changes {
+                    let documentData = change.document.data()
+                    
+                    guard let apptId = documentData["apptId"] as? String,
+                          let patientId = documentData["patientId"] as? String,
+                          let description = documentData["description"] as? String,
+                          let docId = documentData["docId"] as? String,
+                          let status = documentData["status"] as? String,
+                          let billingStatus = documentData["billingStatus"] as? String,
+                          let amount = documentData["amount"] as? Double,
+                          let date = (documentData["date"] as? Timestamp)?.dateValue(),
+                          let doctorsNotes = documentData["doctorsNotes"] as? String,
+                          let prescriptionId = documentData["prescriptionId"] as? String,
+                          let followUpRequired = documentData["followUpRequired"] as? Bool,
+                          let followUpDate = (documentData["followUpDate"] as? Timestamp)?.dateValue() else {
+                        print("Missing or invalid fields in document: \(change.document.documentID), data: \(documentData)")
+                        continue
+                    }
+                    
+                    let appointment = Appointment(
+                        id: apptId,
+                        apptId: apptId,
+                        patientId: patientId,
+                        description: description,
+                        docId: docId,
+                        status: status,
+                        billingStatus: billingStatus,
+                        amount: amount,
+                        date: date,
+                        doctorsNotes: doctorsNotes,
+                        prescriptionId: prescriptionId,
+                        followUpRequired: followUpRequired,
+                        followUpDate: followUpDate
+                    )
+                    
+                    if change.type == .added || change.type == .modified {
+                        if let index = schedules.firstIndex(where: { $0.id == appointment.id }) {
+                            schedules[index] = appointment
+                            print("Updated appointment: ID=\(apptId), Date=\(String(describing: date)), Doctor=\(docId)")
+                        } else {
+                            schedules.append(appointment)
+                            print("Added appointment: ID=\(apptId), Date=\(String(describing: date)), Doctor=\(docId)")
+                        }
+                    } else if change.type == .removed {
+                        schedules.removeAll { $0.id == appointment.id }
+                        print("Removed appointment: ID=\(apptId)")
+                    }
+                }
+                
+                if let documentIds = querySnapshot?.documents.map({ $0.documentID }) {
+                    schedules.removeAll { !documentIds.contains($0.id) }
+                }
+                
+                upcomingSchedules = schedules.sorted { ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast) }
+                isLoading = false
+                print("Updated upcomingSchedules: \(upcomingSchedules.count) appointments, isLoading: \(isLoading)")
+            }
     }
     
     private func getDoctorName(for docId: String) -> String {
@@ -206,79 +535,6 @@ struct HomeView_patient: View {
         return "Unknown Specialty"
     }
     
-    private func fetchUpcomingAppointments() {
-        let db = Firestore.firestore()
-        let calendar = Calendar.current
-        let now = Date()
-        let oneMonthFromNow = calendar.date(byAdding: .month, value: 1, to: now) ?? now
-        print("Starting to fetch appointments for patient: \(patient.patientId)")
-        db.collection("appointments")
-            .whereField("patientId", isEqualTo: patient.patientId)
-            .whereField("status", isEqualTo: "scheduled")
-            .whereField("date", isGreaterThanOrEqualTo: Timestamp(date: now))
-            .whereField("date", isLessThan: Timestamp(date: oneMonthFromNow))
-            .addSnapshotListener { (querySnapshot, error) in
-                if let error = error {
-                    print("Error fetching appointments: \(error.localizedDescription)")
-                    isLoading = false
-                    return
-                }
-                
-                print("Received snapshot with \(querySnapshot?.documents.count ?? 0) documents")
-                
-                // Clear existing appointments before updating
-                upcomingSchedules = []
-                
-                for document in querySnapshot?.documents ?? [] {
-                    print("Processing document ID: \(document.documentID)")
-                    
-                    // Create appointment with required fields
-                    if let patientId = document.data()["patientId"] as? String,
-                       let docId = document.data()["docId"] as? String,
-                       let date = (document.data()["date"] as? Timestamp)?.dateValue() {
-                        
-                        // Get optional fields with defaults
-                        let apptId = document.data()["apptId"] as? String ?? document.documentID
-                        let description = document.data()["description"] as? String ?? ""
-                        let status = document.data()["status"] as? String ?? "scheduled"
-                        let billingStatus = document.data()["billingStatus"] as? String ?? "pending"
-                        let amount = document.data()["amount"] as? Double ?? 0.0
-                        let doctorsNotes = document.data()["doctorsNotes"] as? String ?? ""
-                        let prescriptionId = document.data()["prescriptionId"] as? String ?? ""
-                        let followUpRequired = document.data()["followUpRequired"] as? Bool ?? false
-                        let followUpDate = (document.data()["followUpDate"] as? Timestamp)?.dateValue() ?? Date.distantFuture
-                        
-                        let appointment = Appointment(
-                            id: document.documentID,
-                            apptId: apptId,
-                            patientId: patientId,
-                            description: description,
-                            docId: docId,
-                            status: status,
-                            billingStatus: billingStatus,
-                            amount: amount,
-                            date: date,
-                            doctorsNotes: doctorsNotes,
-                            prescriptionId: prescriptionId,
-                            followUpRequired: followUpRequired,
-                            followUpDate: followUpDate
-                        )
-                        
-                        upcomingSchedules.append(appointment)
-                        print("Added appointment with date: \(formatDate(date))")
-                    } else {
-                        print("Missing required fields in document: \(document.documentID)")
-                    }
-                }
-                
-                // Sort by date
-                upcomingSchedules.sort { ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast) }
-                
-                print("Updated upcomingSchedules: \(upcomingSchedules.count) appointments")
-                isLoading = false
-            }
-    }
-    
     private func formatDate(_ date: Date?) -> String {
         guard let date = date else { return "No date" }
         let formatter = DateFormatter()
@@ -287,6 +543,200 @@ struct HomeView_patient: View {
         return formatter.string(from: date)
     }
 }
+
+struct AllPrescriptionsView: View {
+    let prescriptions: [Appointment]
+    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    
+    var body: some View {
+        ZStack {
+            Color(.systemBackground)
+                .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 16) {
+                    Text("Prescriptions & Reports")
+                        .font(.largeTitle.bold())
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+                        .accessibilityAddTraits(.isHeader)
+                    
+                    if prescriptions.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "doc.text.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 60, height: 60)
+                                .foregroundColor(.secondary)
+                            Text("No Prescriptions Available")
+                                .font(.title3.bold())
+                                .foregroundColor(.primary)
+                            Text("Your prescriptions and reports will appear here once added.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                        .padding(.vertical, 20)
+                        .accessibilityElement(children: .combine)
+                    } else {
+                        ForEach(prescriptions) { appointment in
+                            NavigationLink(
+                                destination: prescriptionDestination(for: appointment),
+                                label: {
+                                    MedicalRecordCard(
+                                        type: appointment.status,
+                                        doctorName: "Dr. \(getDoctorName(for: appointment.docId))",
+                                        date: formatDate(appointment.date),
+                                        title: appointment.description
+                                    )
+                                    .padding(.horizontal, 20)
+                                    .accessibilityLabel("Prescription: \(appointment.description) by Dr. \(getDoctorName(for: appointment.docId)), dated \(formatDate(appointment.date))")
+                                }
+                            )
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding(.bottom, 20)
+            }
+        }
+        .navigationTitle("Prescriptions")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    private func prescriptionDestination(for appointment: Appointment) -> some View {
+        Group {
+            if let prescriptionIdStr = appointment.prescriptionId,
+               let prescriptionUrl = URL(string: prescriptionIdStr) {
+                PDFKitView(url: prescriptionUrl)
+            } else {
+                VStack {
+                    Text("Unable to Load Prescription")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Text("The document is not available.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+    
+    private func getDoctorName(for docId: String) -> String {
+        for specialty in DoctorData.doctors.keys {
+            if let doctor = DoctorData.doctors[specialty]?.first(where: { $0.id == docId }) {
+                return doctor.doctor_name
+            }
+        }
+        return "Unknown Doctor"
+    }
+    
+    private func formatDate(_ date: Date?) -> String {
+        guard let date = date else { return "No date" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter.string(from: date)
+    }
+}
+
+struct MedicalRecordCard: View {
+    let type: String
+    let doctorName: String
+    let date: String
+    let title: String
+    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.systemBackground))
+                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+            
+            HStack(spacing: 12) {
+                Image(systemName: "doc.text.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 28, height: 28)
+                    .foregroundColor(purpleColor)
+                    .padding(8)
+                    .background(purpleColor.opacity(0.1))
+                    .clipShape(Circle())
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                    
+                    Text("by \(doctorName)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                    
+                    Text(date)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+            }
+            .padding()
+            .frame(maxWidth: .infinity)
+        }
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .frame(minHeight: 100)
+    }
+}
+
+struct AllDoctorsView: View {
+    let doctors: [(name: String, specialty: String, lastVisit: String, imageName: String)]
+    let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    
+    var body: some View {
+        ZStack {
+            Color(red: 0.94, green: 0.94, blue: 1.0)
+                .edgesIgnoringSafeArea(.all)
+            
+            ScrollView {
+                VStack(spacing: 20) {
+                    Text("Previously Visited Doctors")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.black)
+                        .padding(.top, 20)
+                        .padding(.horizontal, 20)
+                    
+                    if doctors.isEmpty {
+                        Text("No previously visited doctors.")
+                            .font(.system(size: 16))
+                            .foregroundColor(.gray)
+                            .padding()
+                    } else {
+                        ForEach(doctors, id: \.name) { doctor in
+                            PreviouslyVisitedDoctorCard(
+                                name: doctor.name,
+                                specialty: doctor.specialty,
+                                lastVisit: doctor.lastVisit,
+                                imageName: doctor.imageName
+                            )
+                            .padding(.horizontal, 20)
+                        }
+                    }
+                }
+                .padding(.bottom, 20)
+            }
+        }
+        .navigationTitle("Visited Doctors")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
 struct PreviouslyVisitedDoctorCard: View {
     let name: String
     let specialty: String
@@ -316,7 +766,6 @@ struct PreviouslyVisitedDoctorCard: View {
                     .font(.system(size: 12))
                     .foregroundColor(.gray)
             }
-            
             Spacer()
             
             Button(action: {}) {
@@ -332,12 +781,81 @@ struct PreviouslyVisitedDoctorCard: View {
     }
 }
 
+struct AllAppointmentsView: View {
+    let appointments: [Appointment]
+    let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    
+    var body: some View {
+        ZStack {
+            Color(red: 0.94, green: 0.94, blue: 1.0)
+                .edgesIgnoringSafeArea(.all)
+            
+            ScrollView {
+                VStack(spacing: 20) {
+                    Text("All Upcoming Appointments")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.black)
+                        .padding(.top, 20)
+                        .padding(.horizontal, 20)
+                    
+                    if appointments.isEmpty {
+                        Text("No upcoming appointments.")
+                            .font(.system(size: 16))
+                            .foregroundColor(.gray)
+                            .padding()
+                    } else {
+                        ForEach(appointments) { appointment in
+                            AppointmentCard(
+                                doctorName: getDoctorName(for: appointment.docId),
+                                specialty: getDoctorSpecialty(for: appointment.docId),
+                                date: formatDate(appointment.date),
+                                imageName: "doctor1",
+                                appointment: .constant(appointment)
+                            )
+                            .padding(.horizontal, 20)
+                        }
+                    }
+                }
+                .padding(.bottom, 20)
+            }
+        }
+        .navigationTitle("Upcoming Appointments")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    private func getDoctorName(for docId: String) -> String {
+        for specialty in DoctorData.doctors.keys {
+            if let doctor = DoctorData.doctors[specialty]?.first(where: { $0.id == docId }) {
+                return doctor.doctor_name
+            }
+        }
+        return "Unknown Doctor"
+    }
+    
+    private func getDoctorSpecialty(for docId: String) -> String {
+        for specialty in DoctorData.doctors.keys {
+            if DoctorData.doctors[specialty]?.contains(where: { $0.id == docId }) ?? false {
+                return specialty
+            }
+        }
+        return "Unknown Specialty"
+    }
+    
+    private func formatDate(_ date: Date?) -> String {
+        guard let date = date else { return "No date" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+}
+
 struct AppointmentCard: View {
     let doctorName: String
     let specialty: String
     let date: String
     let imageName: String
-    let appointment: Appointment
+    @Binding var appointment: Appointment
     let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     @State private var showDetails = false
     
@@ -405,50 +923,5 @@ struct AppointmentCard: View {
                 isPresented: $showDetails
             )
         }
-    }
-}
-
-struct MedicalRecordCard: View {
-    let type: String
-    let doctorName: String
-    let date: String
-    let title: String
-    let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(LinearGradient(
-                    gradient: Gradient(colors: [purpleColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
-                .shadow(color: purpleColor.opacity(0.2), radius: 10, x: 0, y: 5)
-            
-            HStack(spacing: 16) {
-                Image(systemName: "doc.text.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 30, height: 35)
-                    .foregroundColor(.white)
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(title)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.white)
-                    
-                    Text("by \(doctorName)")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.8))
-                    
-                    Text(date)
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.7))
-                }
-                Spacer()
-            }
-            .padding(16)
-        }
-        .frame(width: 250, height: 100)
     }
 }

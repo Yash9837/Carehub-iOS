@@ -79,7 +79,9 @@ struct RegisterView: View {
     }
     
     @State private var currentStep: RegistrationStep = .credentials
-    @State private var fullName = ""
+    @State private var firstName = "" // New field for First Name
+    @State private var lastName = ""  // New field for Last Name
+    @State private var fullName = ""  // Still needed for downstream logic
     @State private var username = ""
     @State private var email = ""
     @State private var password = ""
@@ -98,11 +100,14 @@ struct RegisterView: View {
     @State private var generatedID = ""
     @State private var showAlert = false
     @State private var navigateToLogin = false
+    @State private var navigateToDashboard = false
+    @State private var registeredPatient: PatientF?
     @State private var errorMessage: String?
     @Environment(\.dismiss) private var dismiss
     
     // Field validation states
-    @State private var isFullNameValid = true
+    @State private var isFirstNameValid = true // Validation for First Name
+    @State private var isLastNameValid = true  // Validation for Last Name
     @State private var isUsernameValid = true
     @State private var isEmailValid = true
     @State private var isPasswordValid = true
@@ -117,6 +122,13 @@ struct RegisterView: View {
         Color(red: 0.43, green: 0.34, blue: 0.99),
         Color(red: 0.55, green: 0.48, blue: 0.99)
     ]
+    
+    // Computed property to combine firstName and lastName into fullName
+    private var computedFullName: String {
+        let trimmedFirst = firstName.trimmingCharacters(in: .whitespaces)
+        let trimmedLast = lastName.trimmingCharacters(in: .whitespaces)
+        return trimmedFirst.isEmpty && trimmedLast.isEmpty ? "" : "\(trimmedFirst) \(trimmedLast)".trimmingCharacters(in: .whitespaces)
+    }
     
     var body: some View {
         NavigationStack {
@@ -212,6 +224,8 @@ struct RegisterView: View {
             .navigationDestination(isPresented: $navigateToLogin) {
                 LoginView()
             }
+            .navigationDestination(isPresented: $navigateToDashboard) {
+            }
             .sheet(isPresented: $showDatePicker) {
                 VStack {
                     DatePicker("Select Date of Birth", selection: $selectedDate, in: ...Date(), displayedComponents: .date)
@@ -249,13 +263,22 @@ struct RegisterView: View {
     private var credentialsStep: some View {
         VStack(spacing: 20) {
             VStack(alignment: .leading, spacing: 15) {
-                CareHubTextField(text: $fullName, placeholder: "Full Name", isSecure: false, isValid: isFullNameValid, icon: "person.fill")
-                    .accessibilityLabel("Full Name")
-                    .onChange(of: fullName) { _ in isFullNameValid = validateName(fullName) }
-                
-                CareHubTextField(text: $username, placeholder: "Username", isSecure: false, isValid: isUsernameValid, icon: "person.text.rectangle")
-                    .accessibilityLabel("Username")
-                    .onChange(of: username) { _ in isUsernameValid = true }
+                // First Name and Last Name in a single line
+                HStack(spacing: 12) {
+                    CareHubTextField(text: $firstName, placeholder: "First Name", isSecure: false, isValid: isFirstNameValid, icon: "person.fill")
+                        .accessibilityLabel("First Name")
+                        .onChange(of: firstName) { _ in
+                            isFirstNameValid = validateName(firstName)
+                            fullName = computedFullName // Update fullName
+                        }
+                    
+                    CareHubTextField(text: $lastName, placeholder: "Last Name", isSecure: false, isValid: isLastNameValid, icon: "person.fill")
+                        .accessibilityLabel("Last Name")
+                        .onChange(of: lastName) { _ in
+                            isLastNameValid = validateName(lastName)
+                            fullName = computedFullName // Update fullName
+                        }
+                }
                 
                 CareHubTextField(text: $email, placeholder: "Email", isSecure: false, isValid: isEmailValid, icon: "envelope.fill")
                     .accessibilityLabel("Email")
@@ -561,7 +584,8 @@ struct RegisterView: View {
     }
     
     private func resetValidationStates() {
-        isFullNameValid = true
+        isFirstNameValid = true
+        isLastNameValid = true
         isUsernameValid = true
         isEmailValid = true
         isPasswordValid = true
@@ -573,17 +597,19 @@ struct RegisterView: View {
     private func validateCurrentStep() -> Bool {
         switch currentStep {
         case .credentials:
-            let nameValid = validateName(fullName)
+            let firstNameValid = validateName(firstName)
+            let lastNameValid = validateName(lastName)
             let userValid = !username.trimmingCharacters(in: .whitespaces).isEmpty
             let emailValid = validateEmail(email)
             let passValid = validatePassword(password)
             
-            isFullNameValid = nameValid
+            isFirstNameValid = firstNameValid
+            isLastNameValid = lastNameValid
             isUsernameValid = userValid
             isEmailValid = emailValid
             isPasswordValid = passValid
             
-            return nameValid && userValid && emailValid && passValid
+            return firstNameValid && lastNameValid && userValid && emailValid && passValid
             
         case .contactInfo:
             let phoneValid = validatePhone(phoneNo)
@@ -599,7 +625,7 @@ struct RegisterView: View {
             return isDobValid
             
         case .emailVerification:
-            return true // Validation handled by Firebase
+            return true
         }
     }
     
@@ -670,13 +696,12 @@ struct RegisterView: View {
                     weight: []
                 ),
                 lastModified: Date(),
-                patientId: generatedID,
-                username: username
+                patientId: generatedID
             )
-            
             AuthManager.shared.registerPatient(patient: patient, password: password) { success in
                 DispatchQueue.main.async {
                     if success {
+                        self.registeredPatient = patient
                         withAnimation {
                             currentStep = .emailVerification
                             resetValidationStates()
@@ -691,7 +716,7 @@ struct RegisterView: View {
             AuthManager.shared.checkEmailVerification { isVerified, errorMessage in
                 DispatchQueue.main.async {
                     if isVerified {
-                        navigateToLogin = true
+                        navigateToDashboard = true
                     } else {
                         showAlert = true
                         self.errorMessage = errorMessage ?? "Email not yet verified. Please check your inbox or spam folder."

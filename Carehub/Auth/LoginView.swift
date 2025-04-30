@@ -52,7 +52,7 @@ struct LoginView: View {
                         VStack(spacing: 20) {
                             CareHubTextField(
                                 text: $email,
-                                placeholder: "Email or User ID",
+                                placeholder: "Email Id",
                                 isSecure: false,
                                 isValid: true,
                                 icon: "envelope.fill"
@@ -106,20 +106,22 @@ struct LoginView: View {
                         .disabled(isLoading || email.isEmpty || password.isEmpty)
                         .padding(.horizontal, 20)
                         
-                        // Register link
-                        HStack {
-                            Text("Don't have an account?")
-                                .foregroundColor(.black)
-                            NavigationLink(destination: RegisterView()) {
-                                Text("Register")
-                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                    .underline()
-                                    .fontWeight(.semibold)
+                        // Conditionally show Register link only for patients
+                        if selectedRole == .patient {
+                            HStack {
+                                Text("Don't have an account?")
+                                    .foregroundColor(.black)
+                                NavigationLink(destination: RegisterView()) {
+                                    Text("Register")
+                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                        .underline()
+                                        .fontWeight(.semibold)
+                                }
                             }
+                            .padding(.horizontal, 20)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, 10)
                         }
-                        .padding(.horizontal, 20)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 10)
                         
                         Spacer()
                     }

@@ -16,7 +16,7 @@ struct PDFViewer: View {
     var body: some View {
         PDFKitRepresentedView(url: pdfUrl)
             .edgesIgnoringSafeArea(.all)
-            .navigationTitle("")
+            .navigationTitle("PDF Viewer")
             .navigationBarTitleDisplayMode(.inline)
     }
 }

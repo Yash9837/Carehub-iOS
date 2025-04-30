@@ -1,10 +1,3 @@
-//
-//  PatientView.swift
-//  Carehub
-//
-//  Created by Anurag on 17/04/25.
-//
-
 import SwiftUI
 
 struct Patient: Identifiable {
@@ -17,7 +10,6 @@ struct Patient: Identifiable {
 
 struct MyPatientsView: View {
     @State private var searchText = ""
-    @State private var selectedPatientId: String? = nil // State to manage navigation
     
     let patients = [
         Patient(name: "John Doe", gender: "Male", visitDate: "Visited: 23 Apr 2025 at 3:48 PM", patientId: "PT001"),
@@ -42,21 +34,21 @@ struct MyPatientsView: View {
                 
                 // Patient List
                 List(filteredPatients) { patient in
-                    PatientInfoCard(patient: patient)
-                        .contentShape(Rectangle()) // Makes the entire card tappable
-                        .onTapGesture {
-                            selectedPatientId = patient.patientId // Trigger navigation
-                        }
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 5, leading: 0, bottom: 5, trailing: 0))
-                        .listRowBackground(Color.clear) // Ensure the gradient background shows through
+                    NavigationLink {
+                        DetailsPresriptionView(patientId: patient.patientId)
+                    } label: {
+                        PatientInfoCard(patient: patient)
+                    }
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 5, leading: 0, bottom: 5, trailing: 0))
+                    .listRowBackground(Color.clear)
                 }
                 .listStyle(PlainListStyle())
             }
             .background(
                 LinearGradient(
                     colors: [
-                        Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4), // #6D57FC
+                        Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4),
                         Color.white.opacity(0.9),
                         Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4)
                     ],
@@ -66,14 +58,6 @@ struct MyPatientsView: View {
             )
             .navigationTitle("My Patients")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(isPresented: Binding(
-                get: { selectedPatientId != nil },
-                set: { if !$0 { selectedPatientId = nil } }
-            )) {
-                if let patientId = selectedPatientId {
-                    DetailsPresriptionView(patientId: patientId)
-                }
-            }
         }
     }
 }
@@ -135,19 +119,42 @@ struct PatientInfoCard: View {
             
             Spacer()
             
-            // Chevron (the only one, inside the card)
+            // Chevron
             Image(systemName: "chevron.right")
                 .foregroundColor(.white.opacity(0.7))
                 .padding(.trailing, 10)
         }
-        .background(Color(red: 0.45, green: 0.44, blue: 0.99)) // Changed to #736FFD
+        .background(Color(red: 0.45, green: 0.44, blue: 0.99))
         .cornerRadius(10)
         .padding(.horizontal)
     }
 }
 
+// Main TabView to wrap the app
+struct ContentView: View {
+    var body: some View {
+        TabView {
+            MyPatientsView()
+                .tabItem {
+                    Label("Patients", systemImage: "person.3")
+                }
+            
+            // Add other tabs as needed
+            Text("Appointments")
+                .tabItem {
+                    Label("Appointments", systemImage: "calendar")
+                }
+            
+            Text("Profile")
+                .tabItem {
+                    Label("Profile", systemImage: "person.circle")
+                }
+        }
+    }
+}
+
 struct MyPatientsView_Previews: PreviewProvider {
     static var previews: some View {
-        MyPatientsView()
+        ContentView()
     }
 }

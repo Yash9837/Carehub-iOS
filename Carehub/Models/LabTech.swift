@@ -85,10 +85,11 @@ struct TestResult: Identifiable, Codable {
     let testName: String
     let date: String
     let status: String
-    let results: String
-    let notes: String
+    let results: String? // Made optional
     let pdfUrl: String
-    
+    let doc: String
+    let notes: String? // Made optional
+
     enum CodingKeys: String, CodingKey {
         case id
         case patientId
@@ -98,6 +99,7 @@ struct TestResult: Identifiable, Codable {
         case results
         case notes
         case pdfUrl
+        case doc
     }
     
     init(id: String = UUID().uuidString,
@@ -105,9 +107,10 @@ struct TestResult: Identifiable, Codable {
          testName: String,
          date: String,
          status: String,
-         results: String,
-         notes: String,
-         pdfUrl: String = "") {
+         results: String? = nil,
+         notes: String? = nil,
+         pdfUrl: String = "",
+         doc: String = "") {
         self.id = id
         self.patientId = patientId
         self.testName = testName
@@ -116,6 +119,7 @@ struct TestResult: Identifiable, Codable {
         self.results = results
         self.notes = notes
         self.pdfUrl = pdfUrl
+        self.doc = doc
     }
     
     init(from decoder: Decoder) throws {
@@ -125,9 +129,10 @@ struct TestResult: Identifiable, Codable {
         testName = try container.decode(String.self, forKey: .testName)
         date = try container.decode(String.self, forKey: .date)
         status = try container.decode(String.self, forKey: .status)
-        results = try container.decode(String.self, forKey: .results)
-        notes = try container.decode(String.self, forKey: .notes)
+        results = try container.decodeIfPresent(String.self, forKey: .results)
+        notes = try container.decodeIfPresent(String.self, forKey: .notes)
         pdfUrl = try container.decodeIfPresent(String.self, forKey: .pdfUrl) ?? ""
+        doc = try container.decodeIfPresent(String.self, forKey: .doc) ?? ""
     }
     
     func encode(to encoder: Encoder) throws {
@@ -137,8 +142,9 @@ struct TestResult: Identifiable, Codable {
         try container.encode(testName, forKey: .testName)
         try container.encode(date, forKey: .date)
         try container.encode(status, forKey: .status)
-        try container.encode(results, forKey: .results)
-        try container.encode(notes, forKey: .notes)
+        try container.encodeIfPresent(results, forKey: .results)
+        try container.encodeIfPresent(notes, forKey: .notes)
         try container.encode(pdfUrl, forKey: .pdfUrl)
+        try container.encode(doc, forKey: .doc)
     }
 }

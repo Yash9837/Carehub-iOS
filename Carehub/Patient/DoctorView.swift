@@ -1,10 +1,12 @@
 import SwiftUI
+import FirebaseAuth
 
 struct DoctorView: View {
     @State private var specialties: [String] = []
     @State private var isDataLoaded = false
     @State private var isDataLoadFailed = false
     let columns = [GridItem(.flexible()), GridItem(.flexible())]
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -38,7 +40,7 @@ struct DoctorView: View {
                         VStack(spacing: 20) {
                             Text("Select a Specialty")
                                 .font(.system(size: 28, weight: .bold))
-                                .padding(.top, 16)
+                                .padding(16)
                                 .padding(.bottom, 8)
                                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                             
@@ -315,11 +317,11 @@ struct DoctorCardView: View {
     }
 }
 
-// New Doctor Detail View
 struct DoctorDetailView: View {
     let doctor: Doctor
     let specialty: String
     @State private var qualifications: [String] = ["MBBS", "MD - General Medicine", "DNB - Cardiology"]
+    @State private var showBooking = false
     
     var body: some View {
         ScrollView {
@@ -405,49 +407,40 @@ struct DoctorDetailView: View {
                     .padding(.horizontal, 16)
                 }
                 
-                // Additional info can be added here (about, services, etc.)
-                
                 Spacer()
                 
-                // Book appointment button
-                Button(action: {
-                    // Navigate to appointment scheduling
-                    print("Navigate to ScheduleAppointmentView")
-                }) {
-                    HStack {
-                        Spacer()
-                        Text("Book Appointment")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(.vertical, 16)
-                        Spacer()
+                // Book appointment button with NavigationLink
+                NavigationLink(
+                    destination: ScheduleAppointmentView(
+                        patientId: Auth.auth().currentUser?.uid ?? "unknown_user", // Use Firebase Auth user ID
+                        preSelectedSpecialty: specialty,
+                        preSelectedDoctor: doctor.doctor_name
+                    ),
+                    isActive: $showBooking
+                ) {
+                    Button(action: {
+                        showBooking = true
+                    }) {
+                        HStack {
+                            Spacer()
+                            Text("Book Appointment")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding(.vertical, 16)
+                            Spacer()
+                        }
+                        .background(Color(red: 0.43, green: 0.34, blue: 0.99))
+                        .cornerRadius(12)
+                        .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4), radius: 8, x: 0, y: 4)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 24)
                     }
-                    .background(Color(red: 0.43, green: 0.34, blue: 0.99))
-                    .cornerRadius(12)
-                    .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4), radius: 8, x: 0, y: 4)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 24)
+                    .buttonStyle(PlainButtonStyle())
                 }
-                .buttonStyle(PlainButtonStyle())
             }
         }
         .background(Color(red: 0.94, green: 0.94, blue: 1.0))
         .navigationTitle("Doctor Profile")
         .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-// Adding navigation to ScheduleAppointmentView
-extension DoctorDetailView {
-    private func navigateToSchedule(doctor: Doctor) {
-        // Create and present ScheduleAppointmentView
-        // This would be replaced with actual navigation code
-        print("Navigate to ScheduleAppointmentView for \(doctor.doctor_name)")
-    }
-}
-
-struct DoctorView_Previews: PreviewProvider {
-    static var previews: some View {
-        DoctorView()
     }
 }

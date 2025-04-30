@@ -1,16 +1,20 @@
 import SwiftUI
 import FirebaseFirestore
+import FirebaseAuth
+
 struct DoctorDashboardView: View {
+    @StateObject private var authManager = AuthManager.shared
     @State private var selectedDate = Date()
     @State private var viewMode: CalendarViewMode = .day
     @State private var appointments: [Appointment] = []
     @State private var doctorName: String = "Doctor"
-    @State private var doctorId: String = "D123456"
+    @State private var doctorId: String = ""
     
     @State private var showActionSheet = false
     @State private var showImagePicker = false
     @State private var showNotesView = false
-    @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
+    @State private var showPrescriptionView = false
+    @State private var selectedAppointment: Appointment?
     
     @Environment(\.colorScheme) private var colorScheme
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
@@ -50,7 +54,13 @@ struct DoctorDashboardView: View {
                     case .month:
                         MonthView(selectedDate: $selectedDate, viewMode: $viewMode)
                     case .day:
-                        DayView(selectedDate: $selectedDate, appointments: appointments.filter { $0.date?.isSameDay(as: selectedDate) ?? false })
+                        DayView(
+                            selectedDate: $selectedDate,
+                            appointments: appointments.filter { $0.date?.isSameDay(as: selectedDate) ?? false },
+                            showNotesView: $showNotesView,
+                            showPrescriptionView: $showPrescriptionView,
+                            selectedAppointment: $selectedAppointment
+                        )
                     }
                 }
             }
@@ -63,27 +73,89 @@ struct DoctorDashboardView: View {
                 }
             }
             .onAppear {
-                fetchDoctorData()
-                fetchData()
+                updateDoctorData()
+            }
+            .onReceive(authManager.$currentStaffMember) { newStaff in
+                updateDoctorData()
+            }
+            .navigationDestination(isPresented: $showNotesView) {
+                if let selectedAppointment = selectedAppointment {
+                    NotesView(appointment: selectedAppointment)
+                }
+            }
+            .navigationDestination(isPresented: $showPrescriptionView) {
+                if let selectedAppointment = selectedAppointment {
+                    PrescriptionView(appointment: selectedAppointment)
+                }
             }
         }
     }
     
-    private func fetchDoctorData() {
-        db.collection("doctors").document(doctorId).getDocument { snapshot, error in
-            if let error = error {
-                print("Error fetching doctor: \(error)")
+    private func updateDoctorData() {
+        if let staff = authManager.currentStaffMember, staff.role == .doctor {
+            doctorName = staff.fullName
+            doctorId = staff.id ?? ""
+            print("Doctor ID set to: \(doctorId) (from AuthManager)")
+            print("Staff data: id=\(staff.id ?? "nil"), fullName=\(staff.fullName), role=\(String(describing: staff.role))")
+            
+            // Always fetch the correct Doctor_id from Firestore using the UID
+            guard let uid = Auth.auth().currentUser?.uid else {
+                print("No UID available to fetch doctor data - user might not be logged in")
+                doctorId = ""
+                doctorName = "Doctor"
+                appointments = []
                 return
             }
             
-            if let data = snapshot?.data(),
-               let name = data["Doctor_name"] as? String {
+            print("Fetching doctor data for UID: \(uid)")
+            db.collection("doctors").document(uid).getDocument { snapshot, error in
+                if let error = error {
+                    print("Error fetching doctor from UID: \(error.localizedDescription)")
+                    doctorId = ""
+                    doctorName = "Doctor"
+                    appointments = []
+                    return
+                }
+                
+                guard let data = snapshot?.data(), snapshot?.exists == true else {
+                    print("No document found for UID: \(uid) in doctors collection")
+                    doctorId = ""
+                    doctorName = "Doctor"
+                    appointments = []
+                    return
+                }
+                
+                guard let docId = data["Doctorid"] as? String,
+                      let name = data["Doctor_name"] as? String else {
+                    print("Missing Doctor_id or Doctor_name in document data: \(data)")
+                    doctorId = ""
+                    doctorName = "Doctor"
+                    appointments = []
+                    return
+                }
+                
+                print("Updated doctorId to: \(docId) from Firestore")
+                print("Updated doctorName to: \(name) from Firestore")
+                doctorId = docId
                 doctorName = name
+                fetchData() // Fetch appointments with the correct doctorId
             }
+        } else {
+            doctorName = "Doctor"
+            doctorId = ""
+            appointments = []
+            print("No doctor logged in or role is not doctor")
         }
     }
     
     private func fetchData() {
+        guard !doctorId.isEmpty else {
+            print("No doctor ID available, cannot fetch appointments")
+            appointments = []
+            return
+        }
+        
+        print("Fetching appointments for docId: \(doctorId)")
         db.collection("appointments")
             .whereField("docId", isEqualTo: doctorId)
             .getDocuments { snapshot, error in
@@ -92,15 +164,37 @@ struct DoctorDashboardView: View {
                     return
                 }
                 
-                appointments = snapshot?.documents.compactMap { doc -> Appointment? in
+                guard let documents = snapshot?.documents else {
+                    print("No documents found for docId: \(doctorId)")
+                    appointments = []
+                    return
+                }
+                
+                print("Found \(documents.count) appointment documents")
+                appointments = documents.compactMap { doc -> Appointment? in
                     let data = doc.data()
-                    guard let apptId = data["apptId"] as? String,
-                          let patientId = data["patientId"] as? String,
-                          let docId = data["docId"] as? String,
-                          let description = data["Description"] as? String,
-                          let status = data["Status"] as? String else { return nil }
+                    print("Document data: \(data)")
                     
-                    return Appointment(
+                    // Handle case-insensitive field names
+                    let apptId = data["apptId"] as? String
+                    let patientId = data["patientId"] as? String
+                    let docId = data["docId"] as? String
+                    let description = (data["description"] as? String) ?? (data["Description"] as? String)
+                    let status = (data["status"] as? String) ?? (data["Status"] as? String)
+                    let date = (data["date"] as? Timestamp) ?? (data["Date"] as? Timestamp)
+                    let followUpDate = (data["followUpDate"] as? Timestamp) ?? (data["followUpdate"] as? Timestamp)
+                    let doctorsNotes = (data["doctorsNotes"] as? String) ?? (data["doctorNotes"] as? String)
+                    
+                    guard let apptId = apptId,
+                          let patientId = patientId,
+                          let docId = docId,
+                          let description = description,
+                          let status = status else {
+                        print("Failed to map document: \(doc.documentID), missing required fields")
+                        return nil
+                    }
+                    
+                    let appointment = Appointment(
                         id: doc.documentID,
                         apptId: apptId,
                         patientId: patientId,
@@ -109,13 +203,17 @@ struct DoctorDashboardView: View {
                         status: status,
                         billingStatus: data["billingStatus"] as? String ?? "",
                         amount: data["amount"] as? Double,
-                        date: (data["Date"] as? Timestamp)?.dateValue(),
-                        doctorsNotes: data["doctorNotes"] as? String,
+                        date: date?.dateValue(),
+                        doctorsNotes: doctorsNotes,
                         prescriptionId: data["prescriptionId"] as? String,
                         followUpRequired: data["followUpRequired"] as? Bool,
-                        followUpDate: (data["followUpdate"] as? Timestamp)?.dateValue()
+                        followUpDate: followUpDate?.dateValue()
                     )
-                } ?? []
+                    print("Mapped appointment: \(appointment)")
+                    return appointment
+                }
+                
+                print("Total appointments after mapping: \(appointments.count)")
             }
     }
 }
@@ -123,6 +221,9 @@ struct DoctorDashboardView: View {
 struct DayView: View {
     @Binding var selectedDate: Date
     let appointments: [Appointment]
+    @Binding var showNotesView: Bool
+    @Binding var showPrescriptionView: Bool
+    @Binding var selectedAppointment: Appointment?
     
     var scheduleTitle: String {
         let calendar = Calendar.current
@@ -163,7 +264,12 @@ struct DayView: View {
                             .padding()
                     } else {
                         ForEach(appointments, id: \.id) { appointment in
-                            AppointmentView(appointment: appointment)
+                            AppointmentView(
+                                appointment: appointment,
+                                showNotesView: $showNotesView,
+                                showPrescriptionView: $showPrescriptionView,
+                                selectedAppointment: $selectedAppointment
+                            )
                         }
                     }
                 }
@@ -213,8 +319,9 @@ struct DateSelectorBar: View {
 struct AppointmentView: View {
     let appointment: Appointment
     @State private var patientName: String = "Unknown"
-    @State private var isShowingNotesView: Bool = false
-    @State private var isShowingPrescriptionView: Bool = false
+    @Binding var showNotesView: Bool
+    @Binding var showPrescriptionView: Bool
+    @Binding var selectedAppointment: Appointment?
     
     private let db = Firestore.firestore()
     
@@ -252,10 +359,12 @@ struct AppointmentView: View {
             
             Menu {
                 Button("Add Notes") {
-                    isShowingNotesView = true
+                    selectedAppointment = appointment
+                    showNotesView = true
                 }
                 Button("Add Prescription") {
-                    isShowingPrescriptionView = true
+                    selectedAppointment = appointment
+                    showPrescriptionView = true
                 }
             } label: {
                 Image(systemName: "chevron.down")
@@ -271,12 +380,6 @@ struct AppointmentView: View {
         .onAppear {
             fetchPatientName()
         }
-        .navigationDestination(isPresented: $isShowingNotesView) {
-            NotesView(appointment: appointment)
-        }
-        .navigationDestination(isPresented: $isShowingPrescriptionView) {
-            PrescriptionView(appointment: appointment)
-        }
     }
     
     private var statusColor: Color {
@@ -289,18 +392,31 @@ struct AppointmentView: View {
     }
     
     private func fetchPatientName() {
-        db.collection("patients").document(appointment.patientId).getDocument { snapshot, error in
-            if let error = error {
-                print("Error fetching patient: \(error)")
-                return
-            }
-            if let data = snapshot?.data(),
-               let userData = data["userData"] as? [String: Any],
-               let name = userData["Name"] as? String {
-                patientName = name
-            }
+            print("Fetching patient name for patientId: \(appointment.patientId)")
+            db.collection("patients")
+                .whereField("patientId", isEqualTo: appointment.patientId)
+                .getDocuments { snapshot, error in
+                    if let error = error {
+                        print("Error fetching patient: \(error)")
+                        return
+                    }
+                    
+                    guard let documents = snapshot?.documents, !documents.isEmpty else {
+                        print("No patient found for patientId: \(appointment.patientId)")
+                        patientName = "Unknown"
+                        return
+                    }
+                    
+                    if let data = documents.first?.data(),
+                       let userData = data["userData"] as? [String: Any],
+                       let name = userData["Name"] as? String {
+                        patientName = name
+                        print("Patient name fetched: \(name)")
+                    } else {
+                        print("Failed to fetch patient name for patientId: \(appointment.patientId), data: \(String(describing: documents.first?.data()))")
+                    }
+                }
         }
-    }
 }
 
 struct MonthView: View {
@@ -422,7 +538,12 @@ enum CalendarViewMode {
 
 extension Date {
     func isSameDay(as other: Date) -> Bool {
-        Calendar.current.isDate(self, inSameDayAs: other)
+        let calendar = Calendar.current
+        let componentsSelf = calendar.dateComponents([.year, .month, .day], from: self)
+        let componentsOther = calendar.dateComponents([.year, .month, .day], from: other)
+        return componentsSelf.year == componentsOther.year &&
+               componentsSelf.month == componentsOther.month &&
+               componentsSelf.day == componentsOther.day
     }
 }
 

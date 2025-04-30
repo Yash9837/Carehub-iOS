@@ -308,6 +308,8 @@ struct InfoRow1: View {
 
 
 // Updated TestResultCard with loading animation
+import SwiftUI
+
 struct TestResultCard: View {
     let result: TestResult
     @State private var pdfLoadError: String?
@@ -349,25 +351,14 @@ struct TestResultCard: View {
                 Spacer()
             }
             
-            if !result.results.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Results:")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.gray)
-                    Text(result.results)
-                        .font(.system(size: 15, weight: .medium))
-                }
-            }
-            
-            if !result.notes.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Notes:")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.gray)
-                    Text(result.notes)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.black)
-                }
+            HStack {
+                Text("Doctor:")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.gray)
+                Text(result.doc ?? "Not specified")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.black.opacity(0.7))
+                Spacer()
             }
             
             if !result.pdfUrl.isEmpty {
@@ -425,6 +416,7 @@ struct TestResultCard: View {
         )
     }
 }
+
 struct Records_LT_Previews: PreviewProvider {
     static var previews: some View {
         Records_LT()

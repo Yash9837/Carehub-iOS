@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct Appointment: Identifiable {
+struct Appointment: Identifiable, Decodable {
     var id: String
     let apptId: String
     let patientId: String
@@ -15,3 +15,4 @@ struct Appointment: Identifiable {
     let followUpRequired: Bool?
     let followUpDate: Date?
 }
+

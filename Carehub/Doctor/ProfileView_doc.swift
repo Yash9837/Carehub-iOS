@@ -1,6 +1,7 @@
 import SwiftUI
 import Firebase
 import FirebaseFirestore
+import FirebaseAuth
 
 struct DoctorsNote: Identifiable {
     let id = UUID()
@@ -18,10 +19,12 @@ struct Qualification {
 
 // MARK: - ProfileView_doc
 struct ProfileView_doc: View {
+    @StateObject private var authManager = AuthManager.shared
     @State private var doctor: Doctor? = nil
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var showLoginView = false
+    @State private var doctorId: String = ""
     private let purpleColor = Color(hex: "6D57FC")
     private let lightPurple = Color(hex: "6D57FC").opacity(0.05)
     private let mediumPurple = Color(hex: "6D57FC").opacity(0.7)
@@ -108,27 +111,58 @@ struct ProfileView_doc: View {
             .onAppear {
                 fetchDoctorData()
             }
+            .onReceive(authManager.$currentStaffMember) { newStaff in
+                fetchDoctorData()
+            }
             .fullScreenCover(isPresented: $showLoginView) {
-                LoginView() // Present LoginView in full-screen mode
+                LoginView()
             }
         }
     }
 
     private func fetchDoctorData() {
         isLoading = true
-        db.collection("doctors").document("D123456").getDocument(source: .default) { (document, error) in
+        guard let uid = Auth.auth().currentUser?.uid else {
+            print("No UID available to fetch doctor data - user might not be logged in")
+            doctorId = ""
+            doctor = nil
+            isLoading = false
+            errorMessage = "User not logged in"
+            return
+        }
+
+        print("Fetching doctor data for UID: \(uid)")
+        db.collection("doctors").document(uid).getDocument { snapshot, error in
             defer { isLoading = false }
             if let error = error {
+                print("Error fetching doctor from UID: \(error.localizedDescription)")
+                doctorId = ""
+                doctor = nil
                 errorMessage = error.localizedDescription
                 return
             }
-            guard let document = document, document.exists, let data = document.data() else {
+
+            guard let document = snapshot, document.exists, let data = document.data() else {
+                print("No document found for UID: \(uid) in doctors collection")
+                doctorId = ""
+                doctor = nil
                 errorMessage = "Doctor data not found"
                 return
             }
 
+            guard let docId = data["Doctorid"] as? String else {
+                print("Missing Doctorid in document data: \(data)")
+                doctorId = ""
+                doctor = nil
+                errorMessage = "Doctor ID not found"
+                return
+            }
+
+            print("Updated doctorId to: \(docId) from Firestore")
+            doctorId = docId
+
             let experience = data["Doctor_experience"] as? Double ?? Double(data["Doctor_experience"] as? Int ?? 0)
-            let doctor = Doctor(
+            let doctorData = Doctor(
                 id: data["Doctorid"] as? String ?? "",
                 department: data["Filed_name"] as? String ?? "",
                 doctor_name: data["Doctor_name"] as? String ?? "",
@@ -141,8 +175,10 @@ struct ProfileView_doc: View {
                 phoneNo: data["phoneNo"] as? String,
                 doctorsNotes: nil
             )
-            self.doctor = doctor
-            DoctorData.fetchDoctorNotes(forDoctorId: doctor.id) { notes in
+            self.doctor = doctorData
+
+            // Fetch doctor's notes dynamically
+            DoctorData.fetchDoctorNotes(forDoctorId: doctorId) { notes in
                 if var updatedDoctor = self.doctor {
                     updatedDoctor.doctorsNotes = notes.isEmpty ? nil : notes
                     self.doctor = updatedDoctor
