@@ -10,6 +10,8 @@ struct DoctorDashboardView: View {
     @State private var doctorName: String = "Doctor"
     @State private var doctorId: String = ""
     
+    @State private var showDetailsPrescriptionView = false
+    @State private var selectedPatientId: String? = nil
     @State private var showActionSheet = false
     @State private var showImagePicker = false
     @State private var showNotesView = false
@@ -59,7 +61,9 @@ struct DoctorDashboardView: View {
                             appointments: appointments.filter { $0.date?.isSameDay(as: selectedDate) ?? false },
                             showNotesView: $showNotesView,
                             showPrescriptionView: $showPrescriptionView,
-                            selectedAppointment: $selectedAppointment
+                            selectedAppointment: $selectedAppointment,
+                            showDetailsPrescriptionView: $showDetailsPrescriptionView,
+                            selectedPatientId: $selectedPatientId
                         )
                     }
                 }
@@ -88,6 +92,11 @@ struct DoctorDashboardView: View {
                     PrescriptionView(appointment: selectedAppointment)
                 }
             }
+            .navigationDestination(isPresented: $showDetailsPrescriptionView) {
+                if let patientId = selectedPatientId {
+                    DetailsPresriptionView(patientId: patientId)
+                }
+            }
         }
     }
     
@@ -98,7 +107,6 @@ struct DoctorDashboardView: View {
             print("Doctor ID set to: \(doctorId) (from AuthManager)")
             print("Staff data: id=\(staff.id ?? "nil"), fullName=\(staff.fullName), role=\(String(describing: staff.role))")
             
-            // Always fetch the correct Doctor_id from Firestore using the UID
             guard let uid = Auth.auth().currentUser?.uid else {
                 print("No UID available to fetch doctor data - user might not be logged in")
                 doctorId = ""
@@ -138,7 +146,7 @@ struct DoctorDashboardView: View {
                 print("Updated doctorName to: \(name) from Firestore")
                 doctorId = docId
                 doctorName = name
-                fetchData() // Fetch appointments with the correct doctorId
+                fetchData()
             }
         } else {
             doctorName = "Doctor"
@@ -175,7 +183,6 @@ struct DoctorDashboardView: View {
                     let data = doc.data()
                     print("Document data: \(data)")
                     
-                    // Handle case-insensitive field names
                     let apptId = data["apptId"] as? String
                     let patientId = data["patientId"] as? String
                     let docId = data["docId"] as? String
@@ -224,6 +231,8 @@ struct DayView: View {
     @Binding var showNotesView: Bool
     @Binding var showPrescriptionView: Bool
     @Binding var selectedAppointment: Appointment?
+    @Binding var showDetailsPrescriptionView: Bool
+    @Binding var selectedPatientId: String?
     
     var scheduleTitle: String {
         let calendar = Calendar.current
@@ -268,7 +277,9 @@ struct DayView: View {
                                 appointment: appointment,
                                 showNotesView: $showNotesView,
                                 showPrescriptionView: $showPrescriptionView,
-                                selectedAppointment: $selectedAppointment
+                                selectedAppointment: $selectedAppointment,
+                                showDetailsPrescriptionView: $showDetailsPrescriptionView,
+                                selectedPatientId: $selectedPatientId
                             )
                         }
                     }
@@ -322,6 +333,8 @@ struct AppointmentView: View {
     @Binding var showNotesView: Bool
     @Binding var showPrescriptionView: Bool
     @Binding var selectedAppointment: Appointment?
+    @Binding var showDetailsPrescriptionView: Bool
+    @Binding var selectedPatientId: String?
     
     private let db = Firestore.firestore()
     
@@ -377,6 +390,10 @@ struct AppointmentView: View {
         }
         .background(statusColor.opacity(0.1))
         .cornerRadius(8)
+        .onTapGesture {
+            selectedPatientId = appointment.patientId
+            showDetailsPrescriptionView = true
+        }
         .onAppear {
             fetchPatientName()
         }
@@ -392,31 +409,31 @@ struct AppointmentView: View {
     }
     
     private func fetchPatientName() {
-            print("Fetching patient name for patientId: \(appointment.patientId)")
-            db.collection("patients")
-                .whereField("patientId", isEqualTo: appointment.patientId)
-                .getDocuments { snapshot, error in
-                    if let error = error {
-                        print("Error fetching patient: \(error)")
-                        return
-                    }
-                    
-                    guard let documents = snapshot?.documents, !documents.isEmpty else {
-                        print("No patient found for patientId: \(appointment.patientId)")
-                        patientName = "Unknown"
-                        return
-                    }
-                    
-                    if let data = documents.first?.data(),
-                       let userData = data["userData"] as? [String: Any],
-                       let name = userData["Name"] as? String {
-                        patientName = name
-                        print("Patient name fetched: \(name)")
-                    } else {
-                        print("Failed to fetch patient name for patientId: \(appointment.patientId), data: \(String(describing: documents.first?.data()))")
-                    }
+        print("Fetching patient name for patientId: \(appointment.patientId)")
+        db.collection("patients")
+            .whereField("patientId", isEqualTo: appointment.patientId)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error fetching patient: \(error)")
+                    return
                 }
-        }
+                
+                guard let documents = snapshot?.documents, !documents.isEmpty else {
+                    print("No patient found for patientId: \(appointment.patientId)")
+                    patientName = "Unknown"
+                    return
+                }
+                
+                if let data = documents.first?.data(),
+                   let userData = data["userData"] as? [String: Any],
+                   let name = userData["Name"] as? String {
+                    patientName = name
+                    print("Patient name fetched: \(name)")
+                } else {
+                    print("Failed to fetch patient name for patientId: \(appointment.patientId), data: \(String(describing: documents.first?.data()))")
+                }
+            }
+    }
 }
 
 struct MonthView: View {
