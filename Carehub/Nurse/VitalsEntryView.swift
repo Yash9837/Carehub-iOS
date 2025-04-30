@@ -159,7 +159,7 @@ struct NurseVitalsEntryView: View {
                 allergySection
             }
             .padding(.horizontal, 32)
-            .padding(.vertical,4)
+            .padding(.vertical, 4)
             saveButton
                 .padding(.top, 8)
         }
@@ -198,12 +198,12 @@ struct NurseVitalsEntryView: View {
     private func vitalValueButton(title: String, value: String, unit: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.custom("SFProDisplay-Medium",size: 18))
+                .font(.custom("SFProDisplay-Medium", size: 18))
                 .foregroundColor(colorScheme == .dark ? .white : .black)
             
             HStack {
                 Text(value)
-                    .font(.custom("SFProDisplay-Medium",size: 16))
+                    .font(.custom("SFProDisplay-Medium", size: 16))
                     .foregroundStyle(colorScheme == .dark ? .white : .black)
                     .fontWeight(.semibold)
                 Text(unit)
@@ -218,8 +218,9 @@ struct NurseVitalsEntryView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(Color(.tertiaryLabel).opacity(0.2), lineWidth: 1)
-            .cornerRadius(10)
-        )}
+                    .cornerRadius(10)
+            )
+        }
         .frame(maxWidth: .infinity)
     }
     
@@ -237,7 +238,7 @@ struct NurseVitalsEntryView: View {
             Button(action: { activeSheet = sheet }) {
                 HStack {
                     Text(String(format: value.truncatingRemainder(dividingBy: 1) == 0 ? "%.0f" : "%.1f", value))
-                        .font(.custom("SFProDisplay-Medium",size: 18))
+                        .font(.custom("SFProDisplay-Medium", size: 18))
                         .foregroundStyle(colorScheme == .dark ? .white : .black)
                         .fontWeight(.semibold)
                     Text(unit)
@@ -278,8 +279,9 @@ struct NurseVitalsEntryView: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(Color(.tertiaryLabel).opacity(0.2), lineWidth: 1)
-                .cornerRadius(10)
-       ) }
+                    .cornerRadius(10)
+                )
+        }
     }
     
     private var saveButton: some View {

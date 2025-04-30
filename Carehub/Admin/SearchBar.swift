@@ -35,50 +35,65 @@ struct SearchBar: View {
     }
 }
 
-// RecentActivityView.swift
 struct RecentActivityView: View {
     @ObservedObject var staffManager: StaffManager
-    
+    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+
     var recentStaff: [Staff] {
-        Array(staffManager.staffList.sorted(by: { $0.joinDate! > $1.joinDate! }).prefix(3))
+        Array(staffManager.staffList
+            .filter { $0.joinDate != nil }
+            .sorted(by: { $0.joinDate! > $1.joinDate! })
+            .prefix(3))
     }
     
     var body: some View {
         VStack(alignment: .leading) {
             Text("Recent Additions")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.black)
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
             
-            VStack(spacing: 12) {
-                ForEach(recentStaff) { staff in
-                    HStack(spacing: 12) {
-                        StaffAvatarView(role: staff.role)
-                            .frame(width: 40, height: 40)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(staff.fullName)
-                                .font(.subheadline)
-                                .bold()
-                            
-                            Text("\(staff.role.rawValue) • \(staff.department)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+            if recentStaff.isEmpty {
+                Text("No recent staff available")
+                    .font(.system(size: 14))
+                    .foregroundColor(.gray)
+                    .padding(.horizontal, 16)
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white)
+                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                    
+                    VStack(spacing: 12) {
+                        ForEach(recentStaff) { staff in
+                            HStack(spacing: 12) {
+                                StaffAvatarView(role: staff.role)
+                                    .frame(width: 40, height: 40)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(staff.fullName)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.black)
+                                    
+                                    Text("\(staff.role.rawValue) • \(staff.department ?? "N/A")")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.gray)
+                                }
+                                
+                                Spacer()
+                                
+                                Text(staff.joinDate?.formatted(date: .numeric, time: .omitted) ?? "N/A")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.gray)
+                            }
+                            .padding(.horizontal, 12)
                         }
-                        
-                        Spacer()
-                        
-                        Text(staff.joinDate!.formatted(date: .numeric, time: .omitted))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
                     }
-                    .padding(.horizontal)
+                    .padding(.vertical, 12)
                 }
+                .padding(.horizontal, 16)
             }
-            .padding(.vertical, 12)
-            .background(Color(.systemBackground))
-            .cornerRadius(12)
-            .padding(.horizontal)
         }
     }
 }

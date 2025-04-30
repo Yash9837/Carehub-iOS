@@ -1,9 +1,13 @@
 import SwiftUI
+import FirebaseAuth
+import FirebaseFirestore
 
 struct ProfileView_patient: View {
     let patient: PatientF
+    @Environment(\.dismiss) private var dismiss
+    @State private var navigateToLogin = false 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 Color(red: 0.94, green: 0.94, blue: 1.0)
                     .edgesIgnoringSafeArea(.all)
@@ -156,7 +160,8 @@ struct ProfileView_patient: View {
                         
                         VStack(alignment: .leading, spacing: 8) {
                             Button(action: {
-                                UserDefaults.standard.removeObject(forKey: "patientF")
+                                AuthManager.shared.logout()
+                                navigateToLogin = true // Trigger navigation to LoginView
                             }) {
                                 Label("Sign Out", systemImage: "arrow.right.circle")
                                     .font(.system(size: 16, weight: .medium))
@@ -179,16 +184,19 @@ struct ProfileView_patient: View {
                     .padding(.top, 16)
                     .padding(.bottom, 24)
                 }
-            }
-            .navigationTitle("Profile")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: EditProfileView(patient: patient)) {
-                        Text("Edit")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                .navigationTitle("Profile")
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        NavigationLink(destination: EditProfileView(patient: patient)) {
+                            Text("Edit")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                        }
                     }
+                }
+                .fullScreenCover(isPresented: $navigateToLogin) {
+                    LoginView() // Present LoginView in full screen
                 }
             }
         }
@@ -340,6 +348,8 @@ struct EditProfileView: View {
     @State private var emergencyContacts: [EmergencyContact]
     @State private var allergies: [String]
     @Environment(\.dismiss) private var dismiss
+    
+    private let db = Firestore.firestore()
     
     init(patient: PatientF) {
         self.patient = patient
@@ -505,11 +515,12 @@ struct EditProfileView: View {
     }
     
     private var medicalInfoSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Medical Information")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                 .padding(.horizontal, 16)
+                .padding(.top, 8)
             
             EditableItemsSection(
                 title: "Allergies",
@@ -517,8 +528,9 @@ struct EditProfileView: View {
                 items: $allergies,
                 addButtonLabel: "Add Allergy"
             )
+            .animation(nil, value: allergies) // Disable animations for allergies
         }
-        .padding(.vertical, 14)
+        .padding(.vertical, 8)
         .padding(.horizontal, 16)
         .background(
             RoundedRectangle(cornerRadius: 14)
@@ -531,6 +543,11 @@ struct EditProfileView: View {
     
     private var saveButton: some View {
         Button(action: {
+            guard let user = Auth.auth().currentUser else {
+                print("No authenticated user found")
+                return
+            }
+            
             let updatedPatient = PatientF(
                 emergencyContact: emergencyContacts,
                 medicalRecords: patient.medicalRecords,
@@ -540,7 +557,7 @@ struct EditProfileView: View {
                     Dob: dob,
                     Email: email,
                     Name: fullName,
-                    Password: patient.userData.Password,
+                    Password: patient.userData.Password, // Keep the original password
                     aadharNo: aadharNo,
                     phoneNo: phoneNo
                 ),
@@ -553,15 +570,25 @@ struct EditProfileView: View {
                     weight: patient.vitals.weight
                 ),
                 lastModified: Date(),
-                patientId: patient.patientId,
+                patientId: patient.patientId, // Preserve the custom patientId
                 username: patient.username
             )
             
-            if let encoded = try? JSONEncoder().encode(updatedPatient) {
-                UserDefaults.standard.set(encoded, forKey: "patientF")
+            do {
+                // Save to Firestore using the Firebase UID as the document ID
+                try db.collection("patients").document(user.uid).setData(from: updatedPatient) { error in
+                    if let error = error {
+                        print("Error saving patient data: \(error.localizedDescription)")
+                    } else {
+                        print("Patient data updated successfully")
+                        // Update AuthManager's currentPatient to reflect the changes
+                        AuthManager.shared.currentPatient = updatedPatient
+                        dismiss()
+                    }
+                }
+            } catch {
+                print("Error encoding patient data: \(error.localizedDescription)")
             }
-            
-            dismiss()
         }) {
             Text("Save Changes")
                 .font(.system(size: 16, weight: .semibold))
@@ -622,9 +649,7 @@ struct EditableEmergencyContactsSection: View {
                     }
                     
                     Button(action: {
-                        withAnimation {
-                            contacts.removeAll { $0.id == contact.id }
-                        }
+                        contacts.removeAll { $0.id == contact.id }
                     }) {
                         Image(systemName: "minus.circle.fill")
                             .foregroundColor(.red)
@@ -654,11 +679,9 @@ struct EditableEmergencyContactsSection: View {
             
             Button(action: {
                 if !newContactName.isEmpty && !newContactNumber.isEmpty {
-                    withAnimation {
-                        contacts.append(EmergencyContact(Number: newContactNumber, name: newContactName))
-                        newContactName = ""
-                        newContactNumber = ""
-                    }
+                    contacts.append(EmergencyContact(Number: newContactNumber, name: newContactName))
+                    newContactName = ""
+                    newContactNumber = ""
                 }
             }) {
                 HStack {
@@ -710,11 +733,7 @@ struct EditableItemsSection: View {
                 .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
             
             Button(action: {
-                withAnimation {
-                    var updatedItems = items
-                    updatedItems.remove(at: index)
-                    items = updatedItems
-                }
+                items.remove(at: index)
             }) {
                 Image(systemName: "minus.circle.fill")
                     .foregroundColor(.red)
@@ -726,17 +745,14 @@ struct EditableItemsSection: View {
     
     private var addButton: some View {
         Button(action: {
-            withAnimation {
-                var updatedItems = items
-                updatedItems.append("")
-                items = updatedItems
-            }
+            items.append("")
         }) {
             HStack {
                 Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 16))
                 Text(addButtonLabel)
+                    .font(.system(size: 16, weight: .medium))
             }
-            .font(.system(size: 16, weight: .medium))
             .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
             .padding(.vertical, 8)
             .padding(.horizontal, 16)

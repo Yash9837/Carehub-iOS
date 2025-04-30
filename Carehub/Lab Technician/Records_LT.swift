@@ -75,7 +75,6 @@ struct Records_LT: View {
     @State private var searchText = ""
     @State private var selectedCategory = "All"
     @State private var patients: [PatientInfo] = []
-    @State private var testResults: [TestResult] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     
@@ -129,10 +128,7 @@ struct Records_LT: View {
                             LazyVStack(spacing: 0) {
                                 ForEach(filteredPatients) { patient in
                                     NavigationLink(
-                                        destination: PatientRecordView(
-                                            patient: patient,
-                                            testResults: testResults.filter { $0.patientId == patient.generatedID }
-                                        )
+                                        destination: PatientRecordView(patient: patient)
                                     ) {
                                         PatientRecordCard(patient: patient)
                                     }
@@ -156,30 +152,24 @@ struct Records_LT: View {
         errorMessage = nil
         
         FirebaseManager.shared.fetchPatients { [self] patients, error in
+            isLoading = false
             if let error = error {
                 errorMessage = error.localizedDescription
-                isLoading = false
                 return
             }
             
             self.patients = patients ?? []
-            
-            FirebaseManager.shared.fetchTestResults(forPatientId: "") { [self] results, error in
-                isLoading = false
-                if let error = error {
-                    errorMessage = error.localizedDescription
-                    return
-                }
-                
-                self.testResults = results ?? []
-            }
+            print("Fetched patients: \(self.patients.map { $0.generatedID })")
         }
     }
 }
 
+
 struct PatientRecordView: View {
     let patient: PatientInfo
-    let testResults: [TestResult]
+    @State private var testResults: [TestResult] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
     
     var body: some View {
         ScrollView {
@@ -248,8 +238,19 @@ struct PatientRecordView: View {
                         .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                         .padding(.bottom, 4)
                     
-                    ForEach(testResults) { result in
-                        TestResultCard(result: result)
+                    if isLoading {
+                        ProgressView("Loading test results...")
+                            .padding()
+                    } else if let error = errorMessage {
+                        Text("Error: \(error)")
+                            .foregroundColor(.red)
+                    } else if testResults.isEmpty {
+                        Text("No test results found.")
+                            .foregroundColor(.gray)
+                    } else {
+                        ForEach(testResults) { result in
+                            TestResultCard(result: result)
+                        }
                     }
                 }
                 .padding()
@@ -263,6 +264,25 @@ struct PatientRecordView: View {
         .background(Color(red: 0.94, green: 0.94, blue: 1.0))
         .navigationTitle("Patient Records")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            loadTestResults()
+        }
+    }
+    
+    private func loadTestResults() {
+        isLoading = true
+        errorMessage = nil
+        
+        FirebaseManager.shared.fetchTestResults(forPatientId: patient.generatedID) { results, error in
+            isLoading = false
+            if let error = error {
+                errorMessage = error.localizedDescription
+                return
+            }
+            
+            self.testResults = results ?? []
+            print("Fetched test results for patient \(patient.generatedID): \(self.testResults.count)")
+        }
     }
 }
 
@@ -286,8 +306,13 @@ struct InfoRow1: View {
     }
 }
 
+
+// Updated TestResultCard with loading animation
 struct TestResultCard: View {
     let result: TestResult
+    @State private var pdfLoadError: String?
+    @State private var isNavigating = false // Track navigation state
+    @State private var isLoading = false // Track loading state
     
     var statusColor: Color {
         switch result.status.lowercased() {
@@ -304,9 +329,7 @@ struct TestResultCard: View {
                 Text(result.testName)
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                
                 Spacer()
-                
                 Text(result.date)
                     .font(.system(size: 14))
                     .foregroundColor(.gray)
@@ -316,7 +339,6 @@ struct TestResultCard: View {
                 Text("Status:")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.gray)
-                
                 Text(result.status.capitalized)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(statusColor)
@@ -324,7 +346,6 @@ struct TestResultCard: View {
                     .padding(.vertical, 4)
                     .background(statusColor.opacity(0.2))
                     .cornerRadius(4)
-                
                 Spacer()
             }
             
@@ -333,7 +354,6 @@ struct TestResultCard: View {
                     Text("Results:")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.gray)
-                    
                     Text(result.results)
                         .font(.system(size: 15, weight: .medium))
                 }
@@ -344,10 +364,54 @@ struct TestResultCard: View {
                     Text("Notes:")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.gray)
-                    
                     Text(result.notes)
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.black)
+                }
+            }
+            
+            if !result.pdfUrl.isEmpty {
+                if let pdfUrl = URL(string: result.pdfUrl) {
+                    NavigationLink(
+                        destination: PDFViewer(pdfUrl: pdfUrl),
+                        isActive: $isNavigating
+                    ) {
+                        EmptyView()
+                    }
+                    
+                    Button(action: {
+                        isLoading = true // Show loading animation
+                        // Simulate a small delay to ensure the loading animation is visible
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            isLoading = false
+                            isNavigating = true // Trigger navigation
+                        }
+                    }) {
+                        if isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .frame(width: 20, height: 20)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                .cornerRadius(8)
+                        } else {
+                            Text("View PDF")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                .cornerRadius(8)
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+                if let error = pdfLoadError {
+                    Text(error)
+                        .font(.system(size: 14))
+                        .foregroundColor(.red)
+                        .padding(.top, 8)
                 }
             }
         }
@@ -361,7 +425,6 @@ struct TestResultCard: View {
         )
     }
 }
-
 struct Records_LT_Previews: PreviewProvider {
     static var previews: some View {
         Records_LT()

@@ -6,16 +6,16 @@ struct DatabaseInitializer {
     
     static func initializeDatabase(completion: @escaping (Bool, Error?) -> Void) {
         let batch = db.batch()
-        
-        // 1. Patients Collection
-        let patientRef = db.collection("patients").document("PT001")
+
+        let patientId = UUID().uuidString
+        let patientRef = db.collection("patients").document(patientId)
         let patientData: [String: Any] = [
-            "patientId": "PT001",
+            "patientId": patientId,
             "userData": [
                 "Name": "John Doe",
                 "Email": "john.doe@example.com",
                 "Dob": "1985-05-15",
-                "Password": "hashed_password_placeholder", // In production, store hashed passwords only
+                "Password": "hashed_password_placeholder",
                 "phoneNo": "+1234567890",
                 "Address": "123 Main St, Cityville",
                 "aadharNo": "1234-5678-9012"
@@ -46,11 +46,10 @@ struct DatabaseInitializer {
         batch.setData(patientData, forDocument: patientRef)
         
         // 2. Appointments Collection
-       
         let appointmentRef = db.collection("appointments").document("APT001")
         let appointmentData: [String: Any] = [
             "apptId": "APT001",
-            "patientId": "PT001",
+            "patientId": patientId,
             "docId": "DOC001",
             "Date": Timestamp(date: Date()),
             "Description": "Annual Checkup",
@@ -71,7 +70,7 @@ struct DatabaseInitializer {
                 [
                     "messageld": "MSG001",
                     "Id": "MSG001",
-                    "recieverId": "PT001",
+                    "recieverId": patientId,
                     "senderId": "DOC001",
                     "Text": "Hello, how are you feeling today?",
                     "timestamp": Timestamp(date: Date())
@@ -84,7 +83,7 @@ struct DatabaseInitializer {
         let billingRef = db.collection("billing").document("BIL001")
         let billingData: [String: Any] = [
             "Billingid": "BIL001",
-            "patientId": "PT001",
+            "patientId": patientId,
             "doctorId": "DOC001",
             "appointmentId": "APT001",
             "date": Timestamp(date: Date()),
@@ -135,7 +134,7 @@ struct DatabaseInitializer {
             "Department": "Pathology",
             "shift": ["startTime": "09:00", "endTime": "18:00"],
             "assignedReports": [
-                ["patientId": "PT001", "testName": "Complete Blood Count", "Status": "completed"]
+                ["patientId": patientId, "testName": "Complete Blood Count", "Status": "completed"]
             ]
         ]
         batch.setData(labTechData, forDocument: labTechRef)
@@ -158,7 +157,7 @@ struct DatabaseInitializer {
         let prescriptionData: [String: Any] = [
             "prescriptionId": "RX001",
             "appointmentId": "APT001",
-            "patientId": "PT001",
+            "patientId": patientId,
             "doctorId": "DOC001",
             "createdAt": Timestamp(date: Date()),
             "Medicines": [
@@ -202,7 +201,7 @@ struct DatabaseInitializer {
         let medicalRecordRef = db.collection("medicalRecords").document("REC001")
         let medicalRecordData: [String: Any] = [
             "Record_id": "REC001",
-            "Patient_id": "PT001",
+            "Patient_id": patientId,
             "Doctor_id": "DOC001",
             "Diagnosis_text": "Hyperlipidemia",
             "Prescription_text": "Atorvastatin 20mg daily",
@@ -216,7 +215,7 @@ struct DatabaseInitializer {
                 print("Error initializing database: \(error.localizedDescription)")
                 completion(false, error)
             } else {
-                print("All collections initialized successfully")
+                print("All collections initialized successfully with patientId: \(patientId)")
                 verifyAllData(completion: completion)
             }
         }

@@ -13,21 +13,21 @@ enum StaffRole: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .doctor: return "doctors"
         case .nurse: return "nurses"
-        case .labTechnician: return "labtechs"
+        case .labTechnician: return "labTechs"
         case .admin: return "admins"
         }
     }
 }
 
 struct Staff: Identifiable, Codable {
-    @DocumentID var id: String?  // Firestore-managed ID
+    var id: String?  // Firestore-managed ID
     var fullName: String
     var email: String
     var role: StaffRole
     var department: String?
     var phoneNumber: String?
     var joinDate: Date?
-    var profileImageURL: String?
+    var profileImageURL: String?  // Re-added to match Firestore and existing code
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -37,9 +37,10 @@ struct Staff: Identifiable, Codable {
         case department
         case phoneNumber
         case joinDate
-        case profileImageURL = "imageUrl"
+        case profileImageURL
     }
     
+    // Custom initializer
     init(id: String? = nil,
          fullName: String,
          email: String,

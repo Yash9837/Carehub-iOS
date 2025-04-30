@@ -248,9 +248,10 @@ struct UpdateTestView: View {
                     }
                 }
             }
-        } else {
-            dispatchGroup.leave() // Leave immediately if no PDF
         }
+//        else {
+//            dispatchGroup.leave() // Leave immediately if no PDF
+//        }
         
         dispatchGroup.notify(queue: .main) {
             db.collection("medicalTests").document(medicalTestId).updateData(data) { error in

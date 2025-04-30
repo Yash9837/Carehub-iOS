@@ -34,8 +34,6 @@ class FirebaseService {
                 completion(.success(name))
             }
         }
-
-    // MARK: - Vitals Methods
     
     func savePatientVitals(patientID: String, vitals: [String: Any], completion: @escaping (Result<Void, Error>) -> Void) {
         let timestamp = Timestamp(date: Date())
