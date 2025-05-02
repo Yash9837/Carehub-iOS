@@ -8,8 +8,8 @@ struct Notification: Identifiable {
     let title: String
     let message: String
     let date: Date
+    let appointmentId: String?
 }
-
 struct NotificationsView: View {
     let notifications: [Notification]
     let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
@@ -104,8 +104,9 @@ struct NotificationCard: View {
                     
                     Text(message)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.primary)
                         .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true) 
                     
                     Text(date)
                         .font(.caption)
@@ -132,7 +133,6 @@ struct HomeView_patient: View {
     private let cardBackground = Color.white
     private let ForNowColor = Color(red: 0.51, green: 0.44, blue: 0.87)
 
-    
     @State private var upcomingSchedules: [Appointment] = []
     @State private var isLoading = true
     @State private var navigateToBooking = false
@@ -140,10 +140,7 @@ struct HomeView_patient: View {
     @State private var listener: ListenerRegistration?
     @StateObject private var viewModel = AppointmentViewModel()
     
-    @State private var notifications: [Notification] = [
-        Notification(id: "1", title: "Appointment Reminder", message: "Your appointment with Dr. Kenny Adeola is tomorrow at 10:00 AM.", date: Date()),
-        Notification(id: "2", title: "Prescription Updated", message: "Dr. Taiwo has uploaded a new prescription for you.", date: Date().addingTimeInterval(-86400))
-    ]
+    @State private var notifications: [Notification] = []
     
     let previouslyVisitedDoctors = [
         (name: "Dr. Kenny Adeola", specialty: "General Practitioner", lastVisit: "Nov 15, 2023", imageName: "doctor2"),
@@ -216,12 +213,12 @@ struct HomeView_patient: View {
                         // Recent Prescriptions & Reports - Consistent card design
                         recentPrescriptionsSection
                         
-                        // Previously Visited Doctors - Better spacing and alignment
                         previouslyVisitedDoctorsSection
                     }
                     .padding(.bottom, 24)
                 }
-                .padding(.horizontal, 16)
+                .padding(.leading, 16)
+                .padding(.trailing, 8)
             }
             .navigationBarBackButtonHidden(true)
             .onAppear {
@@ -245,17 +242,13 @@ struct HomeView_patient: View {
             }
             .navigationDestination(isPresented: $navigateToBooking) {
                 let currentPatientId = hashPatientId()
-                ScheduleAppointmentView(patientId: currentPatientId)
+                DoctorView()
             }
             .navigationDestination(isPresented: $navigateToNotifications) {
                 NotificationsView(notifications: notifications)
             }
         }
     }
-    
-    // MARK: - Component Views
-    
-    // Improved header with more consistent spacing and better notification button
     private var headerSection: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 6) {
@@ -387,6 +380,7 @@ struct HomeView_patient: View {
             viewModel.fetchRecentPrescriptions(forPatientId: currentPatientId)
         }
     }
+    
     // Section for visited doctors with consistent styling
     private var previouslyVisitedDoctorsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -470,9 +464,6 @@ struct HomeView_patient: View {
             Spacer()
         }
     }
-    
-    // MARK: - Data Helper Methods
-    
     private func hashPatientId() -> String {
         guard let uid = Auth.auth().currentUser?.uid else {
             print("No Firebase UID found, using default patientId")
@@ -480,9 +471,9 @@ struct HomeView_patient: View {
         }
         let inputData = Data(uid.utf8)
         let hashed = SHA256.hash(data: inputData)
-        return hashed.compactMap { String(format: "%02x", $0) }.joined()
+        let hashedString = hashed.compactMap { String(format: "%02x", $0) }.joined()
+        return "P\(hashedString)" // Prepend "P" to match registration
     }
-    
     private func fetchNotifications() {
         let currentPatientId = hashPatientId()
         print("Fetching notifications for patientId: \(currentPatientId)")
@@ -504,10 +495,72 @@ struct HomeView_patient: View {
                         print("Invalid notification data: \(data)")
                         return nil
                     }
-                    return Notification(id: document.documentID, title: title, message: message, date: date)
+                    let appointmentId = data["appointmentId"] as? String // Retrieve appointmentId
+                    return Notification(id: document.documentID, title: title, message: message, date: date, appointmentId: appointmentId)
                 } ?? []
                 print("Fetched \(notifications.count) notifications")
+                
+                // After fetching notifications, check for upcoming appointments and generate notifications if needed
+                checkAndGenerateAppointmentNotifications()
             }
+    }
+    
+    private func checkAndGenerateAppointmentNotifications() {
+        let currentPatientId = hashPatientId()
+        let db = Firestore.firestore()
+        let now = Date()
+        
+        print("Checking for appointment notifications at \(now)")
+        
+        for appointment in upcomingSchedules {
+            guard let appointmentDate = appointment.date else {
+                print("Skipping appointment \(appointment.id) due to missing date")
+                continue
+            }
+            
+            // Calculate the time difference between now and the appointment date
+            let timeInterval = appointmentDate.timeIntervalSince(now)
+            let hoursUntilAppointment = timeInterval / 3600 // Convert seconds to hours
+            
+            print("Appointment \(appointment.id) with date \(appointmentDate) is \(hoursUntilAppointment) hours away")
+            
+            // Check if the appointment is within the 23-25 hour window (approximately 24 hours away)
+            if hoursUntilAppointment >= 23 && hoursUntilAppointment <= 25 {
+                // Check if a notification for this appointment already exists
+                let notificationExists = notifications.contains { notification in
+                    notification.appointmentId == appointment.id
+                }
+                
+                if !notificationExists {
+                    // Generate a new notification
+                    let doctorName = getDoctorName(for: appointment.docId)
+                    let notificationTitle = "Upcoming Appointment Reminder"
+                    let notificationMessage = "You have an appointment with \(doctorName) tomorrow at \(formatDateTime(appointment.date).time)."
+                    let notificationDate = Date() // Current timestamp for the notification
+                    
+                    // Save the notification to Firestore
+                    let notificationData: [String: Any] = [
+                        "patientId": currentPatientId,
+                        "title": notificationTitle,
+                        "message": notificationMessage,
+                        "date": Timestamp(date: notificationDate),
+                        "appointmentId": appointment.id // Link the notification to the appointment
+                    ]
+                    
+                    db.collection("notifications").addDocument(data: notificationData) { error in
+                        if let error = error {
+                            print("Error adding notification: \(error.localizedDescription)")
+                        } else {
+                            print("Notification added for appointment \(appointment.id) at \(notificationDate)")
+                        }
+                    }
+                } else {
+                    print("Notification already exists for appointment \(appointment.id)")
+                }
+            } else {
+                print("Appointment \(appointment.id) is not within the 23-25 hour window (\(hoursUntilAppointment) hours away)")
+            }
+        }
     }
     
     private func loadDoctorData(completion: @escaping () -> Void) {
@@ -519,7 +572,6 @@ struct HomeView_patient: View {
     }
     
     private func setupSnapshotListener() {
-        // Firebase listener implementation remains unchanged
         let currentPatientId = hashPatientId()
         let db = Firestore.firestore()
         
@@ -531,19 +583,20 @@ struct HomeView_patient: View {
             .addSnapshotListener { (querySnapshot, error) in
                 if let error = error {
                     print("Error fetching appointments: \(error.localizedDescription)")
-                    isLoading = false
+                    self.isLoading = false
                     return
                 }
                 
                 guard let changes = querySnapshot?.documentChanges else {
                     print("No document changes received")
-                    isLoading = false
+                    self.isLoading = false
                     return
                 }
                 
-                var schedules: [Appointment] = upcomingSchedules
+                var schedules: [Appointment] = self.upcomingSchedules
                 for change in changes {
                     let documentData = change.document.data()
+                    print("Processing appointment with patientId: \(documentData["patientId"] ?? "N/A")")
                     
                     guard let apptId = documentData["apptId"] as? String,
                           let patientId = documentData["patientId"] as? String,
@@ -595,9 +648,12 @@ struct HomeView_patient: View {
                     schedules.removeAll { !documentIds.contains($0.id) }
                 }
                 
-                upcomingSchedules = schedules.sorted { ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast) }
-                isLoading = false
-                print("Updated upcomingSchedules: \(upcomingSchedules.count) appointments, isLoading: \(isLoading)")
+                self.upcomingSchedules = schedules.sorted { ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast) }
+                self.isLoading = false
+                print("Updated upcomingSchedules: \(self.upcomingSchedules.count) appointments, isLoading: \(self.isLoading)")
+                
+                // After updating appointments, check for notifications
+                self.checkAndGenerateAppointmentNotifications()
             }
     }
     
@@ -626,6 +682,7 @@ struct HomeView_patient: View {
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
+    
     private func formatDateTime(_ date: Date?) -> (date: String, time: String) {
         guard let date = date else { return ("No date", "No time") }
         
@@ -642,123 +699,124 @@ struct HomeView_patient: View {
 
 // MARK: - Improved Card Components
 
-    struct ImprovedAppointmentCard: View {
-        let doctorName: String
-        let specialty: String
-        let date: String  // Just the date portion (e.g., "Wed, 7 Sep 2024")
-        let time: String  // Just the time portion (e.g., "10:30 - 11:30 AM")
-        let imageName: String
-        @Binding var appointment: Appointment
-        @State private var showDetails = false
-        
-        // Updated purple color to match first screenshot (more of a periwinkle)
-        private let purpleColor = Color(red: 0.51, green: 0.44, blue: 0.87)
-        
-        var body: some View {
-            Button(action: {
-                showDetails = true
-            }) {
-                ZStack {
-                    // Background with rounded corners
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(purpleColor)
-                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                    
-                    VStack(alignment: .leading, spacing: 12) {
-                        // Doctor info row
-                        HStack(spacing: 12) {
-                            // Doctor image
-                            Group {
-                                if UIImage(named: imageName) != nil {
-                                    Image(imageName)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 50, height: 50)
-                                        .clipShape(Circle())
-                                        .overlay(Circle().stroke(Color.white, lineWidth: 1))
-                                } else {
-                                    Image(systemName: "person.crop.circle.fill")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 50, height: 50)
-                                        .foregroundColor(.white)
-                                }
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(doctorName)
-                                    .font(.system(size: 18, weight: .semibold))
+struct ImprovedAppointmentCard: View {
+    let doctorName: String
+    let specialty: String
+    let date: String  // Just the date portion (e.g., "Wed, 7 Sep 2024")
+    let time: String  // Just the time portion (e.g., "10:30 - 11:30 AM")
+    let imageName: String
+    @Binding var appointment: Appointment
+    @State private var showDetails = false
+    
+    // Updated purple color to match first screenshot (more of a periwinkle)
+    private let purpleColor = Color(red: 0.51, green: 0.44, blue: 0.87)
+    
+    var body: some View {
+        Button(action: {
+            showDetails = true
+        }) {
+            ZStack {
+                // Background with rounded corners
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(purpleColor)
+                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    // Doctor info row
+                    HStack(spacing: 12) {
+                        // Doctor image
+                        Group {
+                            if UIImage(named: imageName) != nil {
+                                Image(imageName)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 50, height: 50)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.white, lineWidth: 1))
+                            } else {
+                                Image(systemName: "person.crop.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 50, height: 50)
                                     .foregroundColor(.white)
-                                
-                                Text(specialty)
-                                    .font(.system(size: 14, weight: .regular))
-                                    .foregroundColor(.white.opacity(0.9))
                             }
-                            
-                            Spacer()
                         }
                         
-                        // Appointment time row in a continuous rounded background
-                        HStack {
-                            // Combined date and time in single rounded background
-                            HStack(spacing: 6) {
-                                // Date with calendar icon
-                                HStack(spacing: 6) {
-                                    Image(systemName: "calendar")
-                                        .foregroundColor(.white)
-                                        .font(.system(size: 14))
-                                    
-                                    Text(date)
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.white)
-                                }
-                                .padding(.vertical, 8)
-                                .padding(.leading, 12)
-                                .padding(.trailing, 6)
-                                
-                                // Spacer with subtle divider
-                                Rectangle()
-                                    .frame(width: 1, height: 20)
-                                    .foregroundColor(.white.opacity(0.3))
-                                    .padding(.horizontal, 4)
-                                
-                                // Time with clock icon
-                                HStack(spacing: 6) {
-                                    Image(systemName: "clock")
-                                        .foregroundColor(.white)
-                                        .font(.system(size: 14))
-                                    
-                                    Text(time)
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.white)
-                                }
-                                .padding(.vertical, 8)
-                                .padding(.leading, 6)
-                                .padding(.trailing, 12)
-                            }
-                            .background(Color.white.opacity(0.2))
-                            .cornerRadius(16)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(doctorName)
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
                             
-                            Spacer()
+                            Text(specialty)
+                                .font(.system(size: 14, weight: .regular))
+                                .foregroundColor(.white.opacity(0.9))
                         }
+                        
+                        Spacer()
                     }
-                    .padding(16)
+                    
+                    // Appointment time row in a continuous rounded background
+                    HStack {
+                        // Combined date and time in single rounded background
+                        HStack(spacing: 6) {
+                            // Date with calendar icon
+                            HStack(spacing: 6) {
+                                Image(systemName: "calendar")
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 14))
+                                
+                                Text(date)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.leading, 12)
+                            .padding(.trailing, 6)
+                            
+                            // Spacer with subtle divider
+                            Rectangle()
+                                .frame(width: 1, height: 20)
+                                .foregroundColor(.white.opacity(0.3))
+                                .padding(.horizontal, 4)
+                            
+                            // Time with clock icon
+                            HStack(spacing: 6) {
+                                Image(systemName: "clock")
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 14))
+                                
+                                Text(time)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.leading, 6)
+                            .padding(.trailing, 12)
+                        }
+                        .background(Color.white.opacity(0.2))
+                        .cornerRadius(16)
+                        
+                        Spacer()
+                    }
                 }
+                .padding(16)
             }
-            .buttonStyle(PlainButtonStyle())
-            .frame(height: 130)
-            .sheet(isPresented: $showDetails) {
-                AppointmentDetailsModal(
-                    appointment: appointment,
-                    doctorName: doctorName,
-                    specialty: specialty,
-                    imageName: imageName,
-                    isPresented: $showDetails
-                )
-            }
-            .accessibilityLabel("Appointment with \(doctorName) for \(specialty), on \(date) at \(time)")
         }
+        .buttonStyle(PlainButtonStyle())
+        .frame(height: 130)
+        .sheet(isPresented: $showDetails) {
+            AppointmentDetailsModal(
+                appointment: appointment,
+                doctorName: doctorName,
+                specialty: specialty,
+                imageName: imageName,
+                isPresented: $showDetails
+            )
+        }
+        .accessibilityLabel("Appointment with \(doctorName) for \(specialty), on \(date) at \(time)")
     }
+}
+
 struct AllPrescriptionsView: View {
     let prescriptions: [Appointment]
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
@@ -915,7 +973,6 @@ struct ImprovedMedicalRecordCard: View {
     }
 }
 
-
 struct AllDoctorsView: View {
     let doctors: [(name: String, specialty: String, lastVisit: String, imageName: String)]
     private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
@@ -1048,6 +1105,7 @@ struct DoctorListCard: View {
         .frame(height: 100)
     }
 }
+
 struct ImprovedDoctorCard: View {
     let name: String
     let specialty: String
@@ -1291,6 +1349,7 @@ struct AppointmentListCard: View {
         .accessibilityLabel("Appointment with \(doctorName), \(specialty), on \(date)")
     }
 }
+
 // New card design for the list view that matches the home screen
 struct ImprovedAppointmentListCard: View {
     let doctorName: String
@@ -1382,6 +1441,7 @@ struct ImprovedAppointmentListCard: View {
         .accessibilityLabel("Appointment with \(doctorName), \(specialty), on \(date)")
     }
 }
+
 struct AppointmentCard: View {
     let doctorName: String
     let specialty: String
