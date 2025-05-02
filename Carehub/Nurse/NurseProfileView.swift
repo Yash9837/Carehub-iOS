@@ -50,10 +50,15 @@ struct NurseProfileView: View {
 
                     // Shift Info
                     Section(header: Text("Shift Information")) {
-                        LabeledContent(label: "Start Time", content: nurse.shift?.startTime ?? "")
-                        LabeledContent(label: "End Time", content: nurse.shift?.endTime ?? "")
+                        LabeledContent(
+                            label: "Start Time",
+                            content: formattedTime(from: nurse.shift?.startTime)
+                        )
+                        LabeledContent(
+                            label: "End Time",
+                            content: formattedTime(from: nurse.shift?.endTime)
+                        )
                     }
-
 
                     // Logout Button
                     Section {
@@ -126,3 +131,15 @@ struct NurseProfileView: View {
     }
 }
 
+func formattedTime(from date: Date?) -> String {
+    guard let date = date else { return "N/A" }
+    let formatter = DateFormatter()
+    formatter.timeStyle = .short
+    formatter.dateStyle = .none
+    return formatter.string(from: date)
+}
+
+
+#Preview {
+    NurseProfileView(nurseId: "xg318OgdXaZSY4M3HSlnBsvajeY2")
+}
