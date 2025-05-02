@@ -1,12 +1,12 @@
 import SwiftUI
 import FirebaseAuth
+import CryptoKit
 
 struct DoctorView: View {
     @State private var specialties: [String] = []
     @State private var isDataLoaded = false
     @State private var isDataLoadFailed = false
     let columns = [GridItem(.flexible()), GridItem(.flexible())]
-    
     var body: some View {
         NavigationView {
             ZStack {
@@ -316,6 +316,17 @@ struct DoctorCardView: View {
     }
 }
 
+private func hashPatientId() -> String {
+    guard let uid = Auth.auth().currentUser?.uid else {
+        print("No Firebase UID found, using default patientId")
+        return "unknown_user"
+    }
+    let inputData = Data(uid.utf8)
+    let hashed = SHA256.hash(data: inputData)
+    let hashedString = hashed.compactMap { String(format: "%02x", $0) }.joined()
+    return "P\(hashedString)" // Prepend "P" to match registration logic
+}
+
 struct DoctorDetailView: View {
     let doctor: Doctor
     let specialty: String
@@ -411,7 +422,7 @@ struct DoctorDetailView: View {
                 // Book appointment button with NavigationLink
                 NavigationLink(
                     destination: ScheduleAppointmentView(
-                        patientId: Auth.auth().currentUser?.uid ?? "unknown_user", // Use Firebase Auth user ID
+                        patientId: hashPatientId(), // Use Firebase Auth user ID
                         preSelectedSpecialty: specialty,
                         preSelectedDoctor: doctor.doctor_name
                     ),
