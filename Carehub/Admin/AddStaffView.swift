@@ -348,6 +348,7 @@ struct StaffAvatarView: View {
         case .nurse: return .orange
         case .labTechnician: return .purple
         case .admin: return .blue
+        case .accountant: return .yellow
         }
     }
     
@@ -357,6 +358,7 @@ struct StaffAvatarView: View {
         case .nurse: return "cross.case.fill"
         case .labTechnician: return "testtube.2"
         case .admin: return "person.fill"
+        case .accountant: return "person.crop.circle.fill"
         }
     }
     

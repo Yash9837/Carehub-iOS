@@ -54,13 +54,6 @@ struct NurseProfileView: View {
                         LabeledContent(label: "End Time", content: nurse.shift?.endTime ?? "")
                     }
 
-                    // Account Info
-                    Section(header: Text("Account Details")) {
-                        LabeledContent(label: "Nurse ID", content: nurse.nurseld)
-                        if let createdAt = nurse.createdAt {
-                            LabeledContent(label: "Created", content: createdAt.dateValue().formatted(date: .abbreviated, time: .shortened))
-                        }
-                    }
 
                     // Logout Button
                     Section {
@@ -133,8 +126,3 @@ struct NurseProfileView: View {
     }
 }
 
-struct NurseProfileView_Previews: PreviewProvider {
-    static var previews: some View {
-        NurseProfileView(nurseId: "NUR001")
-    }
-}

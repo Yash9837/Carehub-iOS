@@ -7,29 +7,29 @@
 import SwiftUI
 import FirebaseFirestore
 
-struct Accountant: Identifiable, Codable {
+struct Accountant: Identifiable, Decodable {
     var id: String { accountantId }
     var email: String
     var name: String
-    var password: String?  // Include but mark as optional since we may not want to expose this
-    var shift: Shift
+//    var shift: Shift
     var accountantId: String
     var createdAt: Timestamp?  // Using Firestore Timestamp
     var phoneNo: String
+    var department: String
     
-    struct Shift: Codable {
-        var endTime: String
-        var startTime: String
-    }
+//    struct Shift: Codable {
+//        var endTime: String
+//        var startTime: String
+//    }
     
     // Ensuring exact field names from the database
     enum CodingKeys: String, CodingKey {
-        case email = "Email"
-        case name = "Name"
-        case password = "Password"
-        case shift = "Shift"
-        case accountantId = "accountantId"
-        case createdAt = "createdAt"
-        case phoneNo = "phoneNo"
+        case email = "email"
+        case name = "fullName"
+        case department = "department"
+//        case shift = "Shift"
+        case accountantId = "id"
+        case createdAt = "joinDate"
+        case phoneNo = "phoneNumber"
     }
 }

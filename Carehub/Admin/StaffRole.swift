@@ -6,6 +6,7 @@ enum StaffRole: String, CaseIterable, Codable, Identifiable {
     case nurse = "Nurse"
     case labTechnician = "Lab Technician"
     case admin = "Admin"
+    case accountant = "Accountant"
     
     var id: String { self.rawValue }
     
@@ -15,6 +16,7 @@ enum StaffRole: String, CaseIterable, Codable, Identifiable {
         case .nurse: return "nurses"
         case .labTechnician: return "labTechs"
         case .admin: return "admins"
+        case .accountant: return "accountants"
         }
     }
 }

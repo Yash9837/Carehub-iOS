@@ -5,6 +5,8 @@ struct AccountantProfileView: View {
     @StateObject private var viewModel = AccountantViewModel()
     let primaryColor = Color(red: 109/255, green: 87/255, blue: 252/255)
     @State private var isEditingProfile = false
+    @State private var isLoggingOut = false
+    @State private var showLoginView = false
     
     var body: some View {
         NavigationView {
@@ -46,20 +48,21 @@ struct AccountantProfileView: View {
                         LabeledContent(label: "Email", content: accountant.email)
                     }
                     
-                    // Shift Information Section
-                    Section(header: Text("Shift Information")) {
-                        LabeledContent(label: "Start Time", content: accountant.shift.startTime)
-                        LabeledContent(label: "End Time", content: accountant.shift.endTime)
-                    }
-                    
-                    // Account Details Section
-                    Section(header: Text("Account Details")) {
-                        LabeledContent(label: "Employee ID", content: accountant.accountantId)
-                        
-                        if let createdAt = accountant.createdAt {
-                            LabeledContent(label: "Account Created", content: createdAt.dateValue().formatted(date: .abbreviated, time: .shortened))
+                    // Logout Section
+                    Section {
+                        if isLoggingOut {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, alignment: .center)
                         } else {
-                            LabeledContent(label: "Account Created", content: "N/A")
+                            Button("Logout") {
+                                isLoggingOut = true
+                                AuthManager.shared.logout()
+                                // Add a small delay to show the progress view
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    showLoginView = true
+                                }
+                            }
+                            .foregroundColor(.red)
                         }
                     }
                     
@@ -101,7 +104,6 @@ struct AccountantProfileView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if isEditingProfile {
                         Button("Done") {
-//                            saveChanges()
                             isEditingProfile = false
                         }
                     } else {
@@ -118,6 +120,10 @@ struct AccountantProfileView: View {
             .sheet(isPresented: $isEditingProfile) {
                 AccountantEditProfile(accountant: $viewModel.accountant)
             }
+            .fullScreenCover(isPresented: $showLoginView) {
+                // Replace with your actual login view
+                LoginView()
+            }
         }
         .onAppear {
             viewModel.fetchAccountant(byAccountantId: accountantId)
@@ -125,9 +131,6 @@ struct AccountantProfileView: View {
     }
 }
 
-// Preview with sample data
-struct AccountantProfileView_Previews: PreviewProvider {
-    static var previews: some View {
-        AccountantProfileView(accountantId: "ACC001")
-    }
+#Preview {
+    AccountantProfileView(accountantId: "KV93GmJ9k9VtzHtx0M8p1fH30Mf2")
 }
