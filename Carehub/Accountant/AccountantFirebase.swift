@@ -6,50 +6,42 @@ class FirebaseAccountantService {
     private let db = Firestore.firestore()
     
     func fetchAccountant(byAccountantId accountantId: String, completion: @escaping (Result<Accountant, Error>) -> Void) {
-        db.collection("accountants").document(accountantId)
-            .getDocument { document, error in
+        db.collection("accountants")
+            .whereField("id", isEqualTo: accountantId)
+            .getDocuments { snapshot, error in
                 if let error = error {
                     completion(.failure(error))
                     return
                 }
                 
-                guard let document = document, document.exists, let data = document.data() else {
+                guard let document = snapshot?.documents.first else {
                     completion(.failure(NSError(domain: "AppError", code: 404, userInfo: [NSLocalizedDescriptionKey: "Accountant not found"])))
                     return
                 }
                 
-                do {
-                    guard let shiftData = data["Shift"] as? [String: String],
-                          let startTime = shiftData["startTime"],
-                          let endTime = shiftData["endTime"] else {
-                        throw NSError(domain: "ParsingError", code: 400, userInfo: [NSLocalizedDescriptionKey: "Failed to parse shift data"])
-                    }
-                    
-                    let shift = Accountant.Shift(endTime: endTime, startTime: startTime)
-                    let accountant = Accountant(
-                        email: data["Email"] as? String ?? "",
-                        name: data["Name"] as? String ?? "",
-                        password: data["Password"] as? String,
-                        shift: shift,
-                        accountantId: data["accountantId"] as? String ?? accountantId,
-                        createdAt: data["createdAt"] as? Timestamp,
-                        phoneNo: data["phoneNo"] as? String ?? ""
-                    )
-                    
-                    completion(.success(accountant))
-                } catch {
-                    completion(.failure(error))
-                }
+                let data = document.data()
+                let accountant = Accountant(
+                    email: data["email"] as? String ?? "",
+                    name: data["fullName"] as? String ?? "",
+                    shift: data["shift"] as? Shift ?? Shift(startTime: nil, endTime: nil),
+                    accountantId: data["id"] as? String ?? "",
+                    createdAt: data["joinDate"] as? Timestamp,
+                    phoneNo: data["phoneNumber"] as? String ?? "",
+                    department: data["department"] as? String ?? ""
+                )
+                
+                completion(.success(accountant))
             }
     }
 
-    func updateShiftHours(accountantId: String, newStart: String, newEnd: String, completion: ((Error?) -> Void)? = nil) {
-        db.collection("accountants").document(accountantId)
-            .updateData([
-                "Shift.startTime": newStart,
-                "Shift.endTime": newEnd
-            ], completion: completion)
-    }
+
+//    func updateShiftHours(accountantId: String, newStart: String, newEnd: String, completion: ((Error?) -> Void)? = nil) {
+//        db.collection("accountants").document(accountantId)
+//            .updateData([
+//                "Shift.startTime": newStart,
+//                "Shift.endTime": newEnd
+//            ], completion: completion)
+//    }
 }
 ///Accountant View Model
 
@@ -78,16 +70,16 @@ class AccountantViewModel: ObservableObject {
         }
     }
     
-    func updateShiftHours(accountantId: String, newStart: String, newEnd: String) {
-        accountantService.updateShiftHours(accountantId: accountantId, newStart: newStart, newEnd: newEnd) { [weak self] error in
-            if let error = error {
-                print("Error updating shift: \(error.localizedDescription)")
-            } else {
-                print("Shift updated successfully")
-                self?.fetchAccountant(byAccountantId: accountantId)
-            }
-        }
-    }
+//    func updateShiftHours(accountantId: String, newStart: String, newEnd: String) {
+//        accountantService.updateShiftHours(accountantId: accountantId, newStart: newStart, newEnd: newEnd) { [weak self] error in
+//            if let error = error {
+//                print("Error updating shift: \(error.localizedDescription)")
+//            } else {
+//                print("Shift updated successfully")
+//                self?.fetchAccountant(byAccountantId: accountantId)
+//            }
+//        }
+//    }
 }
 
 ///Generate Bill View Model

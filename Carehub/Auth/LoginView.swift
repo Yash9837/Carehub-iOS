@@ -167,9 +167,11 @@ struct LoginView: View {
             case .doctor:
                 DoctorTabView()
             case .nurse:
-                NurseVitalsEntryView(nurseId: staff.id ?? "NUR001") // Use NurseVitalsEntryView with nurseId
+                NurseTabView(nurseId: staff.id ?? "NUR001")
             case .labTechnician:
                 LabTechTabView()
+            case .accountant:
+                AccountantDashboard(accountantId: staff.id ?? "KV93GmJ9k9VtzHtx0M8p1fH30Mf2")
             }
         } else {
             VStack {

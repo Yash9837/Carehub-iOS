@@ -1,5 +1,4 @@
 import SwiftUI
-
 struct DoctorView: View {
     @State private var specialties: [String] = []
     @State private var isDataLoaded = false
@@ -250,7 +249,7 @@ struct SpecialtyDoctorsView: View {
 struct DoctorCardView: View {
     let name: String
     let specialty: String
-    let experience: Int
+    let experience: Int // Keep as Int since we provide a default
     let imageName: String
     
     var body: some View {

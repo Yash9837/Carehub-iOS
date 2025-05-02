@@ -2,8 +2,7 @@ import SwiftUI
 import Firebase
 
 struct NurseVitalsEntryView: View {
-    let nurseId: String // Added nurseId parameter
-    @State private var patientID = ""
+    let patientId: String  // Changed from nurseId to patientId since we're focusing on vitals entry
     @State private var bpSystolic = 120
     @State private var bpDiastolic = 80
     @State private var weight = 70.0
@@ -14,7 +13,6 @@ struct NurseVitalsEntryView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var isLoading = false
-    @State private var patientFound = false
     @State private var patientName = ""
     @State private var activeSheet: ActiveSheet?
     
@@ -28,79 +26,65 @@ struct NurseVitalsEntryView: View {
 
     let primaryColor = Color(red: 109/255, green: 87/255, blue: 252/255)
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.dismiss) var dismiss
     
     var body: some View {
-        TabView {
-            NavigationView {
-                ZStack {
-                    // Background
-                    if colorScheme == .dark {
-                        Color(.systemBackground)
-                            .edgesIgnoringSafeArea(.all)
-                    } else {
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.1),
-                                Color(.systemBackground).opacity(0.9),
-                                Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.1)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+        NavigationView {
+            ZStack {
+                // Background
+                if colorScheme == .dark {
+                    Color(.systemBackground)
                         .edgesIgnoringSafeArea(.all)
-                    }
-                    
-                    // Content
-                    if isLoading {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                            .progressViewStyle(CircularProgressViewStyle(tint: primaryColor))
-                    } else if patientFound {
-                        ScrollView {
-                            VStack(spacing: 32) {
-                                patientInfoCard
-                                vitalsForm
-                            }
-                            .padding(.vertical)
+                } else {
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.1),
+                            Color(.systemBackground).opacity(0.9),
+                            Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.1)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .edgesIgnoringSafeArea(.all)
+                }
+                
+                // Content
+                if isLoading {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .progressViewStyle(CircularProgressViewStyle(tint: primaryColor))
+                } else {
+                    ScrollView {
+                        VStack(spacing: 32) {
+                            patientInfoCard
+                            vitalsForm
                         }
-                        .navigationTitle("Enter Vitals")
-                        .navigationBarTitleDisplayMode(.large)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarLeading) {
-                                Button(action: resetForm) {
-                                    HStack(spacing: 14) {
-                                        Image(systemName: "chevron.backward")
-                                            .font(.system(size: 18, weight: .semibold))
-                                        Text("Back")
-                                    }
-                                    .foregroundColor(primaryColor)
-                                }
-                            }
-                        }
-                    } else {
-                        patientSearchView
+                        .padding(.vertical)
                     }
                 }
-                .alert("Alert", isPresented: $showAlert) {
-                    Button("OK", role: .cancel) { }
-                } message: {
-                    Text(alertMessage)
-                }
-                .sheet(item: $activeSheet) { item in
-                    pickerSheet(for: item)
+            }
+            .navigationTitle("Enter Vitals")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                    .foregroundColor(primaryColor)
                 }
             }
-            .tabItem {
-                Label("Vitals", systemImage: "heart.text.square")
+            .onAppear {
+                fetchPatientDetails()
             }
-            
-            // Profile View
-            NurseProfileView(nurseId: nurseId) // Pass nurseId
-                .tabItem {
-                    Label("Profile", systemImage: "person.crop.circle")
-                }
+            .alert("Alert", isPresented: $showAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(alertMessage)
+            }
+            .sheet(item: $activeSheet) { item in
+                pickerSheet(for: item)
+            }
         }
-        .accentColor(primaryColor)
     }
     
     // MARK: - View Components
@@ -117,7 +101,7 @@ struct NurseVitalsEntryView: View {
                         .font(.headline)
                         .foregroundColor(.secondary)
                     
-                    Text(patientID)
+                    Text(patientId)
                         .font(.title3.bold())
                 }
             }
@@ -302,7 +286,7 @@ struct NurseVitalsEntryView: View {
     
     private var saveButton: some View {
         Button(action: saveVitals) {
-            Label("Save Vitals", systemImage: "square.and.arrow.down")
+            Label("Save Vitals", systemImage: "")
                 .font(.headline)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
@@ -311,47 +295,6 @@ struct NurseVitalsEntryView: View {
         .tint(primaryColor)
         .padding(.horizontal)
         .padding(.bottom, 8)
-    }
-    
-    private var patientSearchView: some View {
-        VStack {
-            VStack(spacing: 20) {
-                Image(systemName: "stethoscope")
-                    .font(.system(size: 48))
-                    .foregroundColor(primaryColor)
-                
-                Text("Enter Patient ID")
-                    .font(.title2.bold())
-                
-                VStack(spacing: 16) {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(primaryColor)
-                        TextField("Patient ID", text: $patientID)
-                            .textFieldStyle(.plain)
-                            .background(colorScheme == .dark ? Color(.tertiarySystemBackground) : .white)
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
-                    }
-                    .padding(12)
-                    .background(colorScheme == .dark ? Color(.tertiarySystemBackground) : .white)
-                    .cornerRadius(10)
-                    
-                    Button(action: checkPatient) {
-                        Label("Find Patient", systemImage: "person.crop.circle.badge.checkmark")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(primaryColor)
-                }
-                .padding(.horizontal)
-            }
-            .padding(.top, 40)
-            Spacer()
-        }
-        .navigationTitle("Vitals Entry")
-        .navigationBarTitleDisplayMode(.large)
     }
     
     private func pickerSheet(for item: ActiveSheet) -> some View {
@@ -453,64 +396,37 @@ struct NurseVitalsEntryView: View {
     
     // MARK: - Functions
     
-    private func checkPatient() {
-        guard !patientID.isEmpty else {
-            showAlert(message: "Please enter a patient ID.")
-            return
-        }
-        
-        startLoading()
-        
-        FirebaseService.shared.patientExists(patientID: patientID) { result in
-            stopLoading()
-            
-            switch result {
-            case .success(let exists):
-                if exists {
-                    fetchPatientDetails()
-                } else {
-                    showAlert(message: "Patient with ID \(patientID) not found.")
-                }
-            case .failure(let error):
-                showAlert(message: "Error: \(error.localizedDescription)")
-            }
-        }
-    }
-    
     private func fetchPatientDetails() {
         startLoading()
-        
-        FirebaseService.shared.fetchPatientName(patientID: patientID) { result in
-            switch result {
-            case .success(let name):
-                patientName = name
-                fetchPatientVitals()
-            case .failure(let error):
-                stopLoading()
-                print("Error fetching name: \(error.localizedDescription)")
-                patientFound = true
+        FirebaseService.shared.fetchPatientName(patientID: patientId) { result in
+            DispatchQueue.main.async {
+                self.stopLoading()
+                switch result {
+                case .success(let name):
+                    self.patientName = name
+                    self.fetchPatientVitals()
+                case .failure(let error):
+                    print("Error fetching name: \(error.localizedDescription)")
+                }
             }
         }
     }
     
     private func fetchPatientVitals() {
-        FirebaseService.shared.fetchPatientVitals(patientID: patientID) { result in
+        FirebaseService.shared.fetchPatientVitals(patientID: patientId) { result in
             stopLoading()
             
             switch result {
             case .success(let vitals):
                 populateVitals(vitals)
-                patientFound = true
             case .failure(let error):
                 showAlert(message: "Error loading vitals: \(error.localizedDescription)")
-                patientFound = true
             }
         }
     }
     
     private func saveVitals() {
         uploadVitals()
-        resetForm()
     }
     
     private func uploadVitals() {
@@ -526,7 +442,7 @@ struct NurseVitalsEntryView: View {
             "timestamp": FieldValue.serverTimestamp()
         ]
         
-        FirebaseService.shared.savePatientVitals(patientID: patientID, vitals: vitalsData) { result in
+        FirebaseService.shared.savePatientVitals(patientID: patientId, vitals: vitalsData) { result in
             stopLoading()
             
             switch result {
@@ -566,19 +482,6 @@ struct NurseVitalsEntryView: View {
         }
     }
     
-    private func resetForm() {
-        patientFound = false
-        patientName = ""
-        bpSystolic = 120
-        bpDiastolic = 80
-        weight = 70.0
-        height = 170.0
-        allergies = ""
-        heartRate = 72
-        temperature = 98.6
-        patientID = ""
-    }
-    
     private func startLoading() {
         withAnimation { isLoading = true }
     }
@@ -595,7 +498,7 @@ struct NurseVitalsEntryView: View {
 
 #Preview {
     Group {
-        NurseVitalsEntryView(nurseId: "NUR001")
+        NurseVitalsEntryView(patientId: "PAT001")
             .preferredColorScheme(.light)
     }
 }

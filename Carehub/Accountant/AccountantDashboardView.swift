@@ -48,11 +48,17 @@ struct AccountantDashboard: View {
                                         .font(.largeTitle)
                                         .fontWeight(.bold)
                                         .foregroundColor(.primary)
+                                    Text("Receptionist")
+                                               .font(.title3)
+                                               .foregroundColor(.secondary)
                                 } else {
                                     Text("Welcome")
                                         .font(.largeTitle)
                                         .fontWeight(.bold)
                                         .foregroundColor(primaryColor)
+                                    Text("Receptionist")
+                                               .font(.title3)
+                                               .foregroundColor(.secondary)
                                 }
                             }
                             .padding(.horizontal, 24)
@@ -70,15 +76,15 @@ struct AccountantDashboard: View {
                                     .padding(.horizontal, 24)
                                 }
                                 
-                                NavigationLink(destination: ScheduleFollowupsView()) {
-                                    AccountantCard(
-                                        title: "Schedule Followups",
-                                        icon: "calendar.badge.clock",
-                                        color: primaryColor
-                                    )
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.horizontal, 24)
-                                }
+//                                NavigationLink(destination: ScheduleFollowupsView()) {
+//                                    AccountantCard(
+//                                        title: "Schedule Followups",
+//                                        icon: "calendar.badge.clock",
+//                                        color: primaryColor
+//                                    )
+//                                    .frame(maxWidth: .infinity)
+//                                    .padding(.horizontal, 24)
+//                                }
                                 
                                 NavigationLink(destination: PaymentHistoryView()) {
                                     AccountantCard(
@@ -146,61 +152,61 @@ struct AccountantCard: View {
     }
 }
 
-struct ActionButton: View {
-    let icon: String
-    let label: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(width: 44, height: 44)
-                .background(color)
-                .clipShape(Circle())
-            
-            Text(label)
-                .font(.title3)
-                .foregroundColor(.primary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
+//struct ActionButton: View {
+//    let icon: String
+//    let label: String
+//    let color: Color
+//    
+//    var body: some View {
+//        VStack(spacing: 16) {
+//            Image(systemName: icon)
+//                .font(.headline)
+//                .foregroundColor(.white)
+//                .frame(width: 44, height: 44)
+//                .background(color)
+//                .clipShape(Circle())
+//            
+//            Text(label)
+//                .font(.title3)
+//                .foregroundColor(.primary)
+//        }
+//        .frame(maxWidth: .infinity)
+//    }
+//}
 
-struct TransactionItem: View {
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "arrow.up.right")
-                .foregroundColor(.white)
-                .frame(width: 36, height: 36)
-                .background(Color.green)
-                .clipShape(Circle())
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Client Payment")
-                    .font(.title3)
-                    .foregroundColor(.primary)
-                
-                Text("Today, 10:30 AM")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            Text("$1,250.00")
-                .font(.title3)
-                .fontWeight(.medium)
-                .foregroundColor(.primary)
-        }
-        .padding(.vertical, 8)
-    }
-}
+//struct TransactionItem: View {
+//    var body: some View {
+//        HStack(spacing: 12) {
+//            Image(systemName: "arrow.up.right")
+//                .foregroundColor(.white)
+//                .frame(width: 36, height: 36)
+//                .background(Color.green)
+//                .clipShape(Circle())
+//            
+//            VStack(alignment: .leading, spacing: 2) {
+//                Text("Client Payment")
+//                    .font(.title3)
+//                    .foregroundColor(.primary)
+//                
+//                Text("Today, 10:30 AM")
+//                    .font(.body)
+//                    .foregroundColor(.secondary)
+//            }
+//            
+//            Spacer()
+//            
+//            Text("$1,250.00")
+//                .font(.title3)
+//                .fontWeight(.medium)
+//                .foregroundColor(.primary)
+//        }
+//        .padding(.vertical, 8)
+//    }
+//}
 
 #Preview {
     Group {
-        AccountantDashboard(accountantId: "ACC001")
+        AccountantDashboard(accountantId: "KV93GmJ9k9VtzHtx0M8p1fH30Mf2")
             .preferredColorScheme(.light)
     }
 }

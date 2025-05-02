@@ -101,6 +101,7 @@ struct StaffRowView: View {
         case .nurse: return .orange
         case .labTechnician: return .purple
         case .admin: return purpleColor
+        case .accountant: return .yellow
         }
     }
     
@@ -166,6 +167,7 @@ struct RoleFilterButton: View {
         case .nurse: return .orange
         case .labTechnician: return .purple
         case .admin: return purpleColor
+        case .accountant: return .yellow
         }
     }
     

@@ -96,14 +96,15 @@ class AuthManager: ObservableObject {
             }
             
             let staffData = Staff(
-                id: user.uid,
+                id: staff.id,
                 fullName: staff.fullName,
                 email: staff.email,
                 role: staff.role,
                 department: staff.department,
                 phoneNumber: staff.phoneNumber,
                 joinDate: staff.joinDate ?? Date(),
-                profileImageURL: staff.profileImageURL
+                profileImageURL: staff.profileImageURL,
+                shift: staff.shift ?? Shift(startTime: nil, endTime: nil)
             )
             
             do {

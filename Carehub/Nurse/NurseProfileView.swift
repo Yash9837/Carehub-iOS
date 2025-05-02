@@ -44,15 +44,16 @@ struct NurseProfileView: View {
                     .listRowBackground(Color.clear)
                     // Contact Info
                     Section(header: Text("Contact Information")) {
-                        LabeledContent("Phone", value: nurse.phoneNo ?? "N/A")
-                        LabeledContent("Email", value: nurse.email)
+                        LabeledContent(label: "Phone", content: nurse.phoneNo ?? "N/A")
+                        LabeledContent(label: "Email", content: nurse.email)
                     }
-                    Section(header: Text("Account Details")) {
-                        LabeledContent("Nurse ID", value: nurse.nurseld)
-                        if let createdAt = nurse.createdAt {
-                            LabeledContent("Created", value: createdAt.dateValue().formatted(date: .abbreviated, time: .shortened))
-                        }
+
+                    // Shift Info
+                    Section(header: Text("Shift Information")) {
+                        LabeledContent(label: "Start Time", content: nurse.shift?.startTime ?? "")
+                        LabeledContent(label: "End Time", content: nurse.shift?.endTime ?? "")
                     }
+
 
                     // Logout Button
                     Section {
@@ -125,8 +126,3 @@ struct NurseProfileView: View {
     }
 }
 
-struct NurseProfileView_Previews: PreviewProvider {
-    static var previews: some View {
-        NurseProfileView(nurseId: "NUR001")
-    }
-}

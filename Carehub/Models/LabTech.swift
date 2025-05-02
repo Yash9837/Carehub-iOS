@@ -17,17 +17,18 @@ struct LabTechnician {
     var phoneNo: String
     var shift: Shift
     var labTechId: String
+    
+    
+    struct Shift{
+        var endTime: Date
+        var startTime: Date
+    }
 }
 
 struct AssignedReport{
     var Status: String
     var patientId: String
     var testName: String
-}
-
-struct Shift{
-    var endTime: String
-    var startTime: String
 }
 
 // Combined data structure to link MedicalTest with Patient1
