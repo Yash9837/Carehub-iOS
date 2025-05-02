@@ -5,13 +5,13 @@ import FirebaseFirestore
 struct ProfileView_patient: View {
     let patient: PatientF
     @Environment(\.dismiss) private var dismiss
-    @State private var navigateToLogin = false 
+    @State private var navigateToLogin = false
+    
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(red: 0.94, green: 0.94, blue: 1.0)
                     .edgesIgnoringSafeArea(.all)
-                
                 ScrollView {
                     VStack(spacing: 16) {
                         VStack(spacing: 12) {
@@ -38,12 +38,6 @@ struct ProfileView_patient: View {
                                     Text(patient.userData.Name)
                                         .font(.system(size: 20, weight: .semibold))
                                         .foregroundColor(.black)
-                                    Text("ID: \(patient.patientId)")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                    Text("Username: \(patient.username)")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                                 }
                                 Spacer()
                             }
@@ -57,7 +51,6 @@ struct ProfileView_patient: View {
                         )
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Personal Information")
                                 .font(.system(size: 18, weight: .bold))
@@ -65,9 +58,7 @@ struct ProfileView_patient: View {
                                 .padding(.horizontal, 16)
                             
                             ProfileRow(title: "Patient ID", value: patient.patientId, icon: "number")
-                            ProfileRow(title: "Full Name", value: patient.userData.Name, icon: "person.fill")
                             ProfileRow(title: "Date of Birth", value: patient.userData.Dob, icon: "calendar")
-                            ProfileRow(title: "Username", value: patient.username, icon: "person.fill")
                             ProfileRow(title: "Email", value: patient.userData.Email, icon: "envelope.fill")
                         }
                         .padding(.vertical, 14)
@@ -79,7 +70,6 @@ struct ProfileView_patient: View {
                         )
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Contact Information")
                                 .font(.system(size: 18, weight: .bold))
@@ -161,7 +151,7 @@ struct ProfileView_patient: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Button(action: {
                                 AuthManager.shared.logout()
-                                navigateToLogin = true // Trigger navigation to LoginView
+                                navigateToLogin = true
                             }) {
                                 Label("Sign Out", systemImage: "arrow.right.circle")
                                     .font(.system(size: 16, weight: .medium))
@@ -196,13 +186,12 @@ struct ProfileView_patient: View {
                     }
                 }
                 .fullScreenCover(isPresented: $navigateToLogin) {
-                    LoginView() // Present LoginView in full screen
+                    LoginView()
                 }
             }
         }
     }
 }
-
 struct ProfileRow: View {
     let title: String
     let value: String
@@ -570,8 +559,7 @@ struct EditProfileView: View {
                     weight: patient.vitals.weight
                 ),
                 lastModified: Date(),
-                patientId: patient.patientId, // Preserve the custom patientId
-                username: patient.username
+                patientId: patient.patientId
             )
             
             do {
@@ -784,7 +772,6 @@ struct EditableItemsSection: View {
         ),
         lastModified: Date(),
         patientId: "P123456",
-        username: "johndoe123"
     )
     ProfileView_patient(patient: samplePatient)
 }

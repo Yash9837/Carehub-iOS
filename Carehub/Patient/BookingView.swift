@@ -1,11 +1,16 @@
 import SwiftUI
 import FirebaseFirestore
+import FirebaseAuth
+import CryptoKit
 
 struct ScheduleAppointmentView: View {
+    @State private var doctorBookedSlots: [String] = []
     let patientId: String
+    let preSelectedSpecialty: String?
+    let preSelectedDoctor: String?
     @Environment(\.presentationMode) var presentationMode
-    @State private var selectedSpecialty = ""
-    @State private var selectedDoctor = ""
+    @State private var selectedSpecialty: String
+    @State private var selectedDoctor: String
     @State private var selectedDate = Date()
     @State private var selectedTimeSlot = ""
     @State private var isDatePickerExpanded = false
@@ -16,45 +21,51 @@ struct ScheduleAppointmentView: View {
     @State private var isLoading = false
     @State private var isDataLoaded = false
     @State private var isDataLoadFailed = false
+    @State private var bookedTimeSlots: [String] = [] // To store booked time slots for the patient and doctor
+    
+    init(patientId: String, preSelectedSpecialty: String? = nil, preSelectedDoctor: String? = nil) {
+        self.patientId = patientId
+        self.preSelectedSpecialty = preSelectedSpecialty
+        self.preSelectedDoctor = preSelectedDoctor
+        self._selectedSpecialty = State(initialValue: preSelectedSpecialty ?? "")
+        self._selectedDoctor = State(initialValue: preSelectedDoctor ?? "")
+    }
     
     private var timeSlots: [String] {
-           var slots = [String]()
-           let calendar = Calendar.current
-           let dateFormatter = DateFormatter()
-           dateFormatter.timeStyle = .short
-           
-           guard let startDate = calendar.date(bySettingHour: 8, minute: 0, second: 0, of: Date()) else {
-               return []
-           }
-           
-           var currentDate = startDate
-           while calendar.component(.hour, from: currentDate) < 18 {
-               slots.append(dateFormatter.string(from: currentDate))
-               guard let newDate = calendar.date(byAdding: .minute, value: 30, to: currentDate) else {
-                   break
-               }
-               currentDate = newDate
-           }
-           
-           return slots
-       }
-    // Add a function to check if a time slot is available
+        var slots = [String]()
+        let calendar = Calendar.current
+        let dateFormatter = DateFormatter()
+        dateFormatter.timeStyle = .short
+        
+        guard let startDate = calendar.date(bySettingHour: 8, minute: 0, second: 0, of: Date()) else {
+            return []
+        }
+        
+        var currentDate = startDate
+        while calendar.component(.hour, from: currentDate) < 18 {
+            slots.append(dateFormatter.string(from: currentDate))
+            guard let newDate = calendar.date(byAdding: .minute, value: 30, to: currentDate) else {
+                break
+            }
+            currentDate = newDate
+        }
+        
+        return slots
+    }
+    
     private func isTimeSlotAvailable(_ slot: String) -> Bool {
-        // If the selected date is today, disable past time slots
+        // Check if the slot is in the past (for today)
         if Calendar.current.isDateInToday(selectedDate) {
             let timeFormatter = DateFormatter()
             timeFormatter.dateFormat = "h:mm a"
             
-            // Parse the slot string to a date
             guard let slotTime = timeFormatter.date(from: slot) else {
                 return false
             }
             
-            // Get hour and minute components from the slot time
             let calendar = Calendar.current
             let components = calendar.dateComponents([.hour, .minute], from: slotTime)
             
-            // Create a date that combines today's date with the slot time
             guard let slotDateTime = calendar.date(
                 bySettingHour: components.hour ?? 0,
                 minute: components.minute ?? 0,
@@ -64,14 +75,12 @@ struct ScheduleAppointmentView: View {
                 return false
             }
             
-            // Return true if the slot time is in the future (adding a small buffer)
-            return slotDateTime > Date().addingTimeInterval(15 * 60) // 15-minute buffer
+            if slotDateTime <= Date().addingTimeInterval(15 * 60) {
+                return false
+            }
         }
-        
-        // If date is in the future, all slots are available
-        return true
+        return !bookedTimeSlots.contains(slot) && !doctorBookedSlots.contains(slot)
     }
-    
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     private let gradientColors = [
         Color(red: 0.43, green: 0.34, blue: 0.99),
@@ -79,84 +88,94 @@ struct ScheduleAppointmentView: View {
     ]
     
     var body: some View {
-        ZStack {
-            Color(red: 0.94, green: 0.94, blue: 1.0)
-                .edgesIgnoringSafeArea(.all)
-            
-            if !isDataLoaded && !isDataLoadFailed {
-                ProgressView()
-                    .tint(purpleColor)
+        NavigationView {
+            ZStack {
+                Color(red: 0.94, green: 0.94, blue: 1.0)
+                    .edgesIgnoringSafeArea(.all)
+                
+                if !isDataLoaded && !isDataLoadFailed {
+                    ProgressView()
+                        .tint(purpleColor)
+                        .padding()
+                } else if isDataLoadFailed {
+                    VStack {
+                        Text("Failed to load data")
+                            .foregroundColor(.red)
+                            .font(.system(size: 18, weight: .medium))
+                        Button(action: {
+                            isDataLoaded = false
+                            isDataLoadFailed = false
+                            loadData()
+                        }) {
+                            Text("Retry")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(purpleColor)
+                                .cornerRadius(10)
+                        }
+                    }
                     .padding()
-            } else if isDataLoadFailed {
-                VStack {
-                    Text("Failed to load data")
-                        .foregroundColor(.red)
-                        .font(.system(size: 18, weight: .medium))
-                    Button(action: {
-                        isDataLoaded = false
-                        isDataLoadFailed = false
-                        loadData()
-                    }) {
-                        Text("Retry")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(purpleColor)
-                            .cornerRadius(10)
+                } else {
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            headerView
+                            
+                            specialtySelectionSection
+                            
+                            if !selectedSpecialty.isEmpty {
+                                doctorSelectionSection
+                            }
+                            
+                            if !selectedDoctor.isEmpty {
+                                dateSelectionSection
+                            }
+                            
+                            if !selectedDoctor.isEmpty {
+                                timeSlotSelectionSection
+                            }
+                            
+                            if !selectedDoctor.isEmpty {
+                                descriptionField
+                            }
+                            
+                            if !selectedSpecialty.isEmpty && !selectedDoctor.isEmpty && !selectedTimeSlot.isEmpty {
+                                confirmButtonSection
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.bottom, 30)
+                        .animation(.easeInOut(duration: 0.3), value: selectedSpecialty)
+                        .animation(.easeInOut(duration: 0.3), value: selectedDoctor)
+                        .animation(.easeInOut(duration: 0.3), value: selectedTimeSlot)
+                        .animation(.easeInOut(duration: 0.3), value: isDatePickerExpanded)
                     }
-                }
-                .padding()
-            } else {
-                ScrollView {
-                    VStack(spacing: 20) {
-                        headerView
-                        
-                        specialtySelectionSection
-                        
-                        if !selectedSpecialty.isEmpty {
-                            doctorSelectionSection
-                        }
-                        
-                        if !selectedDoctor.isEmpty {
-                            dateSelectionSection
-                        }
-                        
-                        if !selectedDoctor.isEmpty {
-                            timeSlotSelectionSection
-                        }
-                        
-                        if !selectedDoctor.isEmpty {
-                            descriptionField
-                        }
-                        
-                        if !selectedSpecialty.isEmpty && !selectedDoctor.isEmpty && !selectedTimeSlot.isEmpty {
-                            confirmButtonSection
-                        }
-                        
-                        Spacer()
-                    }
-                    .padding(.bottom, 30)
-                    .animation(.easeInOut(duration: 0.3), value: selectedSpecialty)
-                    .animation(.easeInOut(duration: 0.3), value: selectedDoctor)
-                    .animation(.easeInOut(duration: 0.3), value: selectedTimeSlot)
-                    .animation(.easeInOut(duration: 0.3), value: isDatePickerExpanded)
                 }
             }
-        }
-//        .navigationTitle("New Appointment")
-//        .navigationBarTitleDisplayMode(.inline)
-        .alert("Appointment Scheduled", isPresented: $showSuccessAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text("Your appointment has been successfully scheduled.")
-        }
-        .alert("Cannot Schedule Appointment", isPresented: $showErrorAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(errorMessage)
-        }
-        .onAppear {
-            loadData()
+            .navigationTitle("New Appointment")
+            .navigationBarTitleDisplayMode(.inline)
+            .alert("Appointment Scheduled", isPresented: $showSuccessAlert) {
+                Button("OK", role: .cancel) {
+                    presentationMode.wrappedValue.dismiss()
+                }
+            } message: {
+                Text("Your appointment has been successfully scheduled.")
+            }
+            .alert("Cannot Schedule Appointment", isPresented: $showErrorAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage)
+            }
+            .onAppear {
+                loadData()
+            }
+            .onChange(of: selectedDate) { _ in
+                checkBookedTimeSlots()
+            }
+            .onChange(of: selectedDoctor) { _ in
+                checkBookedTimeSlots()
+            }
         }
     }
     
@@ -165,11 +184,51 @@ struct ScheduleAppointmentView: View {
             isDataLoaded = true
             if DoctorData.specialties.isEmpty {
                 isDataLoadFailed = true
+            } else {
+                checkBookedTimeSlots()
             }
         }
     }
     
-    // MARK: - View Components
+    private func checkBookedTimeSlots() {
+        bookedTimeSlots.removeAll()
+        guard !selectedDoctor.isEmpty else { return }
+        
+        let doctor = DoctorData.doctors[selectedSpecialty]?.first { $0.doctor_name == selectedDoctor }
+        let doctorId = doctor?.id ?? ""
+        let currentPatientId = hashPatientId()
+        let calendar = Calendar.current
+        let selectedDay = calendar.startOfDay(for: selectedDate)
+        let selectedDayTimestamp = Timestamp(date: selectedDay)
+        
+        let db = Firestore.firestore()
+        db.collection("appointments")
+            .whereField("docId", isEqualTo: doctorId)
+            .whereField("patientId", isEqualTo: currentPatientId)
+            .getDocuments { (querySnapshot, error) in
+                if let error = error {
+                    print("Error checking booked slots: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let documents = querySnapshot?.documents else { return }
+                
+                for document in documents {
+                    if let date = (document.data()["date"] as? Timestamp)?.dateValue() {
+                        let appointmentDay = calendar.startOfDay(for: date)
+                        if calendar.isDate(appointmentDay, inSameDayAs: selectedDay) {
+                            let timeFormatter = DateFormatter()
+                            timeFormatter.dateFormat = "h:mm a"
+                            let timeString = timeFormatter.string(from: date)
+                            if !bookedTimeSlots.contains(timeString) {
+                                bookedTimeSlots.append(timeString)
+                            }
+                        }
+                    }
+                }
+            }
+    }
+    
     private var headerView: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Book Appointment")
@@ -198,36 +257,44 @@ struct ScheduleAppointmentView: View {
             }
             .padding(.horizontal, 20)
             
-            Menu {
-                ForEach(DoctorData.specialties, id: \.self) { specialty in
-                    Button(action: {
-                        selectedSpecialty = specialty
-                        selectedDoctor = ""
-                        selectedTimeSlot = ""
-                    }) {
-                        Text(specialty)
-                    }
-                }
-            } label: {
-                HStack {
-                    Text(selectedSpecialty.isEmpty ? "Select Specialty" : selectedSpecialty)
-                        .foregroundColor(selectedSpecialty.isEmpty ? .gray : .black)
-                        .font(.system(size: 16))
-                    
-                    Spacer()
-                    
+            HStack {
+                Text(selectedSpecialty.isEmpty ? "Select Specialty" : selectedSpecialty)
+                    .foregroundColor(selectedSpecialty.isEmpty ? .gray : .black)
+                    .font(.system(size: 16))
+                
+                Spacer()
+                
+                if preSelectedSpecialty == nil {
                     Image(systemName: "chevron.down")
                         .foregroundColor(purpleColor)
                         .font(.system(size: 14))
                 }
-                .padding(.vertical, 14)
-                .padding(.horizontal, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white)
-                        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
-                )
-                .padding(.horizontal, 20)
+            }
+            .padding(.vertical, 14)
+            .padding(.horizontal, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white)
+                    .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+            )
+            .padding(.horizontal, 20)
+            .overlay {
+                if preSelectedSpecialty == nil {
+                    Menu {
+                        ForEach(DoctorData.specialties, id: \.self) { specialty in
+                            Button(action: {
+                                selectedSpecialty = specialty
+                                selectedDoctor = ""
+                                selectedTimeSlot = ""
+                                bookedTimeSlots.removeAll()
+                            }) {
+                                Text(specialty)
+                            }
+                        }
+                    } label: {
+                        Color.clear
+                    }
+                }
             }
         }
     }
@@ -245,35 +312,43 @@ struct ScheduleAppointmentView: View {
             }
             .padding(.horizontal, 20)
             
-            Menu {
-                ForEach(DoctorData.doctors[selectedSpecialty] ?? [], id: \.id) { doctor in
-                    Button(action: {
-                        selectedDoctor = doctor.doctor_name
-                        selectedTimeSlot = ""
-                    }) {
-                        Text(doctor.doctor_name)
-                    }
-                }
-            } label: {
-                HStack {
-                    Text(selectedDoctor.isEmpty ? "Select Doctor" : selectedDoctor)
-                        .foregroundColor(selectedDoctor.isEmpty ? .gray : .black)
-                        .font(.system(size: 16))
-                    
-                    Spacer()
-                    
+            HStack {
+                Text(selectedDoctor.isEmpty ? "Select Doctor" : selectedDoctor)
+                    .foregroundColor(selectedDoctor.isEmpty ? .gray : .black)
+                    .font(.system(size: 16))
+                
+                Spacer()
+                
+                if preSelectedDoctor == nil {
                     Image(systemName: "chevron.down")
                         .foregroundColor(purpleColor)
                         .font(.system(size: 14))
                 }
-                .padding(.vertical, 14)
-                .padding(.horizontal, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white)
-                        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
-                )
-                .padding(.horizontal, 20)
+            }
+            .padding(.vertical, 14)
+            .padding(.horizontal, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white)
+                    .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+            )
+            .padding(.horizontal, 20)
+            .overlay {
+                if preSelectedDoctor == nil {
+                    Menu {
+                        ForEach(DoctorData.doctors[selectedSpecialty] ?? [], id: \.id) { doctor in
+                            Button(action: {
+                                selectedDoctor = doctor.doctor_name
+                                selectedTimeSlot = ""
+                                checkBookedTimeSlots()
+                            }) {
+                                Text(doctor.doctor_name)
+                            }
+                        }
+                    } label: {
+                        Color.clear
+                    }
+                }
             }
         }
     }
@@ -438,16 +513,17 @@ struct ScheduleAppointmentView: View {
             .padding(.horizontal, 20)
         }
     }
+    
     private func slotTextColor(for slot: String) -> Color {
         if !isTimeSlotAvailable(slot) {
-            return .gray
+            return bookedTimeSlots.contains(slot) ? .red : .gray
         }
         return selectedTimeSlot == slot ? .white : purpleColor
     }
     
     private func slotBorderColor(for slot: String) -> Color {
         if !isTimeSlotAvailable(slot) {
-            return Color.gray.opacity(0.3)
+            return bookedTimeSlots.contains(slot) ? .red : Color.gray.opacity(0.3)
         }
         return purpleColor
     }
@@ -540,7 +616,6 @@ struct ScheduleAppointmentView: View {
         }
     }
     
-    // MARK: - Helper Functions
     private func summaryRow(icon: String, title: String, value: String) -> some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: icon)
@@ -575,21 +650,33 @@ struct ScheduleAppointmentView: View {
         return formatter.string(from: date)
     }
     
-    // MARK: - Appointment Scheduling Logic
+    private func hashPatientId() -> String {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            print("No Firebase UID found, using default patientId")
+            return "unknown_user"
+        }
+        let inputData = Data(uid.utf8)
+        let hashed = SHA256.hash(data: inputData)
+        return hashed.compactMap { String(format: "%02x", $0) }.joined()
+    }
+    
     private func scheduleAppointment() {
         isLoading = true
+        let currentPatientId = hashPatientId()
+        print("Scheduling appointment for patientId: \(currentPatientId)")
         
         let calendar = Calendar.current
         let db = Firestore.firestore()
         
-        // Debug: Print the selected date
         print("Selected Date: \(formattedDateWithDay(selectedDate))")
         
-        // Fetch all appointments for the patient
+        let selectedDay = calendar.startOfDay(for: selectedDate)
+        
         db.collection("appointments")
-            .whereField("patientId", isEqualTo: patientId)
+            .whereField("patientId", isEqualTo: currentPatientId)
             .getDocuments { [self] (querySnapshot, error) in
                 if let error = error {
+                    print("Error checking appointments: \(error.localizedDescription)")
                     errorMessage = "Error checking appointments: \(error.localizedDescription)"
                     showErrorAlert = true
                     isLoading = false
@@ -597,23 +684,20 @@ struct ScheduleAppointmentView: View {
                 }
                 
                 guard let documents = querySnapshot?.documents else {
-                    print("No existing appointments found for patient \(patientId). Proceeding to create new appointment.")
+                    print("No existing appointments found for patient \(currentPatientId). Proceeding to create new appointment.")
                     createNewAppointment()
                     return
                 }
                 
-                // Debug: Print all existing appointment dates
-                print("Existing appointments for patient \(patientId):")
+                print("Existing appointments for patient \(currentPatientId):")
                 for doc in documents {
-                    if let date = (doc.data()["Date"] as? Timestamp)?.dateValue() {
+                    if let date = (doc.data()["date"] as? Timestamp)?.dateValue() {
                         print(" - \(formattedDateWithDay(date))")
                     }
                 }
                 
-                // Check if there’s already an appointment on the selected date
-                let selectedDay = calendar.startOfDay(for: selectedDate)
                 let hasAppointmentOnSelectedDay = documents.contains { doc in
-                    if let date = (doc.data()["Date"] as? Timestamp)?.dateValue() {
+                    if let date = (doc.data()["date"] as? Timestamp)?.dateValue() {
                         let appointmentDay = calendar.startOfDay(for: date)
                         return calendar.isDate(appointmentDay, inSameDayAs: selectedDay)
                     }
@@ -621,6 +705,7 @@ struct ScheduleAppointmentView: View {
                 }
                 
                 if hasAppointmentOnSelectedDay {
+                    print("Appointment already exists on \(formattedDate(selectedDate))")
                     errorMessage = "You already have an appointment scheduled for this day. Please choose another date."
                     showErrorAlert = true
                     isLoading = false
@@ -630,18 +715,18 @@ struct ScheduleAppointmentView: View {
                 }
             }
     }
+    
     private func createNewAppointment() {
-        // Generate appointment ID
         let randomNumber = Int.random(in: 0..<10000)
         let randomLetters = String(format: "%02X", Int.random(in: 0..<256))
         let appointmentId = "APT\(randomNumber)\(randomLetters)"
         
         let calendar = Calendar.current
         
-        // Combine date and time
         let timeFormatter = DateFormatter()
         timeFormatter.dateFormat = "h:mm a"
         guard let timeDate = timeFormatter.date(from: selectedTimeSlot) else {
+            print("Invalid time format: \(selectedTimeSlot)")
             isLoading = false
             errorMessage = "Invalid time format"
             showErrorAlert = true
@@ -653,20 +738,22 @@ struct ScheduleAppointmentView: View {
                                                       minute: timeComponents.minute ?? 0,
                                                       second: 0,
                                                       of: selectedDate) else {
+            print("Could not create appointment date")
             isLoading = false
             errorMessage = "Could not create appointment date"
             showErrorAlert = true
             return
         }
         
-        // Find doctor_id based on selectedDoctor
         let doctor = DoctorData.doctors[selectedSpecialty]?.first { $0.doctor_name == selectedDoctor }
         let doctorId = doctor?.id ?? ""
         
         let followUpDate = calendar.date(byAdding: .day, value: 7, to: appointmentDateTime) ?? Date()
         
+        let currentPatientId = hashPatientId()
+        
         let appointmentData: [String: Any] = [
-            "date": Timestamp(date: appointmentDateTime), // Changed "Date" to "date" for consistency
+            "date": Timestamp(date: appointmentDateTime),
             "description": description.isEmpty ? "General Checkup" : description,
             "status": "scheduled",
             "apptId": appointmentId,
@@ -675,53 +762,25 @@ struct ScheduleAppointmentView: View {
             "doctorsNotes": "",
             "followUpDate": Timestamp(date: followUpDate),
             "followUpRequired": false,
-            "patientId": patientId,
+            "patientId": currentPatientId,
             "prescriptionId": "",
-            "amount": 0.0 // Added default amount to match Appointment struct
+            "amount": 0.0
         ]
         
-//        let db = Firestore.firestore()
-//        db.collection("appointments").document(appointmentId).setData(appointmentData) { error in
-//            isLoading = false
-//            if let error = error {
-//                errorMessage = "Failed to schedule appointment: \(error.localizedDescription)"
-//                showErrorAlert = true
-//            } else {
-//                showSuccessAlert = true
-//                resetForm()
-//            }
-//        }
-//    }
-//
-//    private func resetForm() {
-//        selectedSpecialty = ""
-//        selectedDoctor = ""
-//        selectedDate = Date()
-//        selectedTimeSlot = ""
-//        description = ""
-//    }
+        print("Saving appointment with data: \(appointmentData)")
+        
         let db = Firestore.firestore()
-                db.collection("appointments").document(appointmentId).setData(appointmentData) { error in
-                    isLoading = false
-                    if let error = error {
-                        errorMessage = "Failed to schedule appointment: \(error.localizedDescription)"
-                        showErrorAlert = true
-                    } else {
-                        showSuccessAlert = true
-                        
-                        // Add a slight delay before dismissing the view
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                            self.presentationMode.wrappedValue.dismiss()
-                        }
-                    }
-                }
+        db.collection("appointments").document(appointmentId).setData(appointmentData) { error in
+            isLoading = false
+            if let error = error {
+                print("Failed to save appointment: \(error.localizedDescription)")
+                errorMessage = "Failed to schedule appointment: \(error.localizedDescription)"
+                showErrorAlert = true
+            } else {
+                print("Appointment saved successfully with ID: \(appointmentId), patientId: \(currentPatientId)")
+                NotificationCenter.default.post(name: NSNotification.Name("AppointmentBooked"), object: nil)
+                showSuccessAlert = true
             }
-}
-
-struct ScheduleAppointmentView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationView {
-            ScheduleAppointmentView(patientId: "P123456")
         }
     }
 }

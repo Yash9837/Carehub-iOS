@@ -671,7 +671,7 @@ struct RegisterView: View {
                 ),
                 lastModified: Date(),
                 patientId: generatedID,
-                username: username
+               
             )
             
             AuthManager.shared.registerPatient(patient: patient, password: password) { success in

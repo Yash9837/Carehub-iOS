@@ -61,8 +61,7 @@ struct PatientTabView: View {
             weight: []
         ),
         lastModified: Date(),
-        patientId: "P123456",
-        username: "johndoe123"
+        patientId: "P123456"
     )
-    PatientTabView(username: "TestUser", patient: samplePatient)
+    return PatientTabView(username: "TestUser", patient: samplePatient)
 }

@@ -8,11 +8,10 @@ struct AppointmentDetailsModal: View {
     let imageName: String
     @Binding var isPresented: Bool
     @Environment(\.dismiss) var dismiss
-    
     @State private var showReschedule = false
     @State private var showCancelConfirmation = false
     @State private var selectedDate = Date()
-    @State private var selectedTime = "" // Changed to String to match time slots
+    @State private var selectedTime = ""
     @State private var isDatePickerExpanded = false
     
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
@@ -28,18 +27,10 @@ struct AppointmentDetailsModal: View {
             
             ScrollView {
                 VStack(spacing: 20) {
-                    // Header
                     headerView
-                    
-                    // Doctor Info
                     doctorInfoSection
-                    
-                    // Appointment Details
                     detailsSection
-                    
-                    // Action Buttons
                     actionButtonsSection
-                    
                     Spacer()
                 }
                 .padding(.bottom, 30)
@@ -181,56 +172,42 @@ struct AppointmentDetailsModal: View {
     
     private var actionButtonsSection: some View {
         HStack(spacing: 12) {
-            // Reschedule Button
             Button(action: {
                 showReschedule = true
             }) {
-                HStack {
-                    Text("Reschedule")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                    
-                    Image(systemName: "calendar.badge.plus")
-                        .font(.system(size: 16))
-                        .foregroundColor(.white)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: gradientColors),
-                        startPoint: .leading,
-                        endPoint: .trailing
+                Text("Reschedule")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: gradientColors),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                        .cornerRadius(12)
+                        .shadow(color: purpleColor.opacity(0.3), radius: 8, x: 0, y: 4)
                     )
-                    .cornerRadius(12)
-                    .shadow(color: purpleColor.opacity(0.3), radius: 8, x: 0, y: 4)
-                )
             }
             
-            // Cancel Button
             Button(action: {
                 showCancelConfirmation = true
             }) {
-                HStack {
-                    Text("Cancel")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                    
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
-                        .foregroundColor(.white)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: gradientColors.map { $0.opacity(0.8) }),
-                        startPoint: .leading,
-                        endPoint: .trailing
+                Text("Cancel")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: gradientColors.map { $0.opacity(0.8) }),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                        .cornerRadius(12)
+                        .shadow(color: purpleColor.opacity(0.3), radius: 8, x: 0, y: 4)
                     )
-                    .cornerRadius(12)
-                    .shadow(color: purpleColor.opacity(0.3), radius: 8, x: 0, y: 4)
-                )
             }
         }
         .padding(.horizontal, 20)
@@ -289,16 +266,15 @@ struct DetailsRow: View {
     }
 }
 
-
 struct RescheduleView: View {
     let appointment: Appointment
     @Binding var selectedDate: Date
-    @Binding var selectedTime: String // Updated to String
+    @Binding var selectedTime: String
     @Binding var isPresented: Bool
     @State private var isDatePickerExpanded = false
     @State private var isTimePickerExpanded = false
     @State private var isLoading = false
-    @State private var selectedTimeSlot = "" // New state for time slot
+    @State private var selectedTimeSlot = ""
     var onRescheduleComplete: (() -> Void)? = nil
     
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
@@ -364,7 +340,6 @@ struct RescheduleView: View {
                 
                 ScrollView {
                     VStack(spacing: 20) {
-                        // Header
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Reschedule Appointment")
                                 .font(.system(size: 28, weight: .bold))
@@ -378,13 +353,9 @@ struct RescheduleView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 20)
                         
-                        // Date Selection
                         dateSelectionSection
-                        
-                        // Time Selection
                         timeSelectionSection
                         
-                        // Save Button
                         Button(action: {
                             saveReschedule()
                         }) {
@@ -434,7 +405,7 @@ struct RescheduleView: View {
                 }
             }
             .onAppear {
-                selectedTimeSlot = selectedTime // Sync initial value
+                selectedTimeSlot = selectedTime
             }
         }
     }
@@ -557,7 +528,7 @@ struct RescheduleView: View {
                     ForEach(timeSlots, id: \.self) { slot in
                         Button(action: {
                             selectedTimeSlot = slot
-                            selectedTime = slot // Update the binding
+                            selectedTime = slot
                         }) {
                             Text(slot)
                                 .font(.system(size: 14, weight: .medium))

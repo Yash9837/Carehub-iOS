@@ -10,7 +10,7 @@ struct PatientF: Codable, Identifiable {
     var vitals: Vitals
     var lastModified: Date
     var patientId: String
-    var username: String
+    
     var appointments: [Appointment]?
     
     enum CodingKeys: String, CodingKey {
@@ -21,7 +21,7 @@ struct PatientF: Codable, Identifiable {
         case vitals
         case lastModified
         case patientId
-        case username
+        
     }
 }
 
