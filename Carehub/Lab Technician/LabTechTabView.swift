@@ -22,8 +22,7 @@ struct LabTechTabView: View {
                     Text("Records")
                 }
             
-            ProfileView_LT()
-                .tabItem {
+            ProfileView_LT(labTechId: "WFQ7R40YZICIGLXRJDYOHDXDLKD3")                .tabItem {
                     Image(systemName: "person")
                     Text("Profile")
                 }
