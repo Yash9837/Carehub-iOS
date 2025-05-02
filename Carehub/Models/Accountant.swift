@@ -11,23 +11,18 @@ struct Accountant: Identifiable, Decodable {
     var id: String { accountantId }
     var email: String
     var name: String
-//    var shift: Shift
+    var shift: Shift?
     var accountantId: String
     var createdAt: Timestamp?  // Using Firestore Timestamp
     var phoneNo: String
     var department: String
-    
-//    struct Shift: Codable {
-//        var endTime: String
-//        var startTime: String
-//    }
     
     // Ensuring exact field names from the database
     enum CodingKeys: String, CodingKey {
         case email = "email"
         case name = "fullName"
         case department = "department"
-//        case shift = "Shift"
+        case shift = "shift"
         case accountantId = "id"
         case createdAt = "joinDate"
         case phoneNo = "phoneNumber"

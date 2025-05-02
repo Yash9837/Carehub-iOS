@@ -53,6 +53,7 @@ class StaffManager: ObservableObject {
                     let staffMembers = try documents.compactMap { document -> Staff? in
                         let data = document.data()
                         // Map Firestore fields to model fields
+                        let id = data["id"] as? String ?? document.documentID
                         let fullName = data["Doctor_name"] as? String ?? data["name"] as? String ?? data["fullName"] as? String ?? "Unknown"
                         let email = data["email"] as? String ?? data["Email"] as? String ?? ""
                         let roleString = data["role"] as? String ?? ""
@@ -61,16 +62,18 @@ class StaffManager: ObservableObject {
                         let phoneNumber = data["phoneNumber"] as? String ?? data["phoneNo"] as? String
                         let joinDate = (data["joinDate"] as? Timestamp)?.dateValue() ?? (data["createdAt"] as? Timestamp)?.dateValue()
                         let profileImageURL = data["imageURL"] as? String ?? data["ImageURL"] as? String ?? ""// Map Firestore imageURL to profileImageURL
+                        let shift = data["shift"] as? Shift
                         
                         return Staff(
-                            id: document.documentID,
+                            id: id,
                             fullName: fullName,
                             email: email,
                             role: role,
                             department: department,
                             phoneNumber: phoneNumber,
                             joinDate: joinDate,
-                            profileImageURL: profileImageURL
+                            profileImageURL: profileImageURL,
+                            shift: shift ?? Shift(startTime: nil , endTime: nil)
                         )
                     }
                     

@@ -48,6 +48,22 @@ struct AccountantProfileView: View {
                         LabeledContent(label: "Email", content: accountant.email)
                     }
                     
+                    Section(header: Text("Shift Information")) {
+                        if let start = accountant.shift?.startTime, let end = accountant.shift?.endTime {
+                            LabeledContent(
+                                label: "Start Time",
+                                content: DateFormatter.localizedString(from: start, dateStyle: .none, timeStyle: .short)
+                            )
+                            LabeledContent(
+                                label: "End Time",
+                                content: DateFormatter.localizedString(from: end, dateStyle: .none, timeStyle: .short)
+                            )
+                        } else {
+                            Text("No shift assigned")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
                     // Logout Section
                     Section {
                         if isLoggingOut {
@@ -132,5 +148,5 @@ struct AccountantProfileView: View {
 }
 
 #Preview {
-    AccountantProfileView(accountantId: "KV93GmJ9k9VtzHtx0M8p1fH30Mf2")
+    AccountantProfileView(accountantId: "ACC91219")
 }

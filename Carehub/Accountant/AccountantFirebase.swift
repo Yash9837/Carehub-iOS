@@ -6,21 +6,24 @@ class FirebaseAccountantService {
     private let db = Firestore.firestore()
     
     func fetchAccountant(byAccountantId accountantId: String, completion: @escaping (Result<Accountant, Error>) -> Void) {
-        db.collection("accountants").document(accountantId)
-            .getDocument { document, error in
+        db.collection("accountants")
+            .whereField("id", isEqualTo: accountantId)
+            .getDocuments { snapshot, error in
                 if let error = error {
                     completion(.failure(error))
                     return
                 }
                 
-                guard let document = document, document.exists, let data = document.data() else {
+                guard let document = snapshot?.documents.first else {
                     completion(.failure(NSError(domain: "AppError", code: 404, userInfo: [NSLocalizedDescriptionKey: "Accountant not found"])))
                     return
                 }
                 
+                let data = document.data()
                 let accountant = Accountant(
                     email: data["email"] as? String ?? "",
                     name: data["fullName"] as? String ?? "",
+                    shift: data["shift"] as? Shift ?? Shift(startTime: nil, endTime: nil),
                     accountantId: data["id"] as? String ?? "",
                     createdAt: data["joinDate"] as? Timestamp,
                     phoneNo: data["phoneNumber"] as? String ?? "",
@@ -30,6 +33,7 @@ class FirebaseAccountantService {
                 completion(.success(accountant))
             }
     }
+
 
 //    func updateShiftHours(accountantId: String, newStart: String, newEnd: String, completion: ((Error?) -> Void)? = nil) {
 //        db.collection("accountants").document(accountantId)
