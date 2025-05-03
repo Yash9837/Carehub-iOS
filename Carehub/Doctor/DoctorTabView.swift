@@ -22,7 +22,7 @@ struct DoctorTabView: View {
                 }
         }
         .navigationBarBackButtonHidden(true)
-        .onAppear { // Added to set tab colors
+        .onAppear { 
             let tabBarAppearance = UITabBar.appearance()
             tabBarAppearance.tintColor = UIColor.green // Selected tab color
             tabBarAppearance.unselectedItemTintColor = UIColor.gray // Unselected tab color

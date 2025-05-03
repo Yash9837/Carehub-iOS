@@ -9,10 +9,12 @@ struct Notification: Identifiable {
     let message: String
     let date: Date
     let appointmentId: String?
+    let type: String // Add type to differentiate notifications (e.g., "reminder")
 }
+
 struct NotificationsView: View {
     let notifications: [Notification]
-    let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     
     var body: some View {
         ZStack {
@@ -49,13 +51,9 @@ struct NotificationsView: View {
                         .accessibilityElement(children: .combine)
                     } else {
                         ForEach(notifications) { notification in
-                            NotificationCard(
-                                title: notification.title,
-                                message: notification.message,
-                                date: formatDate(notification.date)
-                            )
-                            .padding(.horizontal, 20)
-                            .accessibilityLabel("Notification: \(notification.title), \(notification.message), dated \(formatDate(notification.date))")
+                            NotificationCard(notification: notification)
+                                .padding(.horizontal, 20)
+                                .accessibilityLabel("Notification: \(notification.title), \(notification.message), dated \(formatDate(notification.date))")
                         }
                     }
                 }
@@ -75,10 +73,10 @@ struct NotificationsView: View {
 }
 
 struct NotificationCard: View {
-    let title: String
-    let message: String
-    let date: String
-    let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    let notification: Notification
+    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    private let cancelColor = Color(red: 0.99, green: 0.34, blue: 0.34)
+    private let rescheduleColor = Color(red: 0.34, green: 0.67, blue: 0.99)
     
     var body: some View {
         ZStack {
@@ -87,28 +85,28 @@ struct NotificationCard: View {
                 .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             
             HStack(spacing: 12) {
-                Image(systemName: "bell.fill")
+                Image(systemName: iconForType(notification.type))
                     .resizable()
                     .scaledToFit()
                     .frame(width: 28, height: 28)
-                    .foregroundColor(purpleColor)
+                    .foregroundColor(colorForType(notification.type))
                     .padding(8)
-                    .background(purpleColor.opacity(0.1))
+                    .background(colorForType(notification.type).opacity(0.1))
                     .clipShape(Circle())
                 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(title)
+                    Text(notification.title)
                         .font(.headline)
                         .foregroundColor(.primary)
                         .lineLimit(1)
                     
-                    Text(message)
+                    Text(notification.message)
                         .font(.subheadline)
                         .foregroundColor(.primary)
                         .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true) 
+                        .fixedSize(horizontal: false, vertical: true)
                     
-                    Text(date)
+                    Text(formatDate(notification.date))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -121,17 +119,41 @@ struct NotificationCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .frame(minHeight: 100)
     }
+    
+    private func iconForType(_ type: String) -> String {
+        switch type {
+        case "reminder": return "bell.fill"
+        case "canceled": return "xmark.circle.fill"
+        case "rescheduled": return "calendar.badge.clock"
+        default: return "bell.fill"
+        }
+    }
+    
+    private func colorForType(_ type: String) -> Color {
+        switch type {
+        case "reminder": return purpleColor
+        case "canceled": return cancelColor
+        case "rescheduled": return rescheduleColor
+        default: return purpleColor
+        }
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
 }
 
 struct HomeView_patient: View {
     let patient: PatientF
     @Environment(\.colorScheme) var colorScheme
-    // Define a consistent color palette
     private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     private let secondaryColor = Color(red: 0.55, green: 0.48, blue: 0.99)
     private let backgroundColor = Color(red: 0.97, green: 0.97, blue: 1.0)
     private let cardBackground = Color.white
-    private let ForNowColor = Color(red: 0.51, green: 0.44, blue: 0.87)
+    private let forNowColor = Color(red: 0.51, green: 0.44, blue: 0.87)
 
     @State private var upcomingSchedules: [Appointment] = []
     @State private var isLoading = true
@@ -151,24 +173,20 @@ struct HomeView_patient: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background color
                 backgroundColor
                     .edgesIgnoringSafeArea(.all)
                 
-                // Main content
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
-                        // Header Section with improved layout
                         headerSection
                         
-                        // Book Appointment Card - Reverted to old design
                         Button(action: {
                             navigateToBooking = true
                         }) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 16)
                                     .fill(LinearGradient(
-                                        gradient: Gradient(colors: [ForNowColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
+                                        gradient: Gradient(colors: [forNowColor, secondaryColor]),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     ))
@@ -207,10 +225,8 @@ struct HomeView_patient: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                         
-                        // Upcoming Appointments Section - Consistent styling
                         upcomingAppointmentsSection
                         
-                        // Recent Prescriptions & Reports - Consistent card design
                         recentPrescriptionsSection
                         
                         previouslyVisitedDoctorsSection
@@ -241,7 +257,6 @@ struct HomeView_patient: View {
                 listener = nil
             }
             .navigationDestination(isPresented: $navigateToBooking) {
-                let currentPatientId = hashPatientId()
                 DoctorView()
             }
             .navigationDestination(isPresented: $navigateToNotifications) {
@@ -249,6 +264,7 @@ struct HomeView_patient: View {
             }
         }
     }
+    
     private var headerSection: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 6) {
@@ -284,7 +300,6 @@ struct HomeView_patient: View {
     
     private var upcomingAppointmentsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Section header with See All button
             sectionHeader(title: "Upcoming Appointments", hasContent: !upcomingSchedules.isEmpty) {
                 NavigationLink(destination: AllAppointmentsView(appointments: upcomingSchedules)) {
                     Text("See All")
@@ -293,7 +308,6 @@ struct HomeView_patient: View {
                 }
             }
             
-            // Content area
             if isLoading {
                 HStack {
                     Spacer()
@@ -329,7 +343,6 @@ struct HomeView_patient: View {
         }
     }
     
-    // Consistent prescriptions section
     private var recentPrescriptionsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader(title: "Recent Prescriptions & Reports", hasContent: !viewModel.recentPrescriptions.isEmpty) {
@@ -381,10 +394,8 @@ struct HomeView_patient: View {
         }
     }
     
-    // Section for visited doctors with consistent styling
     private var previouslyVisitedDoctorsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Section header with See All button
             sectionHeader(title: "Previously Visited Doctors", hasContent: !previouslyVisitedDoctors.isEmpty) {
                 NavigationLink(destination: AllDoctorsView(doctors: previouslyVisitedDoctors)) {
                     Text("See All")
@@ -393,7 +404,6 @@ struct HomeView_patient: View {
                 }
             }
             
-            // Content area
             if previouslyVisitedDoctors.isEmpty {
                 emptyStateView(
                     icon: "person.2",
@@ -419,9 +429,6 @@ struct HomeView_patient: View {
         }
     }
     
-    // MARK: - Helper Components
-    
-    // Reusable section header
     private func sectionHeader<T: View>(title: String, hasContent: Bool, @ViewBuilder action: @escaping () -> T) -> some View {
         HStack {
             Text(title)
@@ -436,7 +443,6 @@ struct HomeView_patient: View {
         }
     }
     
-    // Reusable empty state
     private func emptyStateView(icon: String, title: String, message: String) -> some View {
         HStack {
             Spacer()
@@ -464,6 +470,7 @@ struct HomeView_patient: View {
             Spacer()
         }
     }
+    
     private func hashPatientId() -> String {
         guard let uid = Auth.auth().currentUser?.uid else {
             print("No Firebase UID found, using default patientId")
@@ -472,8 +479,9 @@ struct HomeView_patient: View {
         let inputData = Data(uid.utf8)
         let hashed = SHA256.hash(data: inputData)
         let hashedString = hashed.compactMap { String(format: "%02x", $0) }.joined()
-        return "P\(hashedString)" // Prepend "P" to match registration
+        return "P\(hashedString)"
     }
+    
     private func fetchNotifications() {
         let currentPatientId = hashPatientId()
         print("Fetching notifications for patientId: \(currentPatientId)")
@@ -491,17 +499,16 @@ struct HomeView_patient: View {
                     let data = document.data()
                     guard let title = data["title"] as? String,
                           let message = data["message"] as? String,
-                          let date = (data["date"] as? Timestamp)?.dateValue() else {
+                          let dateTimestamp = data["date"] as? Timestamp,
+                          let type = data["type"] as? String else {
                         print("Invalid notification data: \(data)")
                         return nil
                     }
-                    let appointmentId = data["appointmentId"] as? String // Retrieve appointmentId
-                    return Notification(id: document.documentID, title: title, message: message, date: date, appointmentId: appointmentId)
+                    let date = dateTimestamp.dateValue()
+                    let appointmentId = data["appointmentId"] as? String
+                    return Notification(id: document.documentID, title: title, message: message, date: date, appointmentId: appointmentId, type: type)
                 } ?? []
                 print("Fetched \(notifications.count) notifications")
-                
-                // After fetching notifications, check for upcoming appointments and generate notifications if needed
-                checkAndGenerateAppointmentNotifications()
             }
     }
     
@@ -518,33 +525,36 @@ struct HomeView_patient: View {
                 continue
             }
             
-            // Calculate the time difference between now and the appointment date
             let timeInterval = appointmentDate.timeIntervalSince(now)
-            let hoursUntilAppointment = timeInterval / 3600 // Convert seconds to hours
+            let hoursUntilAppointment = timeInterval / 3600
             
             print("Appointment \(appointment.id) with date \(appointmentDate) is \(hoursUntilAppointment) hours away")
             
-            // Check if the appointment is within the 23-25 hour window (approximately 24 hours away)
-            if hoursUntilAppointment >= 23 && hoursUntilAppointment <= 25 {
-                // Check if a notification for this appointment already exists
+            // Check if the appointment is within the 24-48 hour window
+            if hoursUntilAppointment >= 24 && hoursUntilAppointment <= 48 {
                 let notificationExists = notifications.contains { notification in
-                    notification.appointmentId == appointment.id
+                    notification.appointmentId == appointment.id && notification.type == "reminder"
                 }
                 
                 if !notificationExists {
-                    // Generate a new notification
                     let doctorName = getDoctorName(for: appointment.docId)
                     let notificationTitle = "Upcoming Appointment Reminder"
-                    let notificationMessage = "You have an appointment with \(doctorName) tomorrow at \(formatDateTime(appointment.date).time)."
-                    let notificationDate = Date() // Current timestamp for the notification
+                    let daysAway = Int(hoursUntilAppointment / 24)
+                    let notificationMessage: String
+                    if daysAway == 1 {
+                        notificationMessage = "Your appointment with \(doctorName) is tomorrow at \(formatDateTime(appointment.date).time)."
+                    } else {
+                        notificationMessage = "Your appointment with \(doctorName) is in \(daysAway) days at \(formatDateTime(appointment.date).time)."
+                    }
+                    let notificationDate = Date()
                     
-                    // Save the notification to Firestore
                     let notificationData: [String: Any] = [
                         "patientId": currentPatientId,
                         "title": notificationTitle,
                         "message": notificationMessage,
                         "date": Timestamp(date: notificationDate),
-                        "appointmentId": appointment.id // Link the notification to the appointment
+                        "appointmentId": appointment.id,
+                        "type": "reminder"
                     ]
                     
                     db.collection("notifications").addDocument(data: notificationData) { error in
@@ -558,7 +568,7 @@ struct HomeView_patient: View {
                     print("Notification already exists for appointment \(appointment.id)")
                 }
             } else {
-                print("Appointment \(appointment.id) is not within the 23-25 hour window (\(hoursUntilAppointment) hours away)")
+                print("Appointment \(appointment.id) is not within the 24-48 hour window (\(hoursUntilAppointment) hours away)")
             }
         }
     }
@@ -652,7 +662,6 @@ struct HomeView_patient: View {
                 self.isLoading = false
                 print("Updated upcomingSchedules: \(self.upcomingSchedules.count) appointments, isLoading: \(self.isLoading)")
                 
-                // After updating appointments, check for notifications
                 self.checkAndGenerateAppointmentNotifications()
             }
     }
@@ -687,28 +696,24 @@ struct HomeView_patient: View {
         guard let date = date else { return ("No date", "No time") }
         
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "EEE, d MMM yyyy"  // e.g., "Wed, 7 Sep 2024"
+        dateFormatter.dateFormat = "EEE, d MMM yyyy"
         let dateStr = dateFormatter.string(from: date)
         
-        dateFormatter.dateFormat = "h:mm a"  // e.g., "10:30 AM"
+        dateFormatter.dateFormat = "h:mm a"
         let timeStr = dateFormatter.string(from: date)
         
         return (dateStr, timeStr)
     }
 }
 
-// MARK: - Improved Card Components
-
 struct ImprovedAppointmentCard: View {
     let doctorName: String
     let specialty: String
-    let date: String  // Just the date portion (e.g., "Wed, 7 Sep 2024")
-    let time: String  // Just the time portion (e.g., "10:30 - 11:30 AM")
+    let date: String
+    let time: String
     let imageName: String
     @Binding var appointment: Appointment
     @State private var showDetails = false
-    
-    // Updated purple color to match first screenshot (more of a periwinkle)
     private let purpleColor = Color(red: 0.51, green: 0.44, blue: 0.87)
     
     var body: some View {
@@ -716,15 +721,12 @@ struct ImprovedAppointmentCard: View {
             showDetails = true
         }) {
             ZStack {
-                // Background with rounded corners
                 RoundedRectangle(cornerRadius: 20)
                     .fill(purpleColor)
                     .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
                 
                 VStack(alignment: .leading, spacing: 12) {
-                    // Doctor info row
                     HStack(spacing: 12) {
-                        // Doctor image
                         Group {
                             if UIImage(named: imageName) != nil {
                                 Image(imageName)
@@ -755,11 +757,8 @@ struct ImprovedAppointmentCard: View {
                         Spacer()
                     }
                     
-                    // Appointment time row in a continuous rounded background
                     HStack {
-                        // Combined date and time in single rounded background
                         HStack(spacing: 6) {
-                            // Date with calendar icon
                             HStack(spacing: 6) {
                                 Image(systemName: "calendar")
                                     .foregroundColor(.white)
@@ -773,13 +772,11 @@ struct ImprovedAppointmentCard: View {
                             .padding(.leading, 12)
                             .padding(.trailing, 6)
                             
-                            // Spacer with subtle divider
                             Rectangle()
                                 .frame(width: 1, height: 20)
                                 .foregroundColor(.white.opacity(0.3))
                                 .padding(.horizontal, 4)
                             
-                            // Time with clock icon
                             HStack(spacing: 6) {
                                 Image(systemName: "clock")
                                     .foregroundColor(.white)
@@ -929,7 +926,6 @@ struct ImprovedMedicalRecordCard: View {
                 .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
             
             HStack(spacing: 16) {
-                // Icon
                 ZStack {
                     Circle()
                         .fill(primaryColor.opacity(0.1))
@@ -942,7 +938,6 @@ struct ImprovedMedicalRecordCard: View {
                         .foregroundColor(primaryColor)
                 }
                 
-                // Content
                 VStack(alignment: .leading, spacing: 6) {
                     Text(title)
                         .font(.system(size: 16, weight: .bold))
@@ -961,7 +956,6 @@ struct ImprovedMedicalRecordCard: View {
                 
                 Spacer()
                 
-                // Chevron
                 Image(systemName: "chevron.right")
                     .foregroundColor(.secondary)
                     .font(.system(size: 14))
@@ -985,7 +979,6 @@ struct AllDoctorsView: View {
             
             ScrollView {
                 VStack(spacing: 16) {
-                    // Header
                     HStack {
                         Text("Previously Visited Doctors")
                             .font(.system(size: 24, weight: .bold))
@@ -997,7 +990,6 @@ struct AllDoctorsView: View {
                     .padding(.horizontal, 20)
                     
                     if doctors.isEmpty {
-                        // Empty state view
                         VStack(spacing: 12) {
                             Image(systemName: "person.2.fill")
                                 .resizable()
@@ -1018,7 +1010,6 @@ struct AllDoctorsView: View {
                         .padding(.vertical, 100)
                         .padding(.horizontal)
                     } else {
-                        // List of doctors
                         VStack(spacing: 16) {
                             ForEach(doctors, id: \.name) { doctor in
                                 DoctorListCard(
@@ -1054,7 +1045,6 @@ struct DoctorListCard: View {
                 .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
             
             HStack(spacing: 16) {
-                // Doctor image
                 Image(imageName)
                     .resizable()
                     .scaledToFill()
@@ -1062,7 +1052,6 @@ struct DoctorListCard: View {
                     .clipShape(Circle())
                     .overlay(Circle().stroke(primaryColor, lineWidth: 2))
                 
-                // Doctor info
                 VStack(alignment: .leading, spacing: 6) {
                     Text(name)
                         .font(.system(size: 16, weight: .bold))
@@ -1085,7 +1074,6 @@ struct DoctorListCard: View {
                 
                 Spacer()
                 
-                // Call button
                 Button(action: {}) {
                     ZStack {
                         Circle()
@@ -1120,7 +1108,6 @@ struct ImprovedDoctorCard: View {
                 .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
             
             HStack(spacing: 16) {
-                // Doctor image
                 Image(imageName)
                     .resizable()
                     .scaledToFill()
@@ -1128,7 +1115,6 @@ struct ImprovedDoctorCard: View {
                     .clipShape(Circle())
                     .overlay(Circle().stroke(primaryColor, lineWidth: 2))
                 
-                // Doctor info
                 VStack(alignment: .leading, spacing: 6) {
                     Text(name)
                         .font(.system(size: 16, weight: .bold))
@@ -1145,7 +1131,6 @@ struct ImprovedDoctorCard: View {
                 
                 Spacer()
                 
-                // Call button
                 Button(action: {}) {
                     ZStack {
                         Circle()
@@ -1173,12 +1158,10 @@ struct AllAppointmentsView: View {
     
     var body: some View {
         ZStack {
-            // Background color to match home screen
             backgroundColor
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 16) {
-                // Header
                 HStack {
                     Text("Upcoming Appointments")
                         .font(.system(size: 24, weight: .bold))
@@ -1190,7 +1173,6 @@ struct AllAppointmentsView: View {
                 .padding(.horizontal, 20)
                 
                 if appointments.isEmpty {
-                    // Empty state view
                     VStack(spacing: 12) {
                         Image(systemName: "calendar")
                             .resizable()
@@ -1211,7 +1193,6 @@ struct AllAppointmentsView: View {
                     .padding(.vertical, 100)
                     .padding(.horizontal)
                 } else {
-                    // List of appointments
                     ScrollView {
                         VStack(spacing: 16) {
                             ForEach(appointments) { appointment in
@@ -1235,7 +1216,6 @@ struct AllAppointmentsView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
     
-    // Doctor name helper
     private func getDoctorName(for docId: String) -> String {
         for specialty in DoctorData.doctors.keys {
             if let doctor = DoctorData.doctors[specialty]?.first(where: { $0.id == docId }) {
@@ -1245,7 +1225,6 @@ struct AllAppointmentsView: View {
         return "Unknown Doctor"
     }
     
-    // Doctor specialty helper
     private func getDoctorSpecialty(for docId: String) -> String {
         for specialty in DoctorData.doctors.keys {
             if DoctorData.doctors[specialty]?.contains(where: { $0.id == docId }) ?? false {
@@ -1255,7 +1234,6 @@ struct AllAppointmentsView: View {
         return "Unknown Specialty"
     }
     
-    // Date formatter helper
     private func formatDate(_ date: Date?) -> String {
         guard let date = date else { return "No date" }
         let formatter = DateFormatter()
@@ -1284,7 +1262,6 @@ struct AppointmentListCard: View {
                     .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
                 
                 HStack(spacing: 16) {
-                    // Doctor image
                     Group {
                         if UIImage(named: imageName) != nil {
                             Image(imageName)
@@ -1302,7 +1279,6 @@ struct AppointmentListCard: View {
                         }
                     }
                     
-                    // Appointment details
                     VStack(alignment: .leading, spacing: 6) {
                         Text(doctorName)
                             .font(.system(size: 16, weight: .bold))
@@ -1312,7 +1288,6 @@ struct AppointmentListCard: View {
                             .font(.system(size: 14))
                             .foregroundColor(.secondary)
                         
-                        // Date with icon
                         HStack(spacing: 6) {
                             Image(systemName: "calendar")
                                 .foregroundColor(primaryColor)
@@ -1326,7 +1301,6 @@ struct AppointmentListCard: View {
                     
                     Spacer()
                     
-                    // Right arrow
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
                         .font(.system(size: 14))
@@ -1350,15 +1324,16 @@ struct AppointmentListCard: View {
     }
 }
 
-// New card design for the list view that matches the home screen
 struct ImprovedAppointmentListCard: View {
     let doctorName: String
-    let specialty: String
+   
+
+ let specialty: String
     let date: String
     let imageName: String
     @Binding var appointment: Appointment
-    let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
-    let secondaryColor = Color(red: 0.55, green: 0.48, blue: 0.99)
+    private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    private let secondaryColor = Color(red: 0.55, green: 0.48, blue: 0.99)
     @State private var showDetails = false
     
     var body: some View {
@@ -1375,7 +1350,6 @@ struct ImprovedAppointmentListCard: View {
                     .shadow(color: primaryColor.opacity(0.25), radius: 8, x: 0, y: 4)
                 
                 HStack(spacing: 16) {
-                    // Doctor image/icon
                     Group {
                         if UIImage(named: imageName) != nil {
                             Image(imageName)
@@ -1393,7 +1367,6 @@ struct ImprovedAppointmentListCard: View {
                         }
                     }
                     
-                    // Appointment details
                     VStack(alignment: .leading, spacing: 8) {
                         Text(doctorName)
                             .font(.system(size: 18, weight: .bold))
@@ -1403,7 +1376,6 @@ struct ImprovedAppointmentListCard: View {
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white.opacity(0.9))
                         
-                        // Date with icon
                         HStack(spacing: 6) {
                             Image(systemName: "calendar")
                                 .foregroundColor(.white.opacity(0.9))
@@ -1417,7 +1389,6 @@ struct ImprovedAppointmentListCard: View {
                     
                     Spacer()
                     
-                    // Right arrow
                     Image(systemName: "chevron.right")
                         .foregroundColor(.white)
                         .font(.system(size: 18))
@@ -1448,7 +1419,7 @@ struct AppointmentCard: View {
     let date: String
     let imageName: String
     @Binding var appointment: Appointment
-    let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     @State private var showDetails = false
     
     var body: some View {

@@ -6,86 +6,105 @@ struct NotesView: View {
     @State private var notes: String = ""
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
-    @Environment(\.dismiss) private var dismiss
+    @State private var navigateBackToPatientProfile = false
     
     private let db = Firestore.firestore()
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     
-    init(appointment: Appointment) {
-        self.appointment = appointment
-    }
-    
     var body: some View {
-        VStack(spacing: 16) {
-            // Header
-            Text("Add Notes for Appointment")
-                .font(.system(.title2, design: .rounded, weight: .bold))
-                .foregroundColor(.primary)
-                .padding(.top, 16)
-            
-            // Text Editor
-            TextEditor(text: $notes)
-                .font(.system(.body, design: .rounded))
-                .frame(minHeight: 200)
-                .padding(8)
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(purpleColor, lineWidth: 1)
-                )
-            
-            // Buttons
-            HStack(spacing: 16) {
-                Button(action: {
-                    print("Cancel button tapped, dismissing NotesView")
-                    dismiss()
-                }) {
-                    Text("Cancel")
-                        .font(.system(.body, design: .rounded, weight: .medium))
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.gray.opacity(0.2))
-                        .foregroundColor(.primary)
-                        .cornerRadius(8)
-                }
+        NavigationStack {
+            VStack(spacing: 16) {
+                // Header
+                Text("Add Notes for Appointment")
+                    .font(.system(.title2, design: .rounded, weight: .bold))
+                    .foregroundColor(.primary)
+                    .padding(.top, 16)
                 
-                Button(action: {
-                    saveNotes()
-                }) {
-                    Text("Save")
-                        .font(.system(.body, design: .rounded, weight: .medium))
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(purpleColor)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
-            }
-            
-            Spacer()
-        }
-        .padding(.horizontal)
-        .alert(isPresented: $showAlert) {
-            Alert(
-                title: Text("Notes"),
-                message: Text(alertMessage),
-                dismissButton: .default(Text("OK")) {
-                    if alertMessage.contains("successfully") {
-                        print("Notes saved successfully, dismissing NotesView")
-                        dismiss()
+                // Text Editor
+                TextEditor(text: $notes)
+                    .font(.system(.body, design: .rounded))
+                    .frame(minHeight: 200)
+                    .padding(8)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(purpleColor, lineWidth: 1)
+                    )
+                
+                // Buttons
+                HStack(spacing: 16) {
+                    Button(action: {
+                        print("Cancel button tapped, navigating back to PatientProfileView")
+                        navigateBackToPatientProfile = true
+                    }) {
+                        Text("Cancel")
+                            .font(.system(.body, design: .rounded, weight: .medium))
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.gray.opacity(0.2))
+                            .foregroundColor(.primary)
+                            .cornerRadius(8)
+                    }
+                    
+                    Button(action: {
+                        saveNotes()
+                    }) {
+                        Text("Save")
+                            .font(.system(.body, design: .rounded, weight: .medium))
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(purpleColor)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
                     }
                 }
-            )
-        }
-        .navigationTitle("Notes")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            print("NotesView appeared, fetching notes for apptId: \(appointment.apptId)")
-            fetchNotes()
-        }
-        .onDisappear {
-            print("NotesView disappeared")
+                
+                Spacer()
+            }
+            .padding(.horizontal)
+            .navigationTitle("Notes")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true) // Hide default back button
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        print("Custom back button tapped, navigating back to PatientProfileView")
+                        navigateBackToPatientProfile = true
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .foregroundColor(purpleColor)
+                        Text("Back")
+                            .foregroundColor(purpleColor)
+                    }
+                }
+            }
+            .navigationDestination(isPresented: $navigateBackToPatientProfile) {
+                PatientProfileView(
+                    patientIdentifier: appointment.patientId,
+                    doctorId: appointment.docId,
+                    doctorName: "Doctor" // Ideally, fetch this from AuthManager or pass from DoctorDashboardView
+                )
+            }
+            .alert(isPresented: $showAlert) {
+                Alert(
+                    title: Text("Notes"),
+                    message: Text(alertMessage),
+                    dismissButton: .default(Text("OK")) {
+                        if alertMessage.contains("successfully") {
+                            print("Notes saved successfully, navigating back to PatientProfileView")
+                            navigateBackToPatientProfile = true
+                        }
+                    }
+                )
+            }
+            .onAppear {
+                print("NotesView appeared, fetching notes for apptId: \(appointment.apptId)")
+                fetchNotes()
+            }
+            .onDisappear {
+                print("NotesView disappeared")
+            }
         }
     }
     
@@ -131,7 +150,6 @@ struct NotesView: View {
         ]
         
         print("Saving notes to: doctors/\(appointment.docId)/doctorsNotes/\(appointment.apptId)")
-        
         db.collection("doctors")
             .document(appointment.docId)
             .collection("doctorsNotes")
@@ -155,7 +173,3 @@ struct NotesView: View {
             }
     }
 }
-
-
-
-

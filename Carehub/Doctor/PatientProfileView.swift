@@ -1,18 +1,3 @@
-//
-//  PatientProfileView.swift
-//  Carehub
-//
-//  Created by Yash Gupta on 02/05/25.
-//
-
-
-//
-//  PatientProfileView.swift
-//  Carehub
-//
-//  Created by admin70 on 02/05/25.
-
-
 import SwiftUI
 import Firebase
 import FirebaseFirestore
@@ -91,9 +76,22 @@ struct PatientProfileView: View {
             }
             .navigationTitle("Patient Profile")
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                initializeFirebase()
-                retrievePatientProfile()
+            .navigationBarBackButtonHidden(true) // Hide default back button
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        print("Custom back button tapped, navigating back to DoctorDashboardView")
+                        navigateToDashboard = true
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .foregroundColor(Color(red: 0.45, green: 0.36, blue: 0.98))
+                        Text("Back")
+                            .foregroundColor(Color(red: 0.45, green: 0.36, blue: 0.98))
+                    }
+                }
+            }
+            .navigationDestination(isPresented: $navigateToDashboard) {
+                DoctorDashboardView()
             }
             .navigationDestination(isPresented: $showNotesView) {
                 if let appointment = appointment, !doctorId.isEmpty {
@@ -121,6 +119,10 @@ struct PatientProfileView: View {
                         }
                     }
                 )
+            }
+            .onAppear {
+                initializeFirebase()
+                retrievePatientProfile()
             }
         }
     }
@@ -317,7 +319,6 @@ struct PatientProfileView: View {
                     do {
                         let patientData = try self.parsePatientProfile(document: document)
                         self.patientInfo = patientData
-                        // After fetching patient profile, fetch the appointment
                         self.fetchAppointment()
                     } catch {
                         self.errorText = "Error parsing data: \(error.localizedDescription)"
@@ -346,7 +347,6 @@ struct PatientProfileView: View {
                     do {
                         let patientData = try self.parsePatientProfile(document: document)
                         self.patientInfo = patientData
-                        // After fetching patient profile, fetch the appointment
                         self.fetchAppointment()
                     } catch {
                         self.errorText = "Error parsing data: \(error.localizedDescription)"
@@ -359,7 +359,6 @@ struct PatientProfileView: View {
             do {
                 let patientData = try self.parsePatientProfile(document: document)
                 self.patientInfo = patientData
-                // After fetching patient profile, fetch the appointment
                 self.fetchAppointment()
             } catch {
                 self.errorText = "Error parsing data: \(error.localizedDescription)"
@@ -387,7 +386,6 @@ struct PatientProfileView: View {
                     return
                 }
                 
-                // Take the first matching appointment (you might want to sort by date or filter further)
                 let document = documents.first!
                 do {
                     let appointmentData = try self.parseAppointment(document: document)
@@ -508,7 +506,6 @@ struct PatientProfileView: View {
         formatter.dateFormat = "yyyy-MM-dd"
         let dateString = formatter.string(from: currentDate)
         
-        // Generate a unique ID for the lab test request
         let labTestId = UUID().uuidString
         
         let testData: [String: Any] = [
@@ -516,7 +513,7 @@ struct PatientProfileView: View {
             "doc": doctorName,
             "id": labTestId,
             "patientId": patientIdentifier,
-            "pdfUrl": "", // Set as empty string as requested
+            "pdfUrl": "",
             "status": "Pending",
             "testName": labTestsInput
         ]
@@ -622,8 +619,6 @@ struct VitalStatCard: View {
     }
 }
 
-
-
 struct ProfileData {
     let fullName: String
     let dateOfBirth: String
@@ -643,18 +638,6 @@ struct HealthEntry {
     let timestamp: Date
     let reading: String
 }
-
-
-struct PatientProfileView_Previews: PreviewProvider {
-    static var previews: some View {
-        PatientProfileView(
-            patientIdentifier: "PT012",
-            doctorId: "DOC123",
-            doctorName: "Dr. John Doe"
-        )
-    }
-}
-
 
 struct PatientProfile {
     let patientIdentifier: String

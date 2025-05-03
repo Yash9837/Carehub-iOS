@@ -6,7 +6,53 @@ struct DoctorView: View {
     @State private var specialties: [String] = []
     @State private var isDataLoaded = false
     @State private var isDataLoadFailed = false
+    @State private var searchText = ""
     let columns = [GridItem(.flexible()), GridItem(.flexible())]
+    
+    // Struct to hold doctor and their specialty for search results
+    struct DoctorSearchResult: Identifiable {
+        let id = UUID()
+        let doctor: Doctor
+        let specialty: String
+    }
+    
+    // Compute doctor matches for the search query
+    var doctorSearchResults: [DoctorSearchResult] {
+        if searchText.isEmpty {
+            return []
+        }
+        var results: [DoctorSearchResult] = []
+        for specialty in specialties {
+            let doctorsInSpecialty = DoctorData.doctors[specialty] ?? []
+            for doctor in doctorsInSpecialty {
+                if doctor.doctor_name.lowercased().contains(searchText.lowercased()) {
+                    results.append(DoctorSearchResult(doctor: doctor, specialty: specialty))
+                }
+            }
+        }
+        return results
+    }
+    
+    // Filter specialties when no doctor matches or search is broader
+    var filteredSpecialties: [String] {
+        if !searchText.isEmpty && !doctorSearchResults.isEmpty {
+            // If there are doctor matches, don't show specialties
+            return []
+        }
+        if searchText.isEmpty {
+            return specialties
+        } else {
+            return specialties.filter { specialty in
+                let specialtyMatches = specialty.lowercased().contains(searchText.lowercased())
+                let doctorsInSpecialty = DoctorData.doctors[specialty] ?? []
+                let doctorMatches = doctorsInSpecialty.contains { doctor in
+                    doctor.doctor_name.lowercased().contains(searchText.lowercased())
+                }
+                return specialtyMatches || doctorMatches
+            }
+        }
+    }
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -38,21 +84,81 @@ struct DoctorView: View {
                 } else {
                     ScrollView {
                         VStack(spacing: 20) {
-                            Text("Select a Specialty")
-                                .font(.system(size: 28, weight: .bold))
-                                .padding(16)
-                                .padding(.bottom, 8)
-                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                            LazyVGrid(columns: columns, spacing: 16) {
-                                ForEach(specialties, id: \.self) { specialty in
-                                    NavigationLink(destination: SpecialtyDoctorsView(selectedSpecialty: specialty)) {
-                                        SpecialtyCard(specialty: specialty)
+                            // Search Bar
+                            HStack {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                    .font(.system(size: 18))
+                                    .padding(.leading, 12)
+                                
+                                TextField("Search by specialty or doctor name...", text: $searchText)
+                                    .font(.system(size: 16))
+                                    .padding(.vertical, 12)
+                            }
+                            .background(Color.white)
+                            .cornerRadius(12)
+                            .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 16)
+                            
+                            // Doctor Search Results
+                            if !doctorSearchResults.isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Doctors")
+                                        .font(.system(size: 24, weight: .bold))
+                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                        .padding(.horizontal, 16)
+                                    
+                                    LazyVStack(spacing: 8) {
+                                        ForEach(doctorSearchResults) { result in
+                                            NavigationLink(destination: DoctorDetailView(doctor: result.doctor, specialty: result.specialty)) {
+                                                HStack {
+                                                    Text(result.doctor.doctor_name)
+                                                        .font(.system(size: 18, weight: .semibold))
+                                                        .foregroundColor(.black)
+                                                    Text(result.doctor.department)
+                                                        .font(.system(size: 18, weight: .semibold))
+                                                        .foregroundColor(.black)
+                                                    Spacer()
+                                                    Image(systemName: "chevron.right")
+                                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                                        .font(.system(size: 14, weight: .semibold))
+                                                }
+                                                .padding()
+                                                .background(Color.white)
+                                                .cornerRadius(12)
+                                                .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+                                                .padding(.horizontal, 16)
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                        }
                                     }
-                                    .buttonStyle(PlainButtonStyle())
                                 }
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 24)
+                            
+                            // Specialty Grid
+                            if !filteredSpecialties.isEmpty {
+                                VStack(spacing: 12) {
+                                    Text("Select a Specialty")
+                                        .font(.system(size: 28, weight: .bold))
+                                        .padding(.horizontal, 16)
+                                        .padding(.bottom, 8)
+                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                    
+                                    LazyVGrid(columns: columns, spacing: 16) {
+                                        ForEach(filteredSpecialties, id: \.self) { specialty in
+                                            NavigationLink(destination: SpecialtyDoctorsView(selectedSpecialty: specialty)) {
+                                                SpecialtyCard(specialty: specialty)
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                        }
+                                    }
+                                    .padding(.horizontal, 16)
+                                }
+                            }
+                            
+                            Spacer()
+                                .frame(height: 24)
                         }
                     }
                 }
@@ -132,7 +238,7 @@ struct SpecialtyDoctorsView: View {
         }
         return sortByExp ? filtered.sorted { ($0.doctor_experience ?? 0) > ($1.doctor_experience ?? 0) } : filtered.sorted { ($0.doctor_experience ?? 0) < ($1.doctor_experience ?? 0) }
     }
-
+    
     var body: some View {
         ZStack {
             Color(red: 0.94, green: 0.94, blue: 1.0)

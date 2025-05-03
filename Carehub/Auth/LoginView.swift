@@ -3,7 +3,6 @@ import FirebaseAuth
 
 struct LoginView: View {
     enum Role { case patient, staff }
-    
     @State private var selectedRole: Role = .patient
     @State private var email: String = ""
     @State private var password: String = ""
@@ -52,7 +51,7 @@ struct LoginView: View {
                         VStack(spacing: 20) {
                             CareHubTextField(
                                 text: $email,
-                                placeholder: "Email or User ID",
+                                placeholder: selectedRole == .patient ? "Enter your Email ID" : "Enter your Staff ID",
                                 isSecure: false,
                                 isValid: true,
                                 icon: "envelope.fill"
@@ -63,7 +62,7 @@ struct LoginView: View {
                             
                             CareHubTextField(
                                 text: $password,
-                                placeholder: "Password",
+                                placeholder: "Enter Password",
                                 isSecure: true,
                                 isValid: true,
                                 icon: "lock.fill"
@@ -106,20 +105,22 @@ struct LoginView: View {
                         .disabled(isLoading || email.isEmpty || password.isEmpty)
                         .padding(.horizontal, 20)
                         
-                        // Register link
-                        HStack {
-                            Text("Don't have an account?")
-                                .foregroundColor(.black)
-                            NavigationLink(destination: RegisterView()) {
-                                Text("Register")
-                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                    .underline()
-                                    .fontWeight(.semibold)
+                        // Register link (only for patient role)
+                        if selectedRole == .patient {
+                            HStack {
+                                Text("Don't have an account?")
+                                    .foregroundColor(.black)
+                                NavigationLink(destination: RegisterView()) {
+                                    Text("Register")
+                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                        .underline()
+                                        .fontWeight(.semibold)
+                                }
                             }
+                            .padding(.horizontal, 20)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, 10)
                         }
-                        .padding(.horizontal, 20)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 10)
                         
                         Spacer()
                     }
@@ -225,7 +226,6 @@ struct LoginView: View {
         }
     }
 }
-
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
         LoginView()

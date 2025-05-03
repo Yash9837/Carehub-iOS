@@ -1,4 +1,8 @@
+import SwiftUI
+import FirebaseFirestore
+import UniformTypeIdentifiers
 
+// MARK: - PrescriptionImagePicker (Unchanged)
 struct PrescriptionImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     let sourceType: UIImagePickerController.SourceType
@@ -38,6 +42,7 @@ struct PrescriptionImagePicker: UIViewControllerRepresentable {
     }
 }
 
+// MARK: - PrescriptionDocumentPicker (Unchanged)
 struct PrescriptionDocumentPicker: UIViewControllerRepresentable {
     let onDocumentPicked: (URL) -> Void
     
@@ -72,10 +77,7 @@ struct PrescriptionDocumentPicker: UIViewControllerRepresentable {
     }
 }
 
-import SwiftUI
-import FirebaseFirestore
-import UniformTypeIdentifiers
-
+// MARK: - PrescriptionView (Updated)
 struct PrescriptionView: View {
     let appointment: Appointment
     @State private var showActionSheet = false
@@ -85,107 +87,131 @@ struct PrescriptionView: View {
     @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
     @State private var isUploading = false
     @State private var uploadStatus: String = ""
-    @Environment(\.dismiss) private var dismiss
+    @State private var navigateBackToPatientProfile = false
     
     private let db = Firestore.firestore()
+    private let blueColor = Color.blue
     
     var body: some View {
-        VStack {
-            if isUploading {
-                ProgressView("Uploading...")
-            } else if !uploadStatus.isEmpty {
-                Text(uploadStatus)
-                    .foregroundColor(uploadStatus.contains("success") ? .green : .red)
-                    .padding()
+        NavigationStack {
+            VStack {
+                if isUploading {
+                    ProgressView("Uploading...")
+                } else if !uploadStatus.isEmpty {
+                    Text(uploadStatus)
+                        .foregroundColor(uploadStatus.contains("success") ? .green : .red)
+                        .padding()
+                }
+                
+                if let image = selectedImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 300)
+                        .padding()
+                } else if let currentURLString = appointment.prescriptionId, !currentURLString.isEmpty {
+                    AsyncImage(url: URL(string: currentURLString)) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: 300)
+                                .padding()
+                        case .failure:
+                            Text("Failed to load prescription image")
+                                .foregroundColor(.red)
+                                .padding()
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+                }
+                
+                Button(action: {
+                    print("Select/Change Prescription button clicked")
+                    showActionSheet = true
+                }) {
+                    Text(appointment.prescriptionId == nil ? "Select File" : "Change Prescription")
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(blueColor)
+                        .cornerRadius(10)
+                }
+                .padding()
+                
+                Button(action: {
+                    print("Cancel button tapped, navigating back to PatientProfileView")
+                    navigateBackToPatientProfile = true
+                }) {
+                    Text("Cancel")
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(Color.gray)
+                        .cornerRadius(10)
+                }
+                .padding()
+                
+                Spacer()
             }
-            
-            if let image = selectedImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxHeight: 300)
-                    .padding()
-            } else if let currentURLString = appointment.prescriptionId, !currentURLString.isEmpty {
-                AsyncImage(url: URL(string: currentURLString)) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 300)
-                            .padding()
-                    case .failure:
-                        Text("Failed to load prescription image")
-                            .foregroundColor(.red)
-                            .padding()
-                    @unknown default:
-                        EmptyView()
+            .navigationTitle("Add Prescription")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true) // Hide default back button
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        print("Custom back button tapped, navigating back to PatientProfileView")
+                        navigateBackToPatientProfile = true
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .foregroundColor(blueColor)
+                        Text("Back")
+                            .foregroundColor(blueColor)
                     }
                 }
             }
-            
-            Button(action: {
-                print("Select/Change Prescription button clicked")
-                showActionSheet = true
-            }) {
-                Text(appointment.prescriptionId == nil ? "Select File" : "Change Prescription")
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(10)
+            .navigationDestination(isPresented: $navigateBackToPatientProfile) {
+                PatientProfileView(
+                    patientIdentifier: appointment.patientId,
+                    doctorId: appointment.docId,
+                    doctorName: "Doctor" // Ideally, fetch this from AuthManager or pass it from DoctorDashboardView
+                )
             }
-            .padding()
-            
-            Button(action: {
-                print("Cancel button tapped, dismissing PrescriptionView")
-                dismiss()
-            }) {
-                Text("Cancel")
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.gray)
-                    .cornerRadius(10)
+            .actionSheet(isPresented: $showActionSheet) {
+                ActionSheet(
+                    title: Text("Select Prescription Source"),
+                    buttons: [
+                        .default(Text("Camera")) {
+                            sourceType = .camera
+                            showImagePicker = true
+                        },
+                        .default(Text("Photo Library")) {
+                            sourceType = .photoLibrary
+                            showImagePicker = true
+                        },
+                        .default(Text("Document")) {
+                            showDocumentPicker = true
+                        },
+                        .cancel()
+                    ]
+                )
             }
-            .padding()
-            
-            Spacer()
-        }
-        .navigationTitle("Add Prescription")
-        .navigationBarTitleDisplayMode(.inline)
-        .actionSheet(isPresented: $showActionSheet) {
-            ActionSheet(
-                title: Text("Select Prescription Source"),
-                buttons: [
-                    .default(Text("Camera")) {
-                        sourceType = .camera
-                        showImagePicker = true
-                    },
-                    .default(Text("Photo Library")) {
-                        sourceType = .photoLibrary
-                        showImagePicker = true
-                    },
-                    .default(Text("Document")) {
-                        showDocumentPicker = true
-                    },
-                    .cancel()
-                ]
-            )
-        }
-        .sheet(isPresented: $showImagePicker) {
-            PrescriptionImagePicker(image: $selectedImage, sourceType: sourceType, onImagePicked: uploadPrescription)
-        }
-        .sheet(isPresented: $showDocumentPicker) {
-            PrescriptionDocumentPicker { url in
-                uploadDocument(url: url)
+            .sheet(isPresented: $showImagePicker) {
+                PrescriptionImagePicker(image: $selectedImage, sourceType: sourceType, onImagePicked: uploadPrescription)
             }
-        }
-        .onAppear {
-            print("PrescriptionView appeared for apptId: \(appointment.apptId)")
-        }
-        .onDisappear {
-            print("PrescriptionView disappeared")
+            .sheet(isPresented: $showDocumentPicker) {
+                PrescriptionDocumentPicker { url in
+                    uploadDocument(url: url)
+                }
+            }
+            .onAppear {
+                print("PrescriptionView appeared for apptId: \(appointment.apptId)")
+            }
+            .onDisappear {
+                print("PrescriptionView disappeared")
+            }
         }
     }
     
@@ -193,6 +219,7 @@ struct PrescriptionView: View {
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
             uploadStatus = "Error processing image"
             print("Error processing image")
+            navigateBackToPatientProfile = true
             return
         }
         
@@ -228,7 +255,7 @@ struct PrescriptionView: View {
                 uploadStatus = "Prescription uploaded successfully"
                 print("Prescription uploaded successfully: \(newURL)")
             }
+            navigateBackToPatientProfile = true
         }
     }
 }
-
