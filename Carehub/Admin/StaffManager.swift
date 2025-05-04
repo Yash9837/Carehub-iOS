@@ -21,26 +21,48 @@ class StaffManager: ObservableObject {
     
     func fetchAllStaff() {
         isLoading = true
-        staffList.removeAll() // Clear existing data to avoid duplication
+        staffList.removeAll()
         errorMessage = nil
         
         let dispatchGroup = DispatchGroup()
-        let staffCollections = StaffRole.allCases.map { $0.collectionName }
         
-        for collection in staffCollections {
+        // First fetch regular staff (non-doctors)
+        let regularStaffCollections = StaffRole.allCases
+            .filter { $0 != .doctor }
+            .map { $0.collectionName }
+        
+        fetchRegularStaff(collections: regularStaffCollections, dispatchGroup: dispatchGroup)
+        
+        // Then fetch doctors separately
+        dispatchGroup.enter()
+        fetchDoctors {
+            dispatchGroup.leave()
+        }
+        
+        dispatchGroup.notify(queue: .main) { [weak self] in
+            guard let self = self else { return }
+            self.isLoading = false
+            if self.staffList.isEmpty && self.errorMessage == nil {
+                self.errorMessage = "No staff data found in any collection"
+            }
+            print("Total staff fetched: \(self.staffList.count)")
+        }
+    }
+
+    private func fetchRegularStaff(collections: [String], dispatchGroup: DispatchGroup) {
+        for collection in collections {
             dispatchGroup.enter()
-            // Fetch all fields, filter manually
-            db.collection(collection).getDocuments { [weak self] (snapshot, error: Error?) in
+            
+            db.collection(collection).getDocuments { [weak self] (snapshot, error) in
                 guard let self = self else {
                     dispatchGroup.leave()
                     return
                 }
                 
-                defer { dispatchGroup.leave() } // Ensure leave is called even with errors
+                defer { dispatchGroup.leave() }
                 
                 if let error = error {
-                    self.errorMessage = (self.errorMessage ?? "") + "\nError fetching \(collection): \(error.localizedDescription)"
-                    print("Error fetching \(collection): \(error.localizedDescription)")
+                    self.handleFetchError(collection: collection, error: error)
                     return
                 }
                 
@@ -52,50 +74,86 @@ class StaffManager: ObservableObject {
                 do {
                     let staffMembers = try documents.compactMap { document -> Staff? in
                         let data = document.data()
-                        // Map Firestore fields to model fields
-                        let id = data["id"] as? String ?? document.documentID
-                        let fullName = data["Doctor_name"] as? String ?? data["name"] as? String ?? data["fullName"] as? String ?? "Unknown"
-                        let email = data["email"] as? String ?? data["Email"] as? String ?? ""
-                        let roleString = data["role"] as? String ?? ""
-                        let role = StaffRole(rawValue: roleString) ?? .doctor // Default to doctor if unknown
-                        let department = data["Filed_name"] as? String ?? data["department"] as? String
-                        let phoneNumber = data["phoneNumber"] as? String ?? data["phoneNo"] as? String
-                        let joinDate = (data["joinDate"] as? Timestamp)?.dateValue() ?? (data["createdAt"] as? Timestamp)?.dateValue()
-                        let profileImageURL = data["imageURL"] as? String ?? data["ImageURL"] as? String ?? ""// Map Firestore imageURL to profileImageURL
-                        let shift = data["shift"] as? Shift
-                        
                         return Staff(
-                            id: id,
-                            fullName: fullName,
-                            email: email,
-                            role: role,
-                            department: department,
-                            phoneNumber: phoneNumber,
-                            joinDate: joinDate,
-                            profileImageURL: profileImageURL,
-                            shift: shift ?? Shift(startTime: nil , endTime: nil)
+                            id: data["id"] as? String ?? document.documentID,
+                            fullName: data["fullName"] as? String ?? "Unknown",
+                            email: data["email"] as? String ?? "",
+                            role: StaffRole(rawValue: data["role"] as? String ?? "") ?? .nurse,
+                            department: data["department"] as? String,
+                            phoneNumber: data["phoneNumber"] as? String,
+                            joinDate: (data["joinDate"] as? Timestamp)?.dateValue(),
+                            profileImageURL: data["profileImageURL"] as? String ?? "",
+                            shift: (data["shift"] as? [String: Any]).map { dict in
+                                Shift(
+                                    startTime: (dict["startTime"] as? Timestamp)?.dateValue(),
+                                    endTime: (dict["endTime"] as? Timestamp)?.dateValue()
+                                )
+                            } ?? Shift(startTime: nil, endTime: nil)
                         )
                     }
                     
                     DispatchQueue.main.async {
                         self.staffList.append(contentsOf: staffMembers)
-                        print("Fetched \(staffMembers.count) staff from \(collection)")
                     }
                 } catch {
-                    self.errorMessage = (self.errorMessage ?? "") + "\nDecoding error in \(collection): \(error.localizedDescription)"
-                    print("Decoding error in \(collection): \(error.localizedDescription)")
+                    self.handleDecodingError(collection: collection, error: error)
                 }
             }
         }
-        
-        dispatchGroup.notify(queue: .main) { [weak self] in
-            guard let self = self else { return }
-            self.isLoading = false
-            if self.staffList.isEmpty && self.errorMessage == nil {
-                self.errorMessage = "No staff data found in any collection"
+    }
+
+    private func fetchDoctors(completion: @escaping () -> Void) {
+        db.collection("doctors").getDocuments { [weak self] (snapshot, error) in
+            guard let self = self else {
+                completion()
+                return
             }
-            print("Total staff fetched: \(self.staffList.count)")
+            
+            defer { completion() }
+            
+            if let error = error {
+                self.handleFetchError(collection: "doctors", error: error)
+                return
+            }
+            
+            guard let documents = snapshot?.documents else {
+                print("No documents found in doctors collection")
+                return
+            }
+            
+            do {
+                let doctors = try documents.compactMap { document -> Staff? in
+                    let data = document.data()
+                    return Staff(
+                        id: data["Doctorid"] as? String ?? document.documentID,
+                        fullName: data["Doctor_name"] as? String ?? "Unknown Doctor",
+                        email: data["Email"] as? String ?? "",
+                        role: .doctor,
+                        department: data["Filed_name"] as? String,
+                        phoneNumber: data["phoneNo"] as? String,
+                        joinDate: (data["createdAt"] as? Timestamp)?.dateValue(),
+                        profileImageURL: data["ImageURL"] as? String ?? "",
+                        shift: Shift(startTime: nil, endTime: nil) // Doctors might have different shift handling
+                    )
+                }
+                
+                DispatchQueue.main.async {
+                    self.staffList.append(contentsOf: doctors)
+                }
+            } catch {
+                self.handleDecodingError(collection: "doctors", error: error)
+            }
         }
+    }
+
+    private func handleFetchError(collection: String, error: Error) {
+        self.errorMessage = (self.errorMessage ?? "") + "\nError fetching \(collection): \(error.localizedDescription)"
+        print("Error fetching \(collection): \(error.localizedDescription)")
+    }
+
+    private func handleDecodingError(collection: String, error: Error) {
+        self.errorMessage = (self.errorMessage ?? "") + "\nDecoding error in \(collection): \(error.localizedDescription)"
+        print("Decoding error in \(collection): \(error.localizedDescription)")
     }
     
     func addStaff(_ staff: Staff, password: String, completion: @escaping (Bool) -> Void) {
@@ -108,6 +166,24 @@ class StaffManager: ObservableObject {
                     self.fetchAllStaff() // Refresh the list after adding
                 } else {
                     self.errorMessage = AuthManager.shared.errorMessage ?? "Failed to create staff"
+                }
+                
+                self.isLoading = false
+                completion(success)
+            }
+        }
+    }
+    
+    func addDoctor(_ doctor: Doctor, completion: @escaping (Bool) -> Void) {
+        isLoading = true
+        AuthManager.shared.createDoctor(doctor: doctor) { [weak self] (success: Bool) in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                if success {
+                    self.fetchAllStaff() // Refresh the list after adding
+                } else {
+                    self.errorMessage = AuthManager.shared.errorMessage ?? "Failed to create doctor"
                 }
                 
                 self.isLoading = false

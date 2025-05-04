@@ -7,6 +7,7 @@ class AuthManager: ObservableObject {
     private let logger = Logger(subsystem: "com.yourapp.Carehub", category: "Auth")
     
     @Published var currentStaffMember: Staff?
+    @Published var currentDoctor: Doctor?
     @Published var currentPatient: PatientF?
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -122,6 +123,54 @@ class AuthManager: ObservableObject {
                 self.isLoading = false
                 self.errorMessage = error.localizedDescription
                 completion(false)
+            }
+        }
+    }
+    
+    func createDoctor(doctor: Doctor, completion: @escaping (Bool) -> Void) {
+        isLoading = true
+        errorMessage = nil
+        
+        Auth.auth().createUser(withEmail: doctor.email ?? "", password: doctor.password ?? "") { [weak self] result, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                self.isLoading = false
+                self.errorMessage = error.localizedDescription
+                completion(false)
+                return
+            }
+            
+            guard let user = result?.user else {
+                self.isLoading = false
+                self.errorMessage = "Doctor creation failed"
+                completion(false)
+                return
+            }
+            
+            let doctorData: [String: Any] = [
+                "Doctorid": doctor.id,
+                "Filed_name": doctor.department,
+                "Doctor_name": doctor.doctor_name,
+                "Doctor_experience": doctor.doctor_experience ?? 0,
+                "Email": doctor.email ?? "",
+                "ImageURL": doctor.imageURL ?? "",
+                "Password": doctor.password,
+                "consultationFee": doctor.consultationFee ?? 0,
+                "license_number": doctor.license_number ?? "",
+                "phoneNo": doctor.phoneNo ?? "",
+                "doctorsNotes": [] // Initialize empty array for notes
+            ]
+            
+            self.db.collection("doctors").document(user.uid).setData(doctorData) { error in
+                self.isLoading = false
+                
+                if let error = error {
+                    self.errorMessage = error.localizedDescription
+                    completion(false)
+                } else {
+                    completion(true)
+                }
             }
         }
     }
@@ -282,43 +331,66 @@ class AuthManager: ObservableObject {
     }
     
     private func checkOtherStaffCollections(uid: String, completion: @escaping (Bool) -> Void) {
-        let collections = StaffRole.allCases
-            .filter { $0 != .admin }
-            .map { $0.collectionName }
-        
+        let roles = StaffRole.allCases.filter { $0 != .admin }
         var found = false
-        
-        for collection in collections {
+        let dispatchGroup = DispatchGroup()
+
+        for role in roles {
+            let collection = role.collectionName
+            dispatchGroup.enter()
+            logger.debug("Checking collection: \(collection)")
+            
             db.collection(collection).document(uid).getDocument { [weak self] snapshot, error in
-                guard let self = self, !found else { return }
-                
-                if self.isLoading == false { return } // If timed out, stop processing
-                
+                defer { dispatchGroup.leave() }
+                guard let self = self else { return }
+
+                if self.isLoading == false || found { return }
+
                 if let error = error {
                     self.logger.error("Error checking \(collection): \(error.localizedDescription)")
-                } else if let snapshot = snapshot, snapshot.exists {
+                    return
+                }
+
+                if let snapshot = snapshot, snapshot.exists {
                     found = true
                     do {
-                        let staff = try snapshot.data(as: Staff.self)
-                        DispatchQueue.main.async {
-                            self.currentStaffMember = staff
-                            self.currentPatient = nil
-                            self.isLoading = false
-                            self.logger.debug("Staff data loaded from \(collection): \(staff.fullName)")
-                            completion(true)
+                        // Role-specific decoding
+                        if role == .doctor {
+                            let doctor = try snapshot.data(as: Doctor.self)
+                            DispatchQueue.main.async {
+                                self.currentDoctor = doctor
+                                self.currentStaffMember = nil
+                                self.currentPatient = nil
+                                self.isLoading = false
+                                self.logger.debug("Doctor data loaded from \(collection): \(doctor.doctor_name)")
+                                completion(true)
+                            }
+                        } else {
+                            let staff = try snapshot.data(as: Staff.self)
+                            DispatchQueue.main.async {
+                                self.currentStaffMember = staff
+                                self.currentDoctor = nil
+                                self.currentPatient = nil
+                                self.isLoading = false
+                                self.logger.debug("Staff data loaded from \(collection): \(staff.fullName)")
+                                completion(true)
+                            }
                         }
                     } catch {
                         self.handleDecodingError(error, collection: collection)
                         completion(false)
                     }
                 }
-                
-                if collection == collections.last, !found {
-                    self.checkPatientCollection(uid: uid, completion: completion)
-                }
+            }
+        }
+
+        dispatchGroup.notify(queue: .main) {
+            if !found && self.isLoading {
+                self.checkPatientCollection(uid: uid, completion: completion)
             }
         }
     }
+
     
     private func checkPatientCollection(uid: String, completion: @escaping (Bool) -> Void) {
         db.collection("patients").document(uid).getDocument { [weak self] snapshot, error in

@@ -16,111 +16,81 @@ struct AddStaffView: View {
     @State private var alertMessage = ""
     @State private var profileImage: UIImage?
     @State private var showImagePicker = false
-    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    @State private var showingSuccessAlert = false
+    
+    // Doctor-specific fields
+    @State private var doctorExperience = ""
+    @State private var licenseNumber = ""
+    @State private var consultationFee = ""
+    
+    // UI Constants
+    private let accentColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     private let gradientColors = [Color(red: 0.43, green: 0.34, blue: 0.99), Color(red: 0.55, green: 0.48, blue: 0.99)]
+    private let backgroundColor = Color(red: 0.97, green: 0.97, blue: 1.0)
+    private let cardBackgroundColor = Color.white
+    private let textFieldBackground = Color(red: 0.96, green: 0.96, blue: 0.98)
     
     let departments = ["Cardiology", "Neurology", "Pediatrics", "Oncology", "Radiology", "Pathology", "Emergency"]
     
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(red: 0.94, green: 0.94, blue: 1.0)
+                backgroundColor
                     .edgesIgnoringSafeArea(.all)
                 
-                VStack(spacing: 20) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.white)
-                            .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
-                        Form {
-                            Section(header: Text("Personal Information")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.black)) {
-                                    TextField("Full Name", text: $fullName)
-                                    TextField("Email", text: $email)
-                                        .keyboardType(.emailAddress)
-                                        .autocapitalization(.none)
-                                    TextField("Phone Number", text: $phoneNumber)
-                                        .keyboardType(.phonePad)
-                                    
-                                    Button {
-                                        showImagePicker = true
-                                    } label: {
-                                        HStack {
-                                            Text("Profile Photo")
-                                            Spacer()
-                                            if let image = profileImage {
-                                                Image(uiImage: image)
-                                                    .resizable()
-                                                    .scaledToFill()
-                                                    .frame(width: 50, height: 50)
-                                                    .clipShape(Circle())
-                                            } else {
-                                                Image(systemName: "person.crop.circle.badge.plus")
-                                                    .font(.system(size: 24))
-                                                    .foregroundColor(purpleColor)
-                                            }
-                                        }
-                                    }
-                                }
-                            Section(header: Text("Professional Information")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.black)) {
-                                    Picker("Role", selection: $selectedRole) {
-                                        ForEach(StaffRole.allCases) { role in
-                                            Text(role.rawValue).tag(role)
-                                        }
-                                    }
-                                    .pickerStyle(MenuPickerStyle())
-                                    
-                                    if selectedRole == .doctor || selectedRole == .nurse {
-                                        Picker("Department", selection: $department) {
-                                            ForEach(departments, id: \.self) { dept in
-                                                Text(dept).tag(dept)
-                                            }
-                                        }
-                                        .pickerStyle(MenuPickerStyle())
-                                    }
-                                }
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Profile image at the top
+                        profileImageSection
+                        
+                        // Personal Information Section
+                        formSection(title: "Personal Information") {
+                            customTextField(title: "Full Name", text: $fullName, iconName: "person")
+                            customTextField(title: "Email", text: $email, iconName: "envelope")
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+                            customTextField(title: "Phone Number", text: $phoneNumber, iconName: "phone")
+                                .keyboardType(.phonePad)
+                        }
+                        
+                        // Professional Information Section
+                        formSection(title: "Professional Information") {
+                            rolePicker
                             
-                            Section(header: Text("Shift Information")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.black)) {
-                                    DatePicker("Shift Start Time",
-                                               selection: $shiftStartTime,
-                                               displayedComponents: .hourAndMinute)
-                                    
-                                    DatePicker("Shift End Time",
-                                               selection: $shiftEndTime,
-                                               displayedComponents: .hourAndMinute)
+                            if selectedRole == .doctor || selectedRole == .nurse {
+                                departmentPicker
                             }
                             
-                            Section(header: Text("Account Credentials")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.black)) {
-                                    SecureField("Password", text: $password)
-                                    SecureField("Confirm Password", text: $confirmPassword)
-                                }
+                            // Doctor-specific fields
+                            if selectedRole == .doctor {
+                                customTextField(title: "Years of Experience", text: $doctorExperience, iconName: "calendar.badge.clock")
+                                    .keyboardType(.numberPad)
+                                
+                                customTextField(title: "License Number", text: $licenseNumber, iconName: "doc.text")
+                                
+                                customTextField(title: "Consultation Fee", text: $consultationFee, iconName: "dollarsign.circle")
+                                    .keyboardType(.numberPad)
+                            }
                         }
-                        .background(Color.clear)
+                        
+                        // Shift Information Section
+                        formSection(title: "Shift Information") {
+                            shiftTimePicker
+                        }
+                        
+                        // Account Credentials Section
+                        formSection(title: "Account Credentials") {
+                            customSecureField(title: "Password", text: $password, iconName: "lock")
+                            customSecureField(title: "Confirm Password", text: $confirmPassword, iconName: "lock.shield")
+                        }
+                        
+                        // Save Button
+                        saveButton
+                            .padding(.vertical, 10)
                     }
                     .padding(.horizontal, 20)
-                    
-                    Button(action: saveStaff) {
-                        Text("Save")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(
-                                LinearGradient(gradient: Gradient(colors: gradientColors), startPoint: .leading, endPoint: .trailing)
-                            )
-                            .cornerRadius(10)
-                            .shadow(color: purpleColor.opacity(0.3), radius: 4, x: 0, y: 2)
-                    }
-                    .disabled(!formIsValid)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
+                    .padding(.top, 15)
+                    .padding(.bottom, 30)
                 }
             }
             .navigationTitle("Add New Staff")
@@ -130,7 +100,7 @@ struct AddStaffView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(purpleColor)
+                    .foregroundColor(accentColor)
                 }
             }
             .alert("Validation Error", isPresented: $showingAlert) {
@@ -142,16 +112,250 @@ struct AddStaffView: View {
                 ImagePicker(image: $profileImage)
             }
         }
+        .alert("Saved Successfully", isPresented: $showingSuccessAlert) {
+            Button("OK") {
+                dismiss() // Navigates back to the Admin Dashboard
+            }
+        }
+    }
+
+    
+    // MARK: - UI Components
+    
+    private var profileImageSection: some View {
+        Button {
+            showImagePicker = true
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(cardBackgroundColor)
+                    .frame(width: 110, height: 110)
+                    .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                
+                if let image = profileImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 100, height: 100)
+                        .clipShape(Circle())
+                } else {
+                    VStack(spacing: 8) {
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(accentColor.opacity(0.8))
+                        
+                        Text("Add Photo")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(accentColor)
+                    }
+                    .frame(width: 100, height: 100)
+                }
+            }
+        }
+        .padding(.vertical, 10)
     }
     
+    private func formSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(title)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.35))
+                .padding(.leading, 4)
+            
+            VStack(spacing: 14) {
+                content()
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(cardBackgroundColor)
+                    .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
+            )
+        }
+    }
+    
+    private func customTextField(title: String, text: Binding<String>, iconName: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.45))
+            
+            HStack(spacing: 10) {
+                Image(systemName: iconName)
+                    .foregroundColor(accentColor.opacity(0.6))
+                    .frame(width: 20)
+                
+                TextField("", text: text)
+                    .font(.system(size: 16))
+            }
+            .padding(12)
+            .background(textFieldBackground)
+            .cornerRadius(10)
+        }
+    }
+    
+    private func customSecureField(title: String, text: Binding<String>, iconName: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.45))
+            
+            HStack(spacing: 10) {
+                Image(systemName: iconName)
+                    .foregroundColor(accentColor.opacity(0.6))
+                    .frame(width: 20)
+                
+                SecureField("", text: text)
+                    .font(.system(size: 16))
+            }
+            .padding(12)
+            .background(textFieldBackground)
+            .cornerRadius(10)
+        }
+    }
+    
+    private var rolePicker: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Role")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.45))
+            
+            HStack {
+                Image(systemName: "person.text.rectangle")
+                    .foregroundColor(accentColor.opacity(0.6))
+                    .frame(width: 20)
+                
+                Picker("", selection: $selectedRole) {
+                    ForEach(StaffRole.allCases) { role in
+                        Text(role.rawValue).tag(role)
+                    }
+                }
+                .pickerStyle(MenuPickerStyle())
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(12)
+            .background(textFieldBackground)
+            .cornerRadius(10)
+        }
+    }
+    
+    private var departmentPicker: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Department")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.45))
+            
+            HStack {
+                Image(systemName: "building.2")
+                    .foregroundColor(accentColor.opacity(0.6))
+                    .frame(width: 20)
+                
+                Picker("", selection: $department) {
+                    Text("Select Department").tag("")
+                    ForEach(departments, id: \.self) { dept in
+                        Text(dept).tag(dept)
+                    }
+                }
+                .pickerStyle(MenuPickerStyle())
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(12)
+            .background(textFieldBackground)
+            .cornerRadius(10)
+        }
+    }
+    
+    private var shiftTimePicker: some View {
+            VStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Shift Start Time")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.45))
+                    
+                    HStack {
+                        Image(systemName: "clock")
+                            .foregroundColor(accentColor.opacity(0.6))
+                            .frame(width: 20)
+                        
+                        DatePicker("", selection: $shiftStartTime, displayedComponents: .hourAndMinute)
+                            .labelsHidden()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(12)
+                    .background(textFieldBackground)
+                    .cornerRadius(10)
+                    .frame(maxWidth: .infinity)
+                }
+                .frame(maxWidth: .infinity)
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Shift End Time")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.45))
+                    
+                    HStack {
+                        Image(systemName: "clock.badge.checkmark")
+                            .foregroundColor(accentColor.opacity(0.6))
+                            .frame(width: 20)
+                        
+                        DatePicker("", selection: $shiftEndTime, displayedComponents: .hourAndMinute)
+                            .labelsHidden()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(12)
+                    .background(textFieldBackground)
+                    .cornerRadius(10)
+                    .frame(maxWidth: .infinity)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    
+    private var saveButton: some View {
+        Button(action: saveStaff) {
+            Text("Save")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    formIsValid ?
+                    LinearGradient(gradient: Gradient(colors: gradientColors),
+                                  startPoint: .leading,
+                                  endPoint: .trailing) :
+                    LinearGradient(gradient: Gradient(colors: [Color.gray.opacity(0.5)]),
+                                  startPoint: .leading,
+                                  endPoint: .trailing)
+                )
+                .cornerRadius(12)
+                .shadow(color: formIsValid ? accentColor.opacity(0.3) : Color.clear, radius: 5, x: 0, y: 3)
+                .animation(.easeInOut(duration: 0.2), value: formIsValid)
+        }
+        .disabled(!formIsValid)
+    }
+    
+    // MARK: - Logic (unchanged)
+    
     var formIsValid: Bool {
-        !fullName.isEmpty &&
+        // Common validation
+        let commonValid = !fullName.isEmpty &&
         !email.isEmpty &&
         email.contains("@") &&
         !phoneNumber.isEmpty &&
         !password.isEmpty &&
         password == confirmPassword &&
         (selectedRole != .doctor && selectedRole != .nurse || !department.isEmpty)
+        
+        // Doctor-specific validation
+        if selectedRole == .doctor {
+            return commonValid &&
+            !doctorExperience.isEmpty &&
+            !licenseNumber.isEmpty &&
+            !consultationFee.isEmpty
+        }
+        
+        return commonValid
     }
     
     private func saveStaff() {
@@ -174,39 +378,87 @@ struct AddStaffView: View {
         case .nurse: prefix = "N"
         case .labTechnician: prefix = "LT"
         case .accountant: prefix = "ACC"
-        case .admin: prefix = "M" // M for Manager/Admin
+        case .admin: prefix = "M"
         }
         
         let randomNumbers = String(format: "%05d", Int.random(in: 0..<100000))
         let staffId = prefix + randomNumbers
         
-        let newStaff = Staff(
-            id: staffId,
-            fullName: fullName,
-            email: email,
-            role: selectedRole,
-            department: (selectedRole == .doctor || selectedRole == .nurse) ? department : nil,
-            phoneNumber: phoneNumber,
-            joinDate: Date(),
-            profileImageURL: nil,
-            shift: Shift(startTime: shiftStartTime, endTime: shiftEndTime)
-        )
-        
-        if let image = profileImage {
-            // Implement image upload to Firebase Storage
-        }
-        
-        staffManager.addStaff(newStaff, password: password) { success in
-            if success {
-                dismiss()
-            } else {
-                alertMessage = staffManager.errorMessage ?? "Failed to add staff"
-                showingAlert = true
+        if selectedRole == .doctor {
+            // Create Doctor object
+            let newDoctor = Doctor(
+                id: staffId,
+                department: department,
+                doctor_name: fullName,
+                doctor_experience: Int(doctorExperience),
+                email: email,
+                imageURL: nil, // Will be set after image upload
+                password: password,
+                consultationFee: Int(consultationFee),
+                license_number: licenseNumber,
+                phoneNo: phoneNumber,
+                doctorsNotes: nil
+            )
+            
+            staffManager.addDoctor(newDoctor) { success in
+                handleSaveResult(success: success)
+            }
+          
+        } else {
+            // Create generic Staff object for other roles
+            let newStaff = Staff(
+                id: staffId,
+                fullName: fullName,
+                email: email,
+                role: selectedRole,
+                department: (selectedRole == .doctor || selectedRole == .nurse) ? department : nil,
+                phoneNumber: phoneNumber,
+                joinDate: Date(),
+                profileImageURL: nil,
+                shift: Shift(startTime: shiftStartTime, endTime: shiftEndTime)
+            )
+            
+            staffManager.addStaff(newStaff, password: password) { success in
+                handleSaveResult(success: success)
             }
         }
     }
-}
     
+    private func handleSaveResult(success: Bool) {
+        if success {
+            showingSuccessAlert = true
+        } else {
+            alertMessage = staffManager.errorMessage ?? "Failed to add staff"
+            showingAlert = true
+        }
+    }
+}
+
+// Helper view for sections
+struct SectionView<Content: View>: View {
+    let title: String
+    let content: () -> Content
+    
+    init(title: String, @ViewBuilder content: @escaping () -> Content) {
+        self.title = title
+        self.content = content
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.black)
+                .padding(.top, 8)
+            
+            VStack(spacing: 16) {
+                content()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 8)
+    }
+}
     
     struct StaffDetailView: View {
         @State var staff: Staff
