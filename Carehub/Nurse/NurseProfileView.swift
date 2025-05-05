@@ -60,6 +60,7 @@ struct NurseProfileView: View {
                         )
                     }
 
+
                     // Logout Button
                     Section {
                         Button("Logout") {

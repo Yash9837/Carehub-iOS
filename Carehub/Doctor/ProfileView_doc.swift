@@ -450,7 +450,6 @@ struct SummaryItem: View {
         .frame(maxWidth: .infinity)
     }
 }
-
 struct NoteCard: View {
     let note: DoctorsNote
     let color: Color

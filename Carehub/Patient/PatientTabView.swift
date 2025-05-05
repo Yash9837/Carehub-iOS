@@ -38,31 +38,3 @@ struct PatientTabView: View {
         .accentColor(Color(red: 0.43, green: 0.34, blue: 0.99))
     }
 }
-#Preview {
-    let samplePatient = PatientF(
-        emergencyContact: [EmergencyContact(Number: "1234567890", name: "Emergency Contact")],
-        medicalRecords: [],
-        testResults: [],
-        userData: UserData(
-            Address: "123 Main St, City",
-            Dob: "01/01/1990",
-            Email: "john@example.com",
-            Name: "John Doe",
-            Password: "hashedpassword",
-            aadharNo: "123456789012",
-            phoneNo: "9876543210"
-        ),
-        vitals: Vitals(
-            allergies: ["Peanuts"],
-            bp: [],
-            heartRate: [],
-            height: [],
-            temperature: [],
-            weight: []
-        ),
-        lastModified: Date(),
-        patientId: "P123456",
-        username: "johndoe123"
-    )
-    PatientTabView(username: "TestUser", patient: samplePatient)
-}

@@ -45,10 +45,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
 
 struct UpdateTestView: View {
     let medicalTestId: String
-    @State private var status: String = ""
-    @State private var notes: String = ""
-    @State private var results: String = ""
-    @State private var selectedStatus: String = "Pending"
+    @State private var isCompleted: Bool = false
     @State private var isLoading = false
     @State private var pdfURL: URL? = nil
     @State private var isShowingPDFPicker = false
@@ -61,108 +58,59 @@ struct UpdateTestView: View {
             
             VStack(spacing: 20) {
                 // Header
-                Text("Medical Test")
+                Text("Update Medical Test Reports")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                     .padding(.top, 20)
                 
                 // Form Fields
                 VStack(spacing: 15) {
-                    // Status Dropdown
-                    Text("Update Status")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.gray)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 20)
-                    
-                    Picker("Select Status", selection: $selectedStatus) {
-                        Text("Pending").tag("Pending")
-                        Text("Completed").tag("Completed")
+                    // Status Toggle
+                    HStack {
+                        Text("Status : ")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.gray)
+                        
+                        Spacer()
+                        
+                        Toggle(isOn: $isCompleted) {
+                            Text(isCompleted ? "Completed" : "Pending")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.gray)
+                        }
+                        .tint(.green)
                     }
-                    .pickerStyle(MenuPickerStyle())
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                    )
-                    .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
-                    
-                    // Notes
-                    Text("Add Notes")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.gray)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 20)
-                    
-                    TextField("Enter notes here", text: $notes)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding()
-                        .background(Color.white)
-                        .cornerRadius(10)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                        )
-                        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
-                    
-                    // Results
-                    Text("Test Results")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.gray)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 20)
-                    
-                    TextField("Enter results here", text: $results)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding()
-                        .background(Color.white)
-                        .cornerRadius(10)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                        )
-                        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+                    .padding(.horizontal, 20)
                     
                     // PDF Upload
-                    Text("Upload Test Reports")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.gray)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 20)
-                    
-                    Button(action: {
+                   Button(action: {
                         isShowingPDFPicker = true
                     }) {
-                        Text("Select Pdf Report")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(red: 0.43, green: 0.34, blue: 0.99),
-                                        Color(red: 0.55, green: 0.48, blue: 0.99)
-                                    ]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .cornerRadius(12)
-                            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 3)
+                        VStack(spacing: 8) {
+                            Image(systemName: "document.badge.plus")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 40, height: 40)
+                                .foregroundColor(.blue)
+                            
+                            Text(pdfURL?.lastPathComponent ?? "Select PDF")
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, minHeight: 100)
+                        .background(Color.white)
+                        .cornerRadius(10)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        )
                     }
                     .padding(.horizontal, 20)
                     .sheet(isPresented: $isShowingPDFPicker) {
                         DocumentPicker(pdfURL: $pdfURL, onPDFSelected: uploadPDF)
-                    }
-                    
-                    if let pdfURL = pdfURL {
-                        Text("Selected PDF: \(pdfURL.lastPathComponent)")
-                            .font(.system(size: 14))
-                            .foregroundColor(.gray)
-                            .padding(.horizontal, 20)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -207,10 +155,8 @@ struct UpdateTestView: View {
         db.collection("medicalTests").document(medicalTestId).getDocument { (doc, error) in
             isLoading = false
             if let doc = doc, doc.exists, let data = doc.data() {
-                status = data["status"] as? String ?? ""
-                selectedStatus = status // Sync with dropdown
-                notes = data["notes"] as? String ?? ""
-                results = data["results"] as? String ?? ""
+                let status = data["status"] as? String ?? "Pending"
+                isCompleted = (status == "Completed")
             } else {
                 print("Error or document not found: \(error?.localizedDescription ?? "No error details")")
             }
@@ -221,9 +167,7 @@ struct UpdateTestView: View {
         isLoading = true
         let db = Firestore.firestore()
         var data: [String: Any] = [
-            "status": selectedStatus,
-            "notes": notes,
-            "results": results
+            "status": isCompleted ? "Completed" : "Pending"
         ]
         
         let dispatchGroup = DispatchGroup()
@@ -235,7 +179,7 @@ struct UpdateTestView: View {
                 if let error = error {
                     print("Upload failed: \(error.localizedDescription)")
                     dispatchGroup.leave()
-                    isLoading = false // Ensure loading state is reset on error
+                    isLoading = false
                     return
                 }
                 storageRef.downloadURL { url, error in
@@ -249,9 +193,6 @@ struct UpdateTestView: View {
                 }
             }
         }
-//        else {
-//            dispatchGroup.leave() // Leave immediately if no PDF
-//        }
         
         dispatchGroup.notify(queue: .main) {
             db.collection("medicalTests").document(medicalTestId).updateData(data) { error in
@@ -267,10 +208,6 @@ struct UpdateTestView: View {
     }
     
     private func uploadPDF(to url: URL) {
-        pdfURL = url // Store the selected URL
+        pdfURL = url
     }
-}
-
-#Preview {
-    UpdateTestView(medicalTestId: "884ADFO9-474D-4507-92DF-FC8D0FBC81A7")
 }
