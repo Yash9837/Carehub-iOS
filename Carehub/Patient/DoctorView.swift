@@ -109,17 +109,44 @@ struct DoctorView: View {
                                         .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                                         .padding(.horizontal, 16)
                                     
+<<<<<<< HEAD
                                     LazyVStack(spacing: 12) {
                                         ForEach(doctorSearchResults) { result in
                                             NavigationLink(destination: DoctorDetailView(doctor: result.doctor, specialty: result.specialty)) {
                                                 DoctorSearchResultCard(doctor: result.doctor, specialty: result.specialty)
                                                     .padding(.horizontal, 16)
+=======
+                                    LazyVStack(spacing: 8) {
+                                        ForEach(doctorSearchResults) { result in
+                                            NavigationLink(destination: DoctorDetailView(doctor: result.doctor, specialty: result.specialty)) {
+                                                HStack {
+                                                    Text(result.doctor.doctor_name)
+                                                        .font(.system(size: 18, weight: .semibold))
+                                                        .foregroundColor(.black)
+                                                    Text(result.doctor.department)
+                                                        .font(.system(size: 18, weight: .semibold))
+                                                        .foregroundColor(.black)
+                                                    Spacer()
+                                                    Image(systemName: "chevron.right")
+                                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                                        .font(.system(size: 14, weight: .semibold))
+                                                }
+                                                .padding()
+                                                .background(Color.white)
+                                                .cornerRadius(12)
+                                                .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+                                                .padding(.horizontal, 16)
+>>>>>>> 71493434c156a2bce1ee2f8ea58608718204f80f
                                             }
                                             .buttonStyle(PlainButtonStyle())
                                         }
                                     }
                                 }
                             }
+<<<<<<< HEAD
+=======
+                            
+>>>>>>> 71493434c156a2bce1ee2f8ea58608718204f80f
                             // Specialty Grid
                             if !filteredSpecialties.isEmpty {
                                 VStack(spacing: 12) {

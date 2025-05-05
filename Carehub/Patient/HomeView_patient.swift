@@ -1326,7 +1326,9 @@ struct AppointmentListCard: View {
 
 struct ImprovedAppointmentListCard: View {
     let doctorName: String
-    let specialty: String
+   
+
+ let specialty: String
     let date: String
     let imageName: String
     @Binding var appointment: Appointment
