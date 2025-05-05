@@ -109,33 +109,17 @@ struct DoctorView: View {
                                         .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                                         .padding(.horizontal, 16)
                                     
-                                    LazyVStack(spacing: 8) {
+                                    LazyVStack(spacing: 12) {
                                         ForEach(doctorSearchResults) { result in
                                             NavigationLink(destination: DoctorDetailView(doctor: result.doctor, specialty: result.specialty)) {
-                                                HStack {
-                                                    Text(result.doctor.doctor_name)
-                                                        .font(.system(size: 18, weight: .semibold))
-                                                        .foregroundColor(.black)
-                                                    Text(result.doctor.department)
-                                                        .font(.system(size: 18, weight: .semibold))
-                                                        .foregroundColor(.black)
-                                                    Spacer()
-                                                    Image(systemName: "chevron.right")
-                                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                                        .font(.system(size: 14, weight: .semibold))
-                                                }
-                                                .padding()
-                                                .background(Color.white)
-                                                .cornerRadius(12)
-                                                .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
-                                                .padding(.horizontal, 16)
+                                                DoctorSearchResultCard(doctor: result.doctor, specialty: result.specialty)
+                                                    .padding(.horizontal, 16)
                                             }
                                             .buttonStyle(PlainButtonStyle())
                                         }
                                     }
                                 }
                             }
-                            
                             // Specialty Grid
                             if !filteredSpecialties.isEmpty {
                                 VStack(spacing: 12) {
@@ -181,7 +165,75 @@ struct DoctorView: View {
         }
     }
 }
-
+struct DoctorSearchResultCard: View {
+    let doctor: Doctor
+    let specialty: String
+    private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Doctor Image/Icon
+            ZStack {
+                Circle()
+                    .fill(LinearGradient(
+                        gradient: Gradient(colors: [primaryColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .frame(width: 60, height: 60)
+                
+                Image(systemName: "person.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 30, height: 30)
+                    .foregroundColor(.white)
+            }
+            
+            // Doctor Info
+            VStack(alignment: .leading, spacing: 6) {
+                Text(doctor.doctor_name)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.black)
+                    .lineLimit(1)
+                
+                Text(specialty)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(primaryColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(primaryColor.opacity(0.1))
+                    .cornerRadius(8)
+                
+                if let experience = doctor.doctor_experience {
+                    HStack(spacing: 4) {
+                        Image(systemName: "briefcase.fill")
+                            .foregroundColor(primaryColor)
+                            .font(.system(size: 12))
+                        
+                        Text("\(experience) years experience")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.gray)
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            // Chevron
+            Image(systemName: "chevron.right")
+                .foregroundColor(primaryColor)
+                .font(.system(size: 14, weight: .bold))
+        }
+        .padding(16)
+        .background(Color.white)
+        .cornerRadius(14)
+        .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(primaryColor.opacity(0.2), lineWidth: 1)
+        )
+    }
+}
 struct SpecialtyCard: View {
     let specialty: String
     

@@ -747,31 +747,3 @@ struct EditableItemsSection: View {
         }
     }
 }
-
-#Preview {
-    let samplePatient = PatientF(
-        emergencyContact: [EmergencyContact(Number: "1234567890", name: "Emergency Contact")],
-        medicalRecords: [],
-        testResults: [],
-        userData: UserData(
-            Address: "123 Main St, City",
-            Dob: "01/01/1990",
-            Email: "john@example.com",
-            Name: "John Doe",
-            Password: "hashedpassword",
-            aadharNo: "123456789012",
-            phoneNo: "9876543210"
-        ),
-        vitals: Vitals(
-            allergies: ["Peanuts"],
-            bp: [VitalEntry(timestamp: Date(), value: "120/80")],
-            heartRate: [VitalEntry(timestamp: Date(), value: "72")],
-            height: [VitalEntry(timestamp: Date(), value: "175 cm")],
-            temperature: [VitalEntry(timestamp: Date(), value: "36.6°C")],
-            weight: [VitalEntry(timestamp: Date(), value: "70 kg")]
-        ),
-        lastModified: Date(),
-        patientId: "P123456",
-    )
-    ProfileView_patient(patient: samplePatient)
-}

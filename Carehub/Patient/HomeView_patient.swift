@@ -862,7 +862,7 @@ struct AllPrescriptionsView: View {
                                         date: formatDate(appointment.date),
                                         title: appointment.description
                                     )
-                                    .padding(.horizontal, 20)
+                                    .padding(.horizontal, 20) // Consistent padding with other views
                                     .accessibilityLabel("Prescription: \(appointment.description) by Dr. \(getDoctorName(for: appointment.docId)), dated \(formatDate(appointment.date))")
                                 }
                             )
@@ -962,7 +962,7 @@ struct ImprovedMedicalRecordCard: View {
             }
             .padding(16)
         }
-        .frame(width: 280, height: 100)
+        .frame(maxWidth: .infinity) // Stretch to max width, keep height as is
         .accessibilityLabel("\(title) by \(doctorName), dated \(date)")
     }
 }
@@ -1326,9 +1326,7 @@ struct AppointmentListCard: View {
 
 struct ImprovedAppointmentListCard: View {
     let doctorName: String
-   
-
- let specialty: String
+    let specialty: String
     let date: String
     let imageName: String
     @Binding var appointment: Appointment
