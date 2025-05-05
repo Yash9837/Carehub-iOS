@@ -77,7 +77,7 @@ struct LoginView: View {
                                 Rectangle()
                                     .fill(Color.clear)
                                     .frame(height: 24)
-                                    
+                                
                                 if isLoading {
                                     ProgressView()
                                         .tint(.white)
@@ -129,7 +129,7 @@ struct LoginView: View {
             }
             .navigationDestination(isPresented: $navigateToDashboard) {
                 dashboardContent
-                .navigationBarBackButtonHidden(true) // Ensure back button is hidden in dashboard
+                    .navigationBarBackButtonHidden(true) // Ensure back button is hidden in dashboard
             }
             .alert("Login Error", isPresented: $showAlert) {
                 Button("OK", role: .cancel) { }
@@ -150,37 +150,50 @@ struct LoginView: View {
     var dashboardContent: some View {
         if authManager.isLoading {
             ProgressView("Loading dashboard...")
-        } else if selectedRole == .patient {
-            if let patient = authManager.currentPatient {
-                PatientTabView(username: patient.userData.Name, patient: patient)
-            } else {
-                VStack {
-                    Text("No patient data found")
-                    Button("Try Again") {
-                        authManager.logout()
-                    }
-                }
-            }
-        } else if selectedRole == .staff, let staff = authManager.currentStaffMember {
-            switch staff.role {
-            case .admin:
-                AdminTabView()
-            case .doctor:
-                DoctorTabView()
-            case .nurse:
-                NurseTabView(nurseId: staff.id ?? "NUR001")
-            case .labTechnician:
-                LabTechTabView()
-            case .accountant:
-                AccountantDashboard(accountantId: staff.id ?? "KV93GmJ9k9VtzHtx0M8p1fH30Mf2")
-            }
         } else {
-            VStack {
-                Text("No staff data found")
-                Button("Try Again") {
-                    authManager.logout()
+            // Patient View
+            if selectedRole == .patient {
+                if let patient = authManager.currentPatient {
+                    PatientTabView(username: patient.userData.Name, patient: patient)
+                } else {
+                    noDataFoundView(message: "No patient data found")
                 }
             }
+            // Doctor View (now handled separately)
+            else if let doctor = authManager.currentDoctor {
+                DoctorTabView()
+            }
+            // Other Staff Views
+            else if selectedRole == .staff, let staff = authManager.currentStaffMember {
+                switch staff.role {
+                case .admin:
+                    AdminTabView()
+                case .nurse:
+                    NurseTabView(nurseId: staff.id ?? "")
+                case .labTechnician:
+                    LabTechTabView()
+                case .accountant:
+                    AccountantDashboard(accountantId: staff.id ?? "KV93GmJ9k9VtzHtx0M8p1fH30Mf2")
+                default:
+                    noDataFoundView(message: "Role not implemented")
+                }
+            }
+            // Fallback for no data
+            else {
+                noDataFoundView(message: "No user data found")
+            }
+        }
+    }
+
+    // Helper view for error states
+    private func noDataFoundView(message: String) -> some View {
+        VStack {
+            Text(message)
+                .padding()
+            Button("Try Again") {
+                authManager.logout()
+            }
+            .buttonStyle(.borderedProminent)
         }
     }
     
@@ -203,23 +216,25 @@ struct LoginView: View {
             DispatchQueue.main.async {
                 self.isLoading = false
                 if success {
-                    if selectedRole == .patient {
-                        if let patient = authManager.currentPatient {
+                    // Check for all possible user types
+                    if self.selectedRole == .patient {
+                        if AuthManager.shared.currentPatient != nil {
                             self.navigateToDashboard = true
                         } else {
                             self.errorMessage = "Invalid patient credentials"
                             self.showAlert = true
                         }
-                    } else if selectedRole == .staff {
-                        if let staff = authManager.currentStaffMember {
+                    } else { // For staff or doctor
+                        if AuthManager.shared.currentStaffMember != nil ||
+                            AuthManager.shared.currentDoctor != nil {
                             self.navigateToDashboard = true
                         } else {
-                            self.errorMessage = "Invalid staff credentials"
+                            self.errorMessage = "Invalid credentials"
                             self.showAlert = true
                         }
                     }
                 } else {
-                    self.errorMessage = authManager.errorMessage ?? "Login failed"
+                    self.errorMessage = AuthManager.shared.errorMessage ?? "Login failed"
                     self.showAlert = true
                 }
             }
@@ -231,3 +246,4 @@ struct LoginView_Previews: PreviewProvider {
         LoginView()
     }
 }
+

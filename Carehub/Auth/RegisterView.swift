@@ -668,7 +668,7 @@ struct RegisterView: View {
         let trimmedPassword = password.trimmingCharacters(in: .whitespaces)
         return !trimmedPassword.isEmpty && trimmedPassword.count >= 6 && !trimmedPassword.contains(" ")
     }
-    
+
     private func calculateAge(from dob: String) -> Int? {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "dd/MM/yyyy"

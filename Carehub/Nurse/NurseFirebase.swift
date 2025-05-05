@@ -174,21 +174,37 @@ class FirebaseService {
     }
     
     func fetchNurse(byId nurseId: String, completion: @escaping (Result<Nurse, Error>) -> Void) {
-        db.collection("nurses").document(nurseId).getDocument { snapshot, error in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
+        db.collection("nurses")
+            .whereField("id", isEqualTo: nurseId)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    completion(.failure(error))
+                    return
+                }
 
-            guard let data = snapshot?.data(),
-                  let nurse = Nurse(from: data) else {
-                completion(.failure(NSError(domain: "FirebaseService", code: 404, userInfo: [NSLocalizedDescriptionKey: "Nurse not found or data is invalid."])))
-                return
-            }
+                guard let document = snapshot?.documents.first else {
+                    completion(.failure(NSError(
+                        domain: "FirebaseService",
+                        code: 404,
+                        userInfo: [NSLocalizedDescriptionKey: "Nurse not found."]
+                    )))
+                    return
+                }
 
-            completion(.success(nurse))
-        }
+                guard let nurse = Nurse(from: document.data()) else {
+                    completion(.failure(NSError(
+                        domain: "FirebaseService",
+                        code: 422,
+                        userInfo: [NSLocalizedDescriptionKey: "Nurse data is invalid."]
+                    )))
+                    return
+                }
+
+                completion(.success(nurse))
+            }
     }
+
+
 
     func fetchAppointmentsForToday(completion: @escaping (Result<[Appointment], Error>) -> Void) {
         let calendar = Calendar.current

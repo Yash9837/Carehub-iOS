@@ -18,11 +18,6 @@ struct Nurse: Identifiable, Codable {
     let shift: Shift?
     let createdAt: Timestamp?
     
-    struct Shift: Codable {
-        let startTime: String
-        let endTime: String
-    }
-    
     init?(from data: [String: Any]) {
         guard let id = data["id"] as? String,
               let name = data["fullName"] as? String,
@@ -36,13 +31,6 @@ struct Nurse: Identifiable, Codable {
         self.email = email
         self.phoneNo = data["phoneNumber"] as? String
         self.createdAt = data["createdAt"] as? Timestamp
-        
-        if let shiftData = data["shift"] as? [String: String],
-           let startTime = shiftData["startTime"],
-           let endTime = shiftData["endTime"] {
-            self.shift = Shift(startTime: startTime, endTime: endTime)
-        } else {
-            self.shift = nil
-        }
+        self.shift = data["shift"] as? Shift
     }
 }
