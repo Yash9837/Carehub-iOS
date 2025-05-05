@@ -385,8 +385,8 @@ struct BillingAppointmentCard: View {
         guard
             let patientId = data["patientId"] as? String,
             let doctorId = data["docId"] as? String,
-            let timestamp = data["Date"] as? Timestamp,
-            let description = data["Description"] as? String,
+            let timestamp = data["date"] as? Timestamp,
+            let description = data["description"] as? String,
             let amount = data["amount"] as? Double
         else {
             print("Missing required fields in appointment data")
