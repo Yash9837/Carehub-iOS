@@ -277,9 +277,9 @@ class GenerateBillViewModel: ObservableObject {
                         
                         // Match the actual fields in your document
                         guard let patientId = data["patientId"] as? String,
-                              let description = data["Description"] as? String,  // Note: capital D
+                              let description = data["description"] as? String,  // Note: capital D
                               let docId = data["docId"] as? String,
-                              let status = data["Status"] as? String,            // Note: capital S
+                              let status = data["status"] as? String,            // Note: capital S
                               let billingStatus = data["billingStatus"] as? String,
                               let apptId = data["apptId"] as? String
                         else {
