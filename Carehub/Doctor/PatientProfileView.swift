@@ -15,7 +15,7 @@ struct PatientProfileView: View {
     @State private var showPrescriptionView = false
     @State private var showAlert = false
     @State private var alertMessage = ""
-    @State private var navigateToDashboard = false
+//    @State private var navigateToDashboard = true
 
     private let db = Firestore.firestore()
     
@@ -76,23 +76,10 @@ struct PatientProfileView: View {
             }
             .navigationTitle("Patient Profile")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true) // Hide default back button
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        print("Custom back button tapped, navigating back to DoctorDashboardView")
-                        navigateToDashboard = true
-                    }) {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(Color(red: 0.45, green: 0.36, blue: 0.98))
-                        Text("Back")
-                            .foregroundColor(Color(red: 0.45, green: 0.36, blue: 0.98))
-                    }
-                }
-            }
-            .navigationDestination(isPresented: $navigateToDashboard) {
-                DoctorDashboardView()
-            }
+//            .navigationBarBackButtonHidden(true) // Hide default back button
+//            .navigationDestination(isPresented: $navigateToDashboard) {
+//                DoctorDashboardView()
+//            }
             .navigationDestination(isPresented: $showNotesView) {
                 if let appointment = appointment, !doctorId.isEmpty {
                     NotesView(appointment: appointment)

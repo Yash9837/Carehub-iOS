@@ -117,7 +117,9 @@ struct ProfileView_doc: View {
             .fullScreenCover(isPresented: $showLoginView) {
                 LoginView()
             }
+            .navigationTitle("Profile")
         }
+        
     }
 
     private func fetchDoctorData() {
@@ -196,14 +198,6 @@ struct ProfileHeaderView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            HStack {
-                Text("My Profile")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundColor(.black)
-                Spacer()
-            }
-            .padding(.bottom, 12)
-
             VStack(spacing: 20) {
                 Image(doctor.imageURL ?? "placeholder")
                     .resizable()

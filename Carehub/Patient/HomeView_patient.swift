@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseFirestore
+
 // MARK: - Models
 struct Notification: Identifiable {
     let id: String
@@ -21,18 +22,20 @@ struct HomeView_patient: View {
     @State private var upcomingSchedules: [Appointment] = []
     @State private var isLoading = true
     @State private var navigateToBooking = false
-    @State private var showNotifications = false
+    @State private var navigateToNotifications = false
     @State private var listener: ListenerRegistration?
     @State private var notificationCount: Int = 0
+    @State private var hasViewedNotifications: Bool = UserDefaults.standard.bool(forKey: "hasViewedNotifications") ?? false
+    @State private var lastNotificationViewTime: Date? = UserDefaults.standard.object(forKey: "lastNotificationViewTime") as? Date
     @StateObject private var viewModel = AppointmentViewModel()
     private let forNowColor = Color(red: 0.51, green: 0.44, blue: 0.87)
 
     var body: some View {
         NavigationView {
             ZStack {
-                Color(red: 0.94, green: 0.94, blue: 1.0)
+                backgroundColor
                     .edgesIgnoringSafeArea(.all)
- 
+                
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
                         // Header
@@ -51,6 +54,10 @@ struct HomeView_patient: View {
                             
                             Button(action: {
                                 navigateToNotifications = true
+                                hasViewedNotifications = true
+                                lastNotificationViewTime = Date()
+                                UserDefaults.standard.set(true, forKey: "hasViewedNotifications")
+                                UserDefaults.standard.set(lastNotificationViewTime, forKey: "lastNotificationViewTime")
                             }) {
                                 ZStack {
                                     Circle()
@@ -77,7 +84,7 @@ struct HomeView_patient: View {
                             }
                             .accessibilityLabel("Notifications, \(notificationCount) new")
                         }
-                        .padding(.horizontal, 16) // Dedicated padding for header
+                        .padding(.horizontal, 16)
                         .padding(.top, 16)
                         
                         // Book Appointment Card
@@ -87,11 +94,11 @@ struct HomeView_patient: View {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 16)
                                     .fill(LinearGradient(
-                                        gradient: Gradient(colors: [purpleColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
+                                        gradient: Gradient(colors: [forNowColor, secondaryColor]),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     ))
-                                    .shadow(color: purpleColor.opacity(0.2), radius: 10, x: 0, y: 5)
+                                    .shadow(color: primaryColor.opacity(0.2), radius: 10, x: 0, y: 5)
                                 
                                 HStack(spacing: 16) {
                                     Image(systemName: "calendar.badge.plus")
@@ -434,11 +441,22 @@ struct HomeView_patient: View {
                 upcomingSchedules = schedules.sorted { ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast) }
                 
                 // Calculate notification count for appointments within 0–48 hours
-                notificationCount = upcomingSchedules.filter { appointment in
+                let appointmentsWithin48Hours = upcomingSchedules.filter { appointment in
                     guard let date = appointment.date else { return false }
                     let hoursDifference = Calendar.current.dateComponents([.hour], from: now, to: date).hour ?? 0
                     return hoursDifference >= 0 && hoursDifference <= 48
-                }.count
+                }
+                
+                if hasViewedNotifications, let lastViewTime = lastNotificationViewTime {
+                    // Only count appointments that are scheduled after the last notification view
+                    notificationCount = appointmentsWithin48Hours.filter { appointment in
+                        guard let date = appointment.date else { return false }
+                        return date > lastViewTime
+                    }.count
+                } else {
+                    // If notifications haven't been viewed, show all appointments within 48 hours
+                    notificationCount = appointmentsWithin48Hours.count
+                }
                 
                 isLoading = false
                 print("Updated upcomingSchedules: \(upcomingSchedules.count), notificationCount: \(notificationCount), isLoading: \(isLoading)")
@@ -664,19 +682,9 @@ struct AllAppointmentsView: View {
                                 .padding(.horizontal, 20)
                             }
                         }
-                    } else {
-                        print("Missing or invalid fields in document: \(change.document.documentID)")
+                        .padding(.bottom, 20)
                     }
                 }
-
-                if let documentIds = querySnapshot?.documents.map({ $0.documentID }) {
-                    upcomingSchedules.removeAll { !documentIds.contains($0.id) }
-                }
-                
-                upcomingSchedules = schedules.sorted { ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast) }
-                
-                isLoading = false
-                print("Updated upcomingSchedules: \(upcomingSchedules.count), isLoading: \(isLoading)")
             }
             .padding(.top, 20)
         }
@@ -755,6 +763,7 @@ struct AppointmentListCard: View {
                         .foregroundColor(.gray)
                         .font(.system(size: 16))
                 }
+                .padding(16)
             }
             .frame(maxWidth: .infinity)
         }
@@ -1015,17 +1024,8 @@ struct ImprovedAppointmentCard: View {
                         Spacer()
                     }
                 }
-                .padding()
+                .padding(16)
             }
-            .navigationTitle("Upcoming Notifications")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") {
-                        dismiss()
-                    }
-                }
-            }
-            .background(Color(red: 0.94, green: 0.94, blue: 1.0))
         }
         .buttonStyle(PlainButtonStyle())
         .frame(height: 130)
@@ -1153,50 +1153,5 @@ struct ImprovedDoctorCard: View {
             .padding(.vertical, 12)
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-struct MedicalRecordCard: View {
-    let type: String
-    let doctorName: String
-    let date: String
-    let title: String
-    let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(LinearGradient(
-                    gradient: Gradient(colors: [purpleColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
-                .shadow(color: purpleColor.opacity(0.2), radius: 10, x: 0, y: 5)
-            
-            HStack(spacing: 16) {
-                Image(systemName: "doc.text.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 30, height: 35)
-                    .foregroundColor(.white)
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(title)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.white)
-                    
-                    Text("by \(doctorName)")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.8))
-                    
-                    Text(date)
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.7))
-                }
-                Spacer()
-            }
-            .padding(16)
-        }
-        .frame(width: 250, height: 100)
     }
 }
