@@ -1,21 +1,22 @@
 import SwiftUI
+import FirebaseFirestore
+import FirebaseAuth
 
 struct Patient: Identifiable {
     let id = UUID()
     let name: String
-    let gender: String
     let visitDate: String
     let patientId: String
 }
 
 struct MyPatientsView: View {
+    @StateObject private var authManager = AuthManager.shared
     @State private var searchText = ""
+    @State private var patients: [Patient] = []
+    @State private var doctorId: String = ""
     
-    let patients = [
-        Patient(name: "John Doe", gender: "Male", visitDate: "Visited: 23 Apr 2025 at 3:48 PM", patientId: "PT001"),
-        Patient(name: "Emily Johnson", gender: "Female", visitDate: "Visited: 22 Apr 2025 at 3:48 PM", patientId: "PT002"),
-        Patient(name: "Michael Brown", gender: "Male", visitDate: "Visited: 20 Apr 2025 at 3:48 PM", patientId: "PT003")
-    ]
+    private let db = Firestore.firestore()
+    @State private var listener: ListenerRegistration?
     
     var filteredPatients: [Patient] {
         if searchText.isEmpty {
@@ -26,39 +27,159 @@ struct MyPatientsView: View {
     }
     
     var body: some View {
-        NavigationStack {
-            VStack {
-                // Search Bar
-                PatientSearchBar(text: $searchText, placeholder: "Search patients")
-                    .padding(.horizontal)
-                
-                // Patient List
-                List(filteredPatients) { patient in
-                    NavigationLink {
-                        DetailsPresriptionView(patientId: patient.patientId)
-                    } label: {
-                        PatientInfoCard(patient: patient)
-                    }
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 5, leading: 0, bottom: 5, trailing: 0))
-                    .listRowBackground(Color.clear)
+        VStack {
+            // Search Bar
+            PatientSearchBar(text: $searchText, placeholder: "Search patients")
+                .padding(.horizontal)
+            
+            // Patient List
+            List(filteredPatients) { patient in
+                NavigationLink {
+                    DetailsPresriptionView(patientId: patient.patientId)
+                } label: {
+                    PatientInfoCard(patient: patient)
                 }
-                .listStyle(PlainListStyle())
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 5, leading: 0, bottom: 5, trailing: 0))
+                .listRowBackground(Color.clear)
             }
-            .background(
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4),
-                        Color.white.opacity(0.9),
-                        Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            .navigationTitle("My Patients")
-            .navigationBarTitleDisplayMode(.inline)
+            .listStyle(.plain)
         }
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4),
+                    Color.white.opacity(0.9),
+                    Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .navigationTitle("My Patients")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            fetchDoctorIdAndPatients()
+        }
+        .onDisappear {
+            // Clean up listener to prevent memory leaks
+            listener?.remove()
+            listener = nil
+        }
+    }
+    
+    private func fetchDoctorIdAndPatients() {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            doctorId = ""
+            patients = []
+            return
+        }
+        
+        // Fetch doctorId from the doctors collection
+        db.collection("doctors").document(uid).getDocument { snapshot, error in
+            if let error = error {
+                print("Error fetching doctor: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let data = snapshot?.data(), snapshot?.exists == true,
+                  let docId = data["Doctorid"] as? String else {
+                print("No doctor data found for uid: \(uid)")
+                doctorId = ""
+                patients = []
+                return
+            }
+            
+            doctorId = docId
+            fetchPatients()
+        }
+    }
+    
+    private func fetchPatients() {
+        guard !doctorId.isEmpty else {
+            patients = []
+            return
+        }
+        
+        // Remove any existing listener to avoid duplicates
+        listener?.remove()
+        
+        // Fetch appointments for the doctor and extract unique patients
+        listener = db.collection("appointments")
+            .whereField("docId", isEqualTo: doctorId)
+            .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("Error fetching appointments: \(error)")
+                    patients = []
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else {
+                    print("No appointment documents found for docId: \(doctorId)")
+                    patients = []
+                    return
+                }
+                
+                // Extract unique patient IDs
+                let patientIds = Set(documents.compactMap { $0.data()["patientId"] as? String })
+                
+                // Fetch patient details
+                var fetchedPatients: [Patient] = []
+                let group = DispatchGroup()
+                
+                for patientId in patientIds {
+                    group.enter()
+                    db.collection("patients")
+                        .whereField("patientId", isEqualTo: patientId)
+                        .getDocuments { patientSnapshot, patientError in
+                            defer { group.leave() }
+                            
+                            if let error = patientError {
+                                print("Error fetching patient \(patientId): \(error)")
+                                return
+                            }
+                            
+                            // Check for valid patient document
+                            guard let patientDoc = patientSnapshot?.documents.first else {
+                                print("No patient document found for patientId: \(patientId)")
+                                return
+                            }
+                            
+                            // Get document data
+                            let data = patientDoc.data()
+                            
+                            // Check and cast userData
+                            guard let userData = data["userData"] as? [String: Any] else {
+                                print("Invalid or missing userData for patientId: \(patientId)")
+                                return
+                            }
+                            
+                            // Extract name with fallback value
+                            let name = userData["Name"] as? String ?? "Unknown"
+                            
+                            // Get the most recent appointment date for this patient
+                            let patientAppointments = documents.filter { $0.data()["patientId"] as? String == patientId }
+                            let mostRecentDate = patientAppointments
+                                .compactMap { ($0.data()["date"] as? Timestamp)?.dateValue() }
+                                .max()
+                            
+                            let visitDateString = mostRecentDate?.formatted(.dateTime.day().month(.abbreviated).year().hour().minute()) ?? "N/A"
+                            
+                            let patient = Patient(
+                                name: name,
+                                visitDate: "Visited: \(visitDateString)",
+                                patientId: patientId
+                            )
+                            fetchedPatients.append(patient)
+                        }
+                }
+                
+                group.notify(queue: .main) {
+                    // Sort patients by name for consistent display
+                    patients = fetchedPatients.sorted { $0.name < $1.name }
+                    print("Total patients fetched: \(patients.count)")
+                }
+            }
     }
 }
 
@@ -108,9 +229,6 @@ struct PatientInfoCard: View {
                 Text(patient.name)
                     .font(.headline)
                     .foregroundColor(.white)
-                Text(patient.gender)
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.8))
                 Text(patient.visitDate)
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.7))
@@ -130,31 +248,8 @@ struct PatientInfoCard: View {
     }
 }
 
-// Main TabView to wrap the app
-struct ContentView: View {
-    var body: some View {
-        TabView {
-            MyPatientsView()
-                .tabItem {
-                    Label("Patients", systemImage: "person.3")
-                }
-            
-            // Add other tabs as needed
-            Text("Appointments")
-                .tabItem {
-                    Label("Appointments", systemImage: "calendar")
-                }
-            
-            Text("Profile")
-                .tabItem {
-                    Label("Profile", systemImage: "person.circle")
-                }
-        }
-    }
-}
-
 struct MyPatientsView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        MyPatientsView()
     }
 }

@@ -1,5 +1,4 @@
 import SwiftUI
-import Firebase
 import FirebaseFirestore
 import FirebaseAuth
 
@@ -23,8 +22,10 @@ struct ProfileView_doc: View {
     @State private var doctor: Doctor? = nil
     @State private var isLoading = true
     @State private var errorMessage: String?
-    @State private var showLoginView = false
     @State private var doctorId: String = ""
+    @State private var showLogoutAlert = false
+    @State private var logoutErrorMessage: String?
+    @State private var isLoggedOut = false
     private let purpleColor = Color(hex: "6D57FC")
     private let lightPurple = Color(hex: "6D57FC").opacity(0.05)
     private let mediumPurple = Color(hex: "6D57FC").opacity(0.7)
@@ -82,7 +83,8 @@ struct ProfileView_doc: View {
                                 }
                             }
                             Button(action: {
-                                showLoginView = true
+                                authManager.logout()
+                                isLoggedOut = true
                             }) {
                                 Text("Logout")
                                     .font(.system(size: 16, weight: .medium))
@@ -108,15 +110,24 @@ struct ProfileView_doc: View {
             }
             .background(backgroundColor)
             .edgesIgnoringSafeArea(.bottom)
+            .navigationTitle("Profile")
+            .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 fetchDoctorData()
             }
             .onReceive(authManager.$currentStaffMember) { newStaff in
                 fetchDoctorData()
             }
-            .fullScreenCover(isPresented: $showLoginView) {
-                LoginView()
+            .alert(isPresented: $showLogoutAlert) {
+                Alert(
+                    title: Text("Logout Failed"),
+                    message: Text(logoutErrorMessage ?? "An error occurred"),
+                    dismissButton: .default(Text("OK"))
+                )
             }
+        }
+        .fullScreenCover(isPresented: $isLoggedOut) {
+            LoginView() // Replace with your actual login view
         }
     }
 
@@ -128,6 +139,7 @@ struct ProfileView_doc: View {
             doctor = nil
             isLoading = false
             errorMessage = "User not logged in"
+            isLoggedOut = true
             return
         }
 
@@ -187,6 +199,8 @@ struct ProfileView_doc: View {
         }
     }
 }
+
+// ... [rest of your code remains the same]
 
 // MARK: - Subviews (unchanged)
 struct ProfileHeaderView: View {
@@ -450,6 +464,7 @@ struct SummaryItem: View {
         .frame(maxWidth: .infinity)
     }
 }
+
 struct NoteCard: View {
     let note: DoctorsNote
     let color: Color

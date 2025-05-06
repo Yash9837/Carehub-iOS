@@ -1,5 +1,4 @@
 import SwiftUI
-import Firebase
 import FirebaseFirestore
 
 struct PatientProfileView: View {
@@ -15,115 +14,94 @@ struct PatientProfileView: View {
     @State private var showPrescriptionView = false
     @State private var showAlert = false
     @State private var alertMessage = ""
-    @State private var navigateToDashboard = false
 
     private let db = Firestore.firestore()
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(red: 0.96, green: 0.96, blue: 1.0)
-                    .edgesIgnoringSafeArea(.all)
-                
-                if isFetching {
-                    ProgressView("Fetching patient profile...")
-                        .tint(Color(red: 0.45, green: 0.36, blue: 0.98))
-                } else if let error = errorText {
-                    VStack(spacing: 16) {
-                        Text("Error loading profile")
-                            .font(.system(size: 18, weight: .medium))
-                        Text(error)
-                            .font(.system(size: 14))
-                            .foregroundColor(.red)
-                            .multilineTextAlignment(.center)
-                        
-                        Button(action: {
-                            retrievePatientProfile()
-                        }) {
-                            Text("Retry")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
-                                .padding(.vertical, 10)
-                                .padding(.horizontal, 24)
-                                .background(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.45, green: 0.36, blue: 0.98),
-                                            Color(red: 0.57, green: 0.50, blue: 0.98)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .cornerRadius(10)
-                                .shadow(color: Color(red: 0.45, green: 0.36, blue: 0.98).opacity(0.3), radius: 5, x: 0, y: 3)
-                        }
-                    }
-                    .padding()
-                } else if let patient = patientInfo {
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            profileCard(patient: patient)
-                            vitalStatsSection(patient: patient)
-                            actionButtons()
-                            labRequestSection()
-                            Spacer(minLength: 20)
-                        }
-                        .padding(.top, 16)
-                        .padding(.horizontal, 16)
-                    }
-                }
-            }
-            .navigationTitle("Patient Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true) // Hide default back button
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+        ZStack {
+            Color(red: 0.96, green: 0.96, blue: 1.0)
+                .edgesIgnoringSafeArea(.all)
+            
+            if isFetching {
+                ProgressView("Fetching patient profile...")
+                    .tint(Color(red: 0.45, green: 0.36, blue: 0.98))
+            } else if let error = errorText {
+                VStack(spacing: 16) {
+                    Text("Error loading profile")
+                        .font(.system(size: 18, weight: .medium))
+                    Text(error)
+                        .font(.system(size: 14))
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                    
                     Button(action: {
-                        print("Custom back button tapped, navigating back to DoctorDashboardView")
-                        navigateToDashboard = true
+                        retrievePatientProfile()
                     }) {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(Color(red: 0.45, green: 0.36, blue: 0.98))
-                        Text("Back")
-                            .foregroundColor(Color(red: 0.45, green: 0.36, blue: 0.98))
+                        Text("Retry")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 24)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.45, green: 0.36, blue: 0.98),
+                                        Color(red: 0.57, green: 0.50, blue: 0.98)
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(10)
+                            .shadow(color: Color(red: 0.45, green: 0.36, blue: 0.98).opacity(0.3), radius: 5, x: 0, y: 3)
                     }
                 }
-            }
-            .navigationDestination(isPresented: $navigateToDashboard) {
-                DoctorDashboardView()
-            }
-            .navigationDestination(isPresented: $showNotesView) {
-                if let appointment = appointment, !doctorId.isEmpty {
-                    NotesView(appointment: appointment)
-                } else {
-                    Text("No appointment found for this patient.")
-                        .foregroundColor(.red)
-                }
-            }
-            .navigationDestination(isPresented: $showPrescriptionView) {
-                if let appointment = appointment, !doctorId.isEmpty {
-                    PrescriptionView(appointment: appointment)
-                } else {
-                    Text("No appointment found for this patient.")
-                        .foregroundColor(.red)
-                }
-            }
-            .alert(isPresented: $showAlert) {
-                Alert(
-                    title: Text("Lab Test Request"),
-                    message: Text(alertMessage),
-                    dismissButton: .default(Text("OK")) {
-                        if alertMessage.contains("Successfully") {
-                            labTestsInput = ""
-                        }
+                .padding()
+            } else if let patient = patientInfo {
+                ScrollView {
+                    VStack(spacing: 16) {
+                        profileCard(patient: patient)
+                        vitalStatsSection(patient: patient)
+                        actionButtons()
+                        labRequestSection()
+                        Spacer(minLength: 20)
                     }
-                )
+                    .padding(.top, 16)
+                    .padding(.horizontal, 16)
+                }
             }
-            .onAppear {
-                initializeFirebase()
-                retrievePatientProfile()
+        }
+        .navigationTitle("Patient Profile")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $showNotesView) {
+            if let appointment = appointment, !doctorId.isEmpty {
+                NotesView(appointment: appointment)
+            } else {
+                Text("No appointment found for this patient.")
+                    .foregroundColor(.red)
             }
+        }
+        .navigationDestination(isPresented: $showPrescriptionView) {
+            if let appointment = appointment, !doctorId.isEmpty {
+                PrescriptionView(appointment: appointment)
+            } else {
+                Text("No appointment found for this patient.")
+                    .foregroundColor(.red)
+            }
+        }
+        .alert(isPresented: $showAlert) {
+            Alert(
+                title: Text("Lab Test Request"),
+                message: Text(alertMessage),
+                dismissButton: .default(Text("OK")) {
+                    if alertMessage.contains("Successfully") {
+                        labTestsInput = ""
+                    }
+                }
+            )
+        }
+        .onAppear {
+            retrievePatientProfile()
         }
     }
     
@@ -285,12 +263,6 @@ struct PatientProfileView: View {
                 .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
         )
         .padding(.vertical, 8)
-    }
-    
-    private func initializeFirebase() {
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-        }
     }
     
     private func retrievePatientProfile() {
@@ -494,7 +466,6 @@ struct PatientProfileView: View {
         )
     }
     
-    
     private func requestLabTest() {
         guard !labTestsInput.isEmpty else {
             alertMessage = "Please enter the tests required."
@@ -645,4 +616,3 @@ struct PatientProfile {
     let profileData: ProfileData
     let healthData: HealthData
 }
-
