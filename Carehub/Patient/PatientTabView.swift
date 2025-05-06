@@ -22,7 +22,7 @@ struct PatientTabView: View {
                     Text("Home")
                 }
             
-            DoctorView()
+            DoctorView(patientId: patient.patientId)
                 .tabItem {
                     Image(systemName: "stethoscope")
                     Text("Doctor")

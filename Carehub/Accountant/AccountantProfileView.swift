@@ -116,25 +116,8 @@ struct AccountantProfileView: View {
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if isEditingProfile {
-                        Button("Done") {
-                            isEditingProfile = false
-                        }
-                    } else {
-                        Button("Edit") {
-                            isEditingProfile = true
-                        }
-                        .foregroundStyle(primaryColor)
-                    }
-                }
-            }
             .refreshable {
                 viewModel.fetchAccountant(byAccountantId: accountantId)
-            }
-            .sheet(isPresented: $isEditingProfile) {
-                AccountantEditProfile(accountant: $viewModel.accountant)
             }
             .fullScreenCover(isPresented: $showLoginView) {
                 // Replace with your actual login view

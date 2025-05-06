@@ -165,11 +165,11 @@ struct NurseAppointmentCard: View {
             HStack {
                 StatusBadge(status: appt.status)
                 
-                if let date = appt.date {
-                    Text(timeRemaining(from: date))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+//                if let date = appt.date {
+//                    Text(timeRemaining(from: date))
+//                        .font(.caption)
+//                        .foregroundColor(.secondary)
+//                }
                 
                 Spacer()
             }

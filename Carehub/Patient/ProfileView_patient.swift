@@ -57,7 +57,7 @@ struct ProfileView_patient: View {
                                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                                 .padding(.horizontal, 16)
                             
-                            ProfileRow(title: "Patient ID", value: patient.patientId, icon: "number")
+                            ProfileRow(title: "Patient ID", value: patient.patientId, icon: "person.text.rectangle.fill")
                             ProfileRow(title: "Date of Birth", value: patient.userData.Dob, icon: "calendar")
                             ProfileRow(title: "Email", value: patient.userData.Email, icon: "envelope.fill")
                         }
@@ -325,7 +325,6 @@ struct FlowLayout: Layout {
         }
     }
 }
-
 struct EditProfileView: View {
     let patient: PatientF
     @State private var fullName: String
