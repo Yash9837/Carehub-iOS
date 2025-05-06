@@ -268,6 +268,7 @@ class GenerateBillViewModel: ObservableObject {
                         print("No appointments found for patientId: \(patientId)")
                         return
                     }
+                    
                     var paid: [Appointment] = []
                     var unpaid: [Appointment] = []
                     
@@ -277,9 +278,9 @@ class GenerateBillViewModel: ObservableObject {
                         
                         // Match the actual fields in your document
                         guard let patientId = data["patientId"] as? String,
-                              let description = data["description"] as? String,  // Note: capital D
+                              let description = data["description"] as? String,
                               let docId = data["docId"] as? String,
-                              let status = data["status"] as? String,            // Note: capital S
+                              let status = data["status"] as? String,
                               let billingStatus = data["billingStatus"] as? String,
                               let apptId = data["apptId"] as? String
                         else {
@@ -291,6 +292,11 @@ class GenerateBillViewModel: ObservableObject {
                             if data["Status"] as? String == nil { print("- Missing Status") }
                             if data["billingStatus"] as? String == nil { print("- Missing billingStatus") }
                             if data["apptId"] as? String == nil { print("- Missing apptId") }
+                            continue
+                        }
+                        
+                        // Skip cancelled appointments
+                        if status.lowercased() == "cancelled" {
                             continue
                         }
                         
@@ -311,7 +317,6 @@ class GenerateBillViewModel: ObservableObject {
                             followUpDate = timestamp.dateValue()
                         }
                        
-                        
                         let appointment = Appointment(
                             id: id,
                             apptId: apptId,
@@ -342,7 +347,7 @@ class GenerateBillViewModel: ObservableObject {
             }
     }
     
-    func markAsPaid(appointmentId: String, completion: @escaping (Bool) -> Void) {
+    func markAsPaid(appointmentId: String, billingId: URL, completion: @escaping (Bool) -> Void) {
         db.collection("appointments").document(appointmentId)
             .updateData(["billingStatus": "paid"]) { [weak self] error in
                 DispatchQueue.main.async {

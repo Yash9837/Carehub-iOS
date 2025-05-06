@@ -175,7 +175,7 @@ struct BillingAppointmentCard: View {
                 Spacer()
                 
                 if let amount = appointment.amount {
-                    Text(String(format: "$%.2f", amount))
+                    Text(String(format: "₹%.2f", amount))
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(Color(hex: "6D57FC"))
                 }
@@ -269,7 +269,7 @@ struct BillingAppointmentCard: View {
     
     private func markAsPaid() {
         isProcessing = true
-        viewModel?.markAsPaid(appointmentId: appointment.id) { success in
+        viewModel?.markAsPaid(appointmentId: appointment.id, billingId: pdfURL!) { success in
             isProcessing = false
         }
     }

@@ -104,21 +104,10 @@ struct NurseProfileView: View {
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Edit") {
-                        isEditingProfile = true
-                    }
-                    .foregroundStyle(primaryColor)
-                }
-            }
             .refreshable {
                 if !isLoggingOut {
                     viewModel.fetchNurse(byNurseId: nurseId)
                 }
-            }
-            .sheet(isPresented: $isEditingProfile) {
-                Text("Edit sheet coming soon!") // Replace with NurseEditProfile if implemented
             }
             .fullScreenCover(isPresented: $showLoginView) {
                 LoginView() // Present LoginView in full-screen mode

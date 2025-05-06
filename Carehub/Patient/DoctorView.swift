@@ -1,57 +1,12 @@
 import SwiftUI
-import FirebaseAuth
-import CryptoKit
+import FirebaseFirestore
 
 struct DoctorView: View {
+    let patientId: String
     @State private var specialties: [String] = []
     @State private var isDataLoaded = false
     @State private var isDataLoadFailed = false
-    @State private var searchText = ""
     let columns = [GridItem(.flexible()), GridItem(.flexible())]
-    
-    // Struct to hold doctor and their specialty for search results
-    struct DoctorSearchResult: Identifiable {
-        let id = UUID()
-        let doctor: Doctor
-        let specialty: String
-    }
-    
-    // Compute doctor matches for the search query
-    var doctorSearchResults: [DoctorSearchResult] {
-        if searchText.isEmpty {
-            return []
-        }
-        var results: [DoctorSearchResult] = []
-        for specialty in specialties {
-            let doctorsInSpecialty = DoctorData.doctors[specialty] ?? []
-            for doctor in doctorsInSpecialty {
-                if doctor.doctor_name.lowercased().contains(searchText.lowercased()) {
-                    results.append(DoctorSearchResult(doctor: doctor, specialty: specialty))
-                }
-            }
-        }
-        return results
-    }
-    
-    // Filter specialties when no doctor matches or search is broader
-    var filteredSpecialties: [String] {
-        if !searchText.isEmpty && !doctorSearchResults.isEmpty {
-            // If there are doctor matches, don't show specialties
-            return []
-        }
-        if searchText.isEmpty {
-            return specialties
-        } else {
-            return specialties.filter { specialty in
-                let specialtyMatches = specialty.lowercased().contains(searchText.lowercased())
-                let doctorsInSpecialty = DoctorData.doctors[specialty] ?? []
-                let doctorMatches = doctorsInSpecialty.contains { doctor in
-                    doctor.doctor_name.lowercased().contains(searchText.lowercased())
-                }
-                return specialtyMatches || doctorMatches
-            }
-        }
-    }
     
     var body: some View {
         NavigationView {
@@ -84,80 +39,22 @@ struct DoctorView: View {
                 } else {
                     ScrollView {
                         VStack(spacing: 20) {
-                            // Search Bar
-                            HStack {
-                                Image(systemName: "magnifyingglass")
-                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                    .font(.system(size: 18))
-                                    .padding(.leading, 12)
-                                
-                                TextField("Search by specialty or doctor name...", text: $searchText)
-                                    .font(.system(size: 16))
-                                    .padding(.vertical, 12)
+                            Text("Select a Specialty")
+                                .font(.system(size: 28, weight: .bold))
+                                .padding(.top, 16)
+                                .padding(.bottom, 8)
+                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                            
+                            LazyVGrid(columns: columns, spacing: 16) {
+                                ForEach(specialties, id: \.self) { specialty in
+                                    NavigationLink(destination: SpecialtyDoctorsView(selectedSpecialty: specialty, patientId: patientId)) {
+                                        SpecialtyCard(specialty: specialty)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
                             }
-                            .background(Color.white)
-                            .cornerRadius(12)
-                            .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
                             .padding(.horizontal, 16)
-                            .padding(.top, 16)
-                            
-                            // Doctor Search Results
-                            if !doctorSearchResults.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text("Doctors")
-                                        .font(.system(size: 24, weight: .bold))
-                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                        .padding(.horizontal, 16)
-                                    
-                                    LazyVStack(spacing: 8) {
-                                        ForEach(doctorSearchResults) { result in
-                                            NavigationLink(destination: DoctorDetailView(doctor: result.doctor, specialty: result.specialty)) {
-                                                HStack {
-                                                    Text(result.doctor.doctor_name)
-                                                        .font(.system(size: 18, weight: .semibold))
-                                                        .foregroundColor(.black)
-                                                    Text(result.doctor.department)
-                                                        .font(.system(size: 18, weight: .semibold))
-                                                        .foregroundColor(.black)
-                                                    Spacer()
-                                                    Image(systemName: "chevron.right")
-                                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                                        .font(.system(size: 14, weight: .semibold))
-                                                }
-                                                .padding()
-                                                .background(Color.white)
-                                                .cornerRadius(12)
-                                                .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
-                                                .padding(.horizontal, 16)
-                                            }
-                                            .buttonStyle(PlainButtonStyle())
-                                        }
-                                    }
-                                }
-                            }
-                            // Specialty Grid
-                            if !filteredSpecialties.isEmpty {
-                                VStack(spacing: 12) {
-                                    Text("Select a Specialty")
-                                        .font(.system(size: 28, weight: .bold))
-                                        .padding(.horizontal, 16)
-                                        .padding(.bottom, 8)
-                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                    
-                                    LazyVGrid(columns: columns, spacing: 16) {
-                                        ForEach(filteredSpecialties, id: \.self) { specialty in
-                                            NavigationLink(destination: SpecialtyDoctorsView(selectedSpecialty: specialty)) {
-                                                SpecialtyCard(specialty: specialty)
-                                            }
-                                            .buttonStyle(PlainButtonStyle())
-                                        }
-                                    }
-                                    .padding(.horizontal, 16)
-                                }
-                            }
-                            
-                            Spacer()
-                                .frame(height: 24)
+                            .padding(.bottom, 24)
                         }
                     }
                 }
@@ -180,75 +77,7 @@ struct DoctorView: View {
         }
     }
 }
-struct DoctorSearchResultCard: View {
-    let doctor: Doctor
-    let specialty: String
-    private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            // Doctor Image/Icon
-            ZStack {
-                Circle()
-                    .fill(LinearGradient(
-                        gradient: Gradient(colors: [primaryColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
-                    .frame(width: 60, height: 60)
-                
-                Image(systemName: "person.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 30, height: 30)
-                    .foregroundColor(.white)
-            }
-            
-            // Doctor Info
-            VStack(alignment: .leading, spacing: 6) {
-                Text(doctor.doctor_name)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.black)
-                    .lineLimit(1)
-                
-                Text(specialty)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(primaryColor)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(primaryColor.opacity(0.1))
-                    .cornerRadius(8)
-                
-                if let experience = doctor.doctor_experience {
-                    HStack(spacing: 4) {
-                        Image(systemName: "briefcase.fill")
-                            .foregroundColor(primaryColor)
-                            .font(.system(size: 12))
-                        
-                        Text("\(experience) years experience")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.gray)
-                    }
-                }
-            }
-            
-            Spacer()
-            
-            // Chevron
-            Image(systemName: "chevron.right")
-                .foregroundColor(primaryColor)
-                .font(.system(size: 14, weight: .bold))
-        }
-        .padding(16)
-        .background(Color.white)
-        .cornerRadius(14)
-        .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(primaryColor.opacity(0.2), lineWidth: 1)
-        )
-    }
-}
+
 struct SpecialtyCard: View {
     let specialty: String
     
@@ -293,6 +122,7 @@ struct SpecialtyCard: View {
 
 struct SpecialtyDoctorsView: View {
     let selectedSpecialty: String
+    let patientId: String
     @State private var searchText = ""
     @State private var sortByExp = false
     @State private var doctors: [Doctor] = []
@@ -388,7 +218,7 @@ struct SpecialtyDoctorsView: View {
                         
                         LazyVStack(spacing: 0) {
                             ForEach(filteredDoctors, id: \.id) { doctor in
-                                NavigationLink(destination: DoctorDetailView(doctor: doctor, specialty: selectedSpecialty)) {
+                                NavigationLink(destination: DoctorDetailView(doctor: doctor, specialty: selectedSpecialty, patientId: patientId)) {
                                     DoctorCardView(
                                         name: doctor.doctor_name,
                                         specialty: selectedSpecialty,
@@ -424,7 +254,7 @@ struct SpecialtyDoctorsView: View {
 struct DoctorCardView: View {
     let name: String
     let specialty: String
-    let experience: Int // Keep as Int since we provide a default
+    let experience: Int
     let imageName: String
     
     var body: some View {
@@ -489,22 +319,11 @@ struct DoctorCardView: View {
     }
 }
 
-private func hashPatientId() -> String {
-    guard let uid = Auth.auth().currentUser?.uid else {
-        print("No Firebase UID found, using default patientId")
-        return "unknown_user"
-    }
-    let inputData = Data(uid.utf8)
-    let hashed = SHA256.hash(data: inputData)
-    let hashedString = hashed.compactMap { String(format: "%02x", $0) }.joined()
-    return "P\(hashedString)" // Prepend "P" to match registration logic
-}
-
 struct DoctorDetailView: View {
     let doctor: Doctor
     let specialty: String
+    let patientId: String
     @State private var qualifications: [String] = ["MBBS", "MD - General Medicine", "DNB - Cardiology"]
-    @State private var showBooking = false
     
     var body: some View {
         ScrollView {
@@ -590,40 +409,37 @@ struct DoctorDetailView: View {
                     .padding(.horizontal, 16)
                 }
                 
-                Spacer()
-                
-                // Book appointment button with NavigationLink
-                NavigationLink(
-                    destination: ScheduleAppointmentView(
-                        patientId: hashPatientId(), // Use Firebase Auth user ID
-                        preSelectedSpecialty: specialty,
-                        preSelectedDoctor: doctor.doctor_name
-                    ),
-                    isActive: $showBooking
-                ) {
-                    Button(action: {
-                        showBooking = true
-                    }) {
-                        HStack {
-                            Spacer()
-                            Text("Book Appointment")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white)
-                                .padding(.vertical, 16)
-                            Spacer()
-                        }
-                        .background(Color(red: 0.43, green: 0.34, blue: 0.99))
-                        .cornerRadius(12)
-                        .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4), radius: 8, x: 0, y: 4)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 24)
+                // Book appointment button
+                NavigationLink(destination: ScheduleAppointmentView(
+                    patientId: patientId,
+                    selectedSpecialty: specialty,
+                    selectedDoctor: doctor.doctor_name
+                )) {
+                    HStack {
+                        Spacer()
+                        Text("Book Appointment")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.vertical, 16)
+                        Spacer()
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .background(Color(red: 0.43, green: 0.34, blue: 0.99))
+                    .cornerRadius(12)
+                    .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4), radius: 8, x: 0, y: 4)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
                 }
+                .buttonStyle(PlainButtonStyle())
             }
         }
         .background(Color(red: 0.94, green: 0.94, blue: 1.0))
         .navigationTitle("Doctor Profile")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct DoctorView_Previews: PreviewProvider {
+    static var previews: some View {
+        DoctorView(patientId: "12345")
     }
 }
