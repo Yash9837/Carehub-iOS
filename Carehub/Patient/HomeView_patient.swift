@@ -1,6 +1,5 @@
 import SwiftUI
 import FirebaseFirestore
-
 // MARK: - Models
 struct Notification: Identifiable {
     let id: String
@@ -22,7 +21,7 @@ struct HomeView_patient: View {
     @State private var upcomingSchedules: [Appointment] = []
     @State private var isLoading = true
     @State private var navigateToBooking = false
-    @State private var navigateToNotifications = false
+    @State private var showNotifications = false
     @State private var listener: ListenerRegistration?
     @State private var notificationCount: Int = 0
     @StateObject private var viewModel = AppointmentViewModel()
@@ -31,9 +30,9 @@ struct HomeView_patient: View {
     var body: some View {
         NavigationView {
             ZStack {
-                backgroundColor
+                Color(red: 0.94, green: 0.94, blue: 1.0)
                     .edgesIgnoringSafeArea(.all)
-                
+ 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
                         // Header
@@ -88,11 +87,11 @@ struct HomeView_patient: View {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 16)
                                     .fill(LinearGradient(
-                                        gradient: Gradient(colors: [forNowColor, secondaryColor]),
+                                        gradient: Gradient(colors: [purpleColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     ))
-                                    .shadow(color: primaryColor.opacity(0.2), radius: 10, x: 0, y: 5)
+                                    .shadow(color: purpleColor.opacity(0.2), radius: 10, x: 0, y: 5)
                                 
                                 HStack(spacing: 16) {
                                     Image(systemName: "calendar.badge.plus")
@@ -665,9 +664,19 @@ struct AllAppointmentsView: View {
                                 .padding(.horizontal, 20)
                             }
                         }
-                        .padding(.bottom, 20)
+                    } else {
+                        print("Missing or invalid fields in document: \(change.document.documentID)")
                     }
                 }
+
+                if let documentIds = querySnapshot?.documents.map({ $0.documentID }) {
+                    upcomingSchedules.removeAll { !documentIds.contains($0.id) }
+                }
+                
+                upcomingSchedules = schedules.sorted { ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast) }
+                
+                isLoading = false
+                print("Updated upcomingSchedules: \(upcomingSchedules.count), isLoading: \(isLoading)")
             }
             .padding(.top, 20)
         }
@@ -746,7 +755,6 @@ struct AppointmentListCard: View {
                         .foregroundColor(.gray)
                         .font(.system(size: 16))
                 }
-                .padding(16)
             }
             .frame(maxWidth: .infinity)
         }
@@ -1007,8 +1015,17 @@ struct ImprovedAppointmentCard: View {
                         Spacer()
                     }
                 }
-                .padding(16)
+                .padding()
             }
+            .navigationTitle("Upcoming Notifications")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                }
+            }
+            .background(Color(red: 0.94, green: 0.94, blue: 1.0))
         }
         .buttonStyle(PlainButtonStyle())
         .frame(height: 130)
@@ -1136,5 +1153,50 @@ struct ImprovedDoctorCard: View {
             .padding(.vertical, 12)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+struct MedicalRecordCard: View {
+    let type: String
+    let doctorName: String
+    let date: String
+    let title: String
+    let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(LinearGradient(
+                    gradient: Gradient(colors: [purpleColor, Color(red: 0.55, green: 0.48, blue: 0.99)]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+                .shadow(color: purpleColor.opacity(0.2), radius: 10, x: 0, y: 5)
+            
+            HStack(spacing: 16) {
+                Image(systemName: "doc.text.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 30, height: 35)
+                    .foregroundColor(.white)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(title)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                    
+                    Text("by \(doctorName)")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.8))
+                    
+                    Text(date)
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                Spacer()
+            }
+            .padding(16)
+        }
+        .frame(width: 250, height: 100)
     }
 }
