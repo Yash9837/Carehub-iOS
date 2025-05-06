@@ -494,7 +494,6 @@ struct PatientProfileView: View {
         )
     }
     
-    
     private func requestLabTest() {
         guard !labTestsInput.isEmpty else {
             alertMessage = "Please enter the tests required."
@@ -645,4 +644,3 @@ struct PatientProfile {
     let profileData: ProfileData
     let healthData: HealthData
 }
-
