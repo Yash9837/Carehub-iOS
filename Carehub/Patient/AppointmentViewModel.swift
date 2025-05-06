@@ -8,7 +8,7 @@ class AppointmentViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     func fetchRecentPrescriptions(forPatientId patientId: String) {
-        print("Fetching prescriptions for patient ID: \(patientId)")  // Debugging the start of the fetch process
+        print("Fetching prescriptions for patient ID: \(patientId)")
         
         db.collection("appointments")
             .whereField("patientId", isEqualTo: patientId) // Adjust the query as needed

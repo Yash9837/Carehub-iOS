@@ -254,7 +254,7 @@ struct SpecialtyDoctorsView: View {
 struct DoctorCardView: View {
     let name: String
     let specialty: String
-    let experience: Int // Keep as Int since we provide a default
+    let experience: Int
     let imageName: String
     
     var body: some View {
