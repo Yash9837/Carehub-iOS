@@ -64,6 +64,7 @@ struct GenerateBillView: View {
                     .cornerRadius(12)
                     .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
                 }
+                .tint(.purple)
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
                 .padding(.bottom, 10)
@@ -155,9 +156,10 @@ struct BillingAppointmentCard: View {
     var viewModel: GenerateBillViewModel?
     var isPaid: Bool = false
     @State private var showingActionSheet = false
-    @State private var isProcessing = false
-//    @State private var showingPDF = false
+    @State private var isProcessingPayment = false
+    @State private var isGeneratingBill = false
     @State private var pdfURL: URL?
+    @State private var billingId: String?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -209,15 +211,23 @@ struct BillingAppointmentCard: View {
                 HStack(spacing: 10) {
                     Button(action: {
                         handleShowBill()
-                        
                     }) {
-                        Text("Show Bill")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(Color(hex: "4A3FC8"))
-                            .cornerRadius(8)
+                        ZStack {
+                            Text("Show Bill")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(Color(hex: "4A3FC8"))
+                                .cornerRadius(8)
+                                .opacity(isGeneratingBill ? 0 : 1)
+                            
+                            if isGeneratingBill {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                                    .tint(.purple)
+                            }
+                        }
                     }
                     
                     Button(action: {
@@ -228,10 +238,10 @@ struct BillingAppointmentCard: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
-                            .background(isProcessing ? Color.gray : Color(hex: "6D57FC"))
+                            .background(isProcessingPayment ? Color.gray : Color(hex: "6D57FC"))
                             .cornerRadius(8)
                     }
-                    .disabled(isProcessing)
+                    .disabled(isProcessingPayment)
                 }
             }
         }
@@ -268,21 +278,25 @@ struct BillingAppointmentCard: View {
     }
     
     private func markAsPaid() {
-        isProcessing = true
-        viewModel?.markAsPaid(appointmentId: appointment.id, billingId: pdfURL!) { success in
-            isProcessing = false
+        guard let billingId = billingId else {
+            print("No billing ID available")
+            return
+        }
+        isProcessingPayment = true
+        viewModel?.markAsPaid(appointmentId: appointment.id, billingId: billingId) { success in
+            isProcessingPayment = false
         }
     }
     
     private func handleShowBill() {
-        isProcessing = true
+        isGeneratingBill = true
         let db = Firestore.firestore()
         
         db.collection("billings")
             .whereField("appointmentId", isEqualTo: appointment.id)
             .getDocuments { snapshot, error in
                 if let error = error {
-                    isProcessing = false
+                    isGeneratingBill = false
                     print("Error fetching billing: \(error.localizedDescription)")
                     return
                 }
@@ -290,6 +304,7 @@ struct BillingAppointmentCard: View {
                 if let document = snapshot?.documents.first {
                     let billingData = document.data()
                     if let billing = try? Firestore.Decoder().decode(Billing.self, from: billingData) {
+                        billingId = billing.billingId
                         handleExistingBilling(billing)
                     } else {
                         createNewBilling()
@@ -304,14 +319,15 @@ struct BillingAppointmentCard: View {
         if let billURL = billing.billURL, let url = URL(string: billURL) {
             pdfURL = url
             viewModel?.presentPDFViewer(with: pdfURL!)
-            isProcessing = false
+            isGeneratingBill = false
         } else {
             viewModel?.generateAndUploadBill(for: billing) { result in
                 DispatchQueue.main.async {
-                    isProcessing = false
+                    isGeneratingBill = false
                     switch result {
                     case .success(let url):
                         pdfURL = url
+                        billingId = billing.billingId
                         viewModel?.presentPDFViewer(with: pdfURL!)
                         updateBillingWithURL(billingId: billing.billingId, url: url)
                     case .failure(let error):
@@ -326,28 +342,29 @@ struct BillingAppointmentCard: View {
         let db = Firestore.firestore()
         db.collection("appointments").document(appointment.id).getDocument { snapshot, error in
             if let error = error {
-                isProcessing = false
+                isGeneratingBill = false
                 print("Error fetching appointment: \(error.localizedDescription)")
                 return
             }
             
             guard let data = snapshot?.data() else {
-                isProcessing = false
+                isGeneratingBill = false
                 print("Appointment data not found")
                 return
             }
             
             guard let billing = createBillingFromAppointment(data: data, appointmentId: appointment.id) else {
-                isProcessing = false
+                isGeneratingBill = false
                 return
             }
             
             viewModel?.generateAndUploadBill(for: billing) { result in
                 DispatchQueue.main.async {
-                    isProcessing = false
+                    isGeneratingBill = false
                     switch result {
                     case .success(let url):
                         pdfURL = url
+                        billingId = billing.billingId
                         viewModel?.presentPDFViewer(with: pdfURL!)
                         saveNewBilling(billing: billing, url: url)
                     case .failure(let error):
@@ -484,7 +501,6 @@ struct ErrorView: View {
 }
 
 // MARK: - Preview
-
 #Preview {
     Group {
         GenerateBillView()

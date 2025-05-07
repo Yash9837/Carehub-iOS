@@ -72,9 +72,16 @@ struct AccountantProfileView: View {
                         } else {
                             Button("Logout") {
                                 isLoggingOut = true
+                                // Perform logout and reset AuthManager states
                                 AuthManager.shared.logout()
+                                AuthManager.shared.currentPatient = nil
+                                AuthManager.shared.currentDoctor = nil
+                                AuthManager.shared.currentStaffMember = nil
+                                AuthManager.shared.isLoading = false
+                                AuthManager.shared.errorMessage = nil
                                 // Add a small delay to show the progress view
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    isLoggingOut = false
                                     showLoginView = true
                                 }
                             }
@@ -82,36 +89,6 @@ struct AccountantProfileView: View {
                         }
                     }
                     
-                } else if let error = viewModel.error {
-                    Section {
-                        VStack(spacing: 16) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.system(size: 40))
-                                .foregroundColor(.orange)
-                                .symbolRenderingMode(.hierarchical)
-                            
-                            VStack(spacing: 4) {
-                                Text("Error loading profile")
-                                    .font(.headline)
-                                
-                                Text(error.localizedDescription)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                            }
-                            
-                            Button {
-                                viewModel.fetchAccountant(byAccountantId: accountantId)
-                            } label: {
-                                Label("Try Again", systemImage: "arrow.clockwise")
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(primaryColor)
-                        }
-                        .padding(.vertical, 16)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    }
-                    .listRowSeparator(.hidden)
                 }
             }
             .navigationTitle("Profile")
@@ -120,7 +97,6 @@ struct AccountantProfileView: View {
                 viewModel.fetchAccountant(byAccountantId: accountantId)
             }
             .fullScreenCover(isPresented: $showLoginView) {
-                // Replace with your actual login view
                 LoginView()
             }
         }

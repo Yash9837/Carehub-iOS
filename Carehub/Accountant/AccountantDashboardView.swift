@@ -75,16 +75,7 @@ struct AccountantDashboard: View {
                                     .frame(maxWidth: .infinity)
                                     .padding(.horizontal, 24)
                                 }
-                                
-//                                NavigationLink(destination: ScheduleFollowupsView()) {
-//                                    AccountantCard(
-//                                        title: "Schedule Followups",
-//                                        icon: "calendar.badge.clock",
-//                                        color: primaryColor
-//                                    )
-//                                    .frame(maxWidth: .infinity)
-//                                    .padding(.horizontal, 24)
-//                                }
+                                .tint(primaryColor) // Sets back button to purple for GenerateBillView
                                 
                                 NavigationLink(destination: PaymentHistoryView()) {
                                     AccountantCard(
@@ -97,11 +88,11 @@ struct AccountantDashboard: View {
                                 }
                             }
                             .padding(.top)
-
                         }
                     }
                 }
                 .navigationBarHidden(true)
+                .tint(.purple)
                 .onAppear {
                     viewModel.fetchAccountant(byAccountantId: accountantId)
                 }
@@ -117,7 +108,6 @@ struct AccountantDashboard: View {
                 }
                 .tag(1)
         }
-        .accentColor(primaryColor)
     }
 }
 
@@ -151,58 +141,6 @@ struct AccountantCard: View {
         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 8, x: 0, y: 4)
     }
 }
-
-//struct ActionButton: View {
-//    let icon: String
-//    let label: String
-//    let color: Color
-//    
-//    var body: some View {
-//        VStack(spacing: 16) {
-//            Image(systemName: icon)
-//                .font(.headline)
-//                .foregroundColor(.white)
-//                .frame(width: 44, height: 44)
-//                .background(color)
-//                .clipShape(Circle())
-//            
-//            Text(label)
-//                .font(.title3)
-//                .foregroundColor(.primary)
-//        }
-//        .frame(maxWidth: .infinity)
-//    }
-//}
-
-//struct TransactionItem: View {
-//    var body: some View {
-//        HStack(spacing: 12) {
-//            Image(systemName: "arrow.up.right")
-//                .foregroundColor(.white)
-//                .frame(width: 36, height: 36)
-//                .background(Color.green)
-//                .clipShape(Circle())
-//            
-//            VStack(alignment: .leading, spacing: 2) {
-//                Text("Client Payment")
-//                    .font(.title3)
-//                    .foregroundColor(.primary)
-//                
-//                Text("Today, 10:30 AM")
-//                    .font(.body)
-//                    .foregroundColor(.secondary)
-//            }
-//            
-//            Spacer()
-//            
-//            Text("$1,250.00")
-//                .font(.title3)
-//                .fontWeight(.medium)
-//                .foregroundColor(.primary)
-//        }
-//        .padding(.vertical, 8)
-//    }
-//}
 
 #Preview {
     Group {
