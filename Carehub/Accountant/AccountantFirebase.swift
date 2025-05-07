@@ -347,7 +347,7 @@ class GenerateBillViewModel: ObservableObject {
             }
     }
     
-    func markAsPaid(appointmentId: String, billingId: URL, completion: @escaping (Bool) -> Void) {
+    func markAsPaid(appointmentId: String, billingId: String, completion: @escaping (Bool) -> Void) {
         db.collection("appointments").document(appointmentId)
             .updateData(["billingStatus": "paid"]) { [weak self] error in
                 DispatchQueue.main.async {
