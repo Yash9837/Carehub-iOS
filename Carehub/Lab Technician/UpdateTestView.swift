@@ -243,39 +243,58 @@ struct UpdateTestView: View {
         isLoading = true
         let db = Firestore.firestore()
         var data: [String: Any] = [
-            "status": "Completed" // Force status to be Completed since we validated
+            "status": isCompleted ? "Completed" : "Pending",
+            "updatedAt": FieldValue.serverTimestamp()
         ]
         
-        let dispatchGroup = DispatchGroup()
-        
-        let storageRef = Storage.storage().reference().child("medicalTests/\(medicalTestId)/result.pdf")
-        dispatchGroup.enter()
-        storageRef.putFile(from: pdfURL, metadata: nil) { metadata, error in
-            if let error = error {
-                print("Upload failed: \(error.localizedDescription)")
-                dispatchGroup.leave()
-                isLoading = false
-                return
-            }
-            storageRef.downloadURL { url, error in
-                defer { dispatchGroup.leave() }
-                if let downloadURL = url {
-                    data["pdfUrl"] = downloadURL.absoluteString
-                } else if let error = error {
-                    print("Error getting download URL: \(error.localizedDescription)")
-                }
-            }
+        // First ensure we can access the file
+        guard pdfURL.startAccessingSecurityScopedResource() else {
+            print("Failed to access security scoped resource")
+            isLoading = false
+            return
         }
         
-        dispatchGroup.notify(queue: .main) {
-            db.collection("medicalTests").document(firestoreDocumentId).updateData(data) { error in
-                isLoading = false
+        defer {
+            pdfURL.stopAccessingSecurityScopedResource()
+        }
+        
+        do {
+            // Get file data
+            let fileData = try Data(contentsOf: pdfURL)
+            
+            let storageRef = Storage.storage().reference().child("medicalTests/\(medicalTestId)/\(UUID().uuidString).pdf")
+            
+            // Upload the file
+            storageRef.putData(fileData, metadata: nil) { metadata, error in
                 if let error = error {
-                    print("Error updating document: \(error.localizedDescription)")
-                } else {
-                    presentationMode.wrappedValue.dismiss()
+                    print("Upload failed: \(error.localizedDescription)")
+                    self.isLoading = false
+                    return
+                }
+                
+                // Get download URL
+                storageRef.downloadURL { url, error in
+                    if let downloadURL = url {
+                        data["pdfUrl"] = downloadURL.absoluteString
+                        
+                        // Update Firestore document
+                        db.collection("medicalTests").document(firestoreDocumentId).updateData(data) { error in
+                            self.isLoading = false
+                            if let error = error {
+                                print("Error updating document: \(error.localizedDescription)")
+                            } else {
+                                self.presentationMode.wrappedValue.dismiss()
+                            }
+                        }
+                    } else if let error = error {
+                        print("Error getting download URL: \(error.localizedDescription)")
+                        self.isLoading = false
+                    }
                 }
             }
+        } catch {
+            print("Error reading file data: \(error.localizedDescription)")
+            isLoading = false
         }
     }
     
