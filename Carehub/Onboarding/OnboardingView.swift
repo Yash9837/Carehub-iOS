@@ -3,10 +3,11 @@ import SwiftUI
 // MARK: - Onboarding View
 struct OnboardingView: View {
     @State private var currentPage = 0
-    @State private var showRegister = false
     @Environment(\.colorScheme) private var colorScheme
     @State private var cardOffset: CGSize = .zero
     @State private var rotationAngle: Double = 0.0
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.dismiss) private var dismiss
 
     let pages = [
         OnboardingPage(
@@ -36,7 +37,7 @@ struct OnboardingView: View {
             
             LinearGradient(
                 colors: [
-                    Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4), // #6D57FC
+                    Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4),
                     Color.white.opacity(0.9),
                     Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4)
                 ],
@@ -64,7 +65,8 @@ struct OnboardingView: View {
                 Button(action: {
                     withAnimation {
                         if currentPage == pages.count - 1 {
-                            showRegister = true
+                            appState.hasCompletedOnboarding = true
+                            dismiss()
                         } else {
                             currentPage += 1
                         }
@@ -85,10 +87,6 @@ struct OnboardingView: View {
                 .accessibilityLabel("\(pages[currentPage].buttonTitle) Button")
             }
         }
-        .navigationDestination(isPresented: $showRegister) {
-            LoginView()
-        }
-        .navigationBarBackButtonHidden(true)
     }
 
     var dragGesture: some Gesture {
@@ -106,7 +104,8 @@ struct OnboardingView: View {
                             if currentPage < pages.count - 1 {
                                 currentPage += 1
                             } else {
-                                showRegister = true
+                                appState.hasCompletedOnboarding = true
+                                dismiss()
                             }
                             resetDrag()
                         }
@@ -148,7 +147,7 @@ struct OnboardingCard: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 80, height: 80)
-                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.8)) // #6D57FC
+                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.8))
                 .accessibilityLabel("\(page.title) Icon")
 
             Text(page.title)
@@ -173,7 +172,7 @@ struct OnboardingCard: View {
                         Circle()
                             .frame(width: index == currentPage.wrappedValue ? 10 : 6,
                                    height: index == currentPage.wrappedValue ? 10 : 6)
-                            .foregroundColor(index == currentPage.wrappedValue ? .black : .gray) // Consistent colors
+                            .foregroundColor(index == currentPage.wrappedValue ? .black : .gray)
                     }
                 }
                 .padding(.top, 10)
@@ -192,15 +191,13 @@ struct OnboardingCard: View {
 struct OnboardingView_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            NavigationStack {
-                OnboardingView()
-            }
-            .preferredColorScheme(.light)
+            OnboardingView()
+                .environmentObject(AppState())
+                .preferredColorScheme(.light)
 
-            NavigationStack {
-                OnboardingView()
-            }
-            .preferredColorScheme(.dark)
+            OnboardingView()
+                .environmentObject(AppState())
+                .preferredColorScheme(.dark)
         }
     }
 }

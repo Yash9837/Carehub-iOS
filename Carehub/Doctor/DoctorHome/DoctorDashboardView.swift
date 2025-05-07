@@ -1,7 +1,7 @@
-
 import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
+
 struct DoctorDashboardView: View {
     @StateObject private var authManager = AuthManager.shared
     @State private var selectedDate = Date()
@@ -18,70 +18,57 @@ struct DoctorDashboardView: View {
     private let secondaryColor = Color(red: 0.55, green: 0.48, blue: 0.99)
     private let backgroundColor = Color(red: 0.97, green: 0.97, blue: 1.0)
     private let cardBackground = Color.white
-    private let ForNowColor = Color(red: 0.51, green: 0.44, blue: 0.87)
+    private let forNowColor = Color(red: 0.51, green: 0.44, blue: 0.87)
     
     private let db = Firestore.firestore()
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                backgroundColor.edgesIgnoringSafeArea(.all)
-                
-                VStack(spacing: 0) {
-                    // Header
-                    HStack {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Welcome, \(doctorName)")
-                                .font(.system(.title2, design: .rounded, weight: .bold))
-                                .foregroundColor(.primary)
-                            Text("Today's Overview")
-                                .font(.system(.subheadline, design: .rounded))
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-//                        Button(action: {}) {
-//                            Image(systemName: "bell.fill")
-//                                .font(.system(size: 20))
-//                                .foregroundColor(primaryColor)
-//                                .padding(10)
-//                                .background(cardBackground)
-//                                .clipShape(Circle())
-//                                .shadow(radius: 2)
-//                        }
+        ZStack {
+            backgroundColor.edgesIgnoringSafeArea(.all)
+            
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Welcome, \(doctorName)")
+                            .font(.system(.title2, design: .rounded, weight: .bold))
+                            .foregroundColor(.primary)
+                        Text("Today's Overview")
+                            .font(.system(.subheadline, design: .rounded))
+                            .foregroundColor(.secondary)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 16)
-                    
-                    // Main Content
-                    switch viewMode {
-                    case .month:
-                        MonthView(selectedDate: $selectedDate, viewMode: $viewMode)
-                    case .day:
-                        DayView(
-                            selectedDate: $selectedDate,
-                            appointments: appointments.filter { $0.date?.isSameDay(as: selectedDate) ?? false },
-                            showPatientProfileView: $showPatientProfileView,
-                            selectedPatientId: $selectedPatientId
-                        )
-                    }
+                    Spacer()
                 }
-            }
-            .navigationBarBackButtonHidden(true) // Hide default back button
-            .navigationBarHidden(true) // Hide the entire navigation bar to ensure no back button appears
-            .onAppear {
-                updateDoctorData()
-            }
-            .onReceive(authManager.$currentStaffMember) { _ in
-                updateDoctorData()
-            }
-            .navigationDestination(isPresented: $showPatientProfileView) {
-                if let patientId = selectedPatientId {
-                    PatientProfileView(
-                        patientIdentifier: patientId,
-                        doctorId: doctorId,
-                        doctorName: doctorName
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                
+                // Main Content
+                switch viewMode {
+                case .month:
+                    MonthView(selectedDate: $selectedDate, viewMode: $viewMode)
+                case .day:
+                    DayView(
+                        selectedDate: $selectedDate,
+                        appointments: appointments.filter { $0.date?.isSameDay(as: selectedDate) ?? false },
+                        showPatientProfileView: $showPatientProfileView,
+                        selectedPatientId: $selectedPatientId
                     )
                 }
+            }
+        }
+        .onAppear {
+            updateDoctorData()
+        }
+        .onReceive(authManager.$currentStaffMember) { _ in
+            updateDoctorData()
+        }
+        .navigationDestination(isPresented: $showPatientProfileView) {
+            if let patientId = selectedPatientId {
+                PatientProfileView(
+                    patientIdentifier: patientId,
+                    doctorId: doctorId,
+                    doctorName: doctorName
+                )
             }
         }
     }
@@ -179,8 +166,6 @@ struct DoctorDashboardView: View {
     }
 }
 
-import SwiftUI
-
 struct DayView: View {
     @Binding var selectedDate: Date
     let appointments: [Appointment]
@@ -250,7 +235,6 @@ struct DayView: View {
     }
 }
 
-// Implement the new WeekScrollerView to replace DateSelectorBar
 struct WeekScrollerView: View {
     @Binding var selectedDate: Date
     @State private var showDatePicker = false
@@ -267,21 +251,18 @@ struct WeekScrollerView: View {
         }
     }
     
-    // Define colors to match the app's theme
     private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     private let cardBackground = Color.white
     
     var body: some View {
-        // Calendar card with everything inside it
         HStack {
             Spacer()
             ZStack {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(cardBackground)
-                    .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 2) // Reduced shadow
+                    .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 2)
                 
                 VStack(spacing: 8) {
-                    // Month/year header with navigation arrows - now inside the card
                     HStack {
                         Button(action: { moveWeek(by: -1) }) {
                             Image(systemName: "chevron.left")
@@ -291,7 +272,6 @@ struct WeekScrollerView: View {
                         
                         Spacer()
                         
-                        // Reduced text size for month/year header
                         Text(monthYearString(from: selectedDate))
                             .font(.title3)
                             .fontWeight(.bold)
@@ -310,7 +290,6 @@ struct WeekScrollerView: View {
                     .padding(.horizontal, 8)
                     .padding(.top, 12)
                     
-                    // Week days
                     HStack(spacing: 1) {
                         ForEach(weekDates, id: \.self) { date in
                             WeekDayCell(
@@ -328,7 +307,7 @@ struct WeekScrollerView: View {
                     .padding(.bottom, 10)
                 }
             }
-            .frame(width: UIScreen.main.bounds.width - 32, height: 120) // Adjusted width with 8 spacing on each side
+            .frame(width: UIScreen.main.bounds.width - 32, height: 120)
             Spacer()
         }
         .sheet(isPresented: $showDatePicker) {
@@ -337,7 +316,7 @@ struct WeekScrollerView: View {
                 selection: $selectedDate,
                 displayedComponents: .date
             )
-            .datePickerStyle(GraphicalDatePickerStyle())
+            .datePickerStyle(.graphical)
             .presentationDetents([.medium])
             .padding()
         }
@@ -358,7 +337,6 @@ struct WeekScrollerView: View {
     }
 }
 
-// Updated WeekDayCell with reduced height
 struct WeekDayCell: View {
     let date: Date
     let isSelected: Bool
@@ -379,14 +357,14 @@ struct WeekDayCell: View {
     }
     
     var body: some View {
-        VStack(spacing: 8) { // Reduced spacing from 2 to 1
+        VStack(spacing: 8) {
             Text(dayName)
-                .font(.caption) // Reduced from .caption to .caption2
+                .font(.caption)
                 .foregroundColor(.gray)
             
             Text(dayNumber)
-                .font(.title3.weight(.semibold)) // Reduced from .title3 to .body
-                .frame(width: 32, height: 32) // Reduced from 36x36 to 32x32
+                .font(.title3.weight(.semibold))
+                .frame(width: 32, height: 32)
                 .background(
                     Circle()
                         .fill(isSelected ? primaryColor : Color.clear)
@@ -397,7 +375,7 @@ struct WeekDayCell: View {
                 )
                 .foregroundColor(isSelected ? .white : (isToday ? primaryColor : .primary))
         }
-        .frame(width: 50, height: 60) // Reduced height from 60 to 52
+        .frame(width: 50, height: 60)
     }
 }
 
@@ -411,7 +389,7 @@ struct AppointmentView: View {
     private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     private let secondaryColor = Color(red: 0.55, green: 0.48, blue: 0.99)
     private let cardBackground = Color.white
-    private let ForNowColor = Color(red: 0.51, green: 0.44, blue: 0.87)
+    private let forNowColor = Color(red: 0.51, green: 0.44, blue: 0.87)
     
     var body: some View {
         Button(action: {
@@ -444,14 +422,14 @@ struct AppointmentView: View {
                         .foregroundColor(statusColor)
                         .overlay(
                             Capsule()
-                                .stroke(ForNowColor, lineWidth: 1)
+                                .stroke(forNowColor, lineWidth: 1)
                         )
                         .clipShape(Capsule())
                     
                     if appointment.followUpRequired ?? false {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(size: 12))
-                            .foregroundColor(ForNowColor)
+                            .foregroundColor(forNowColor)
                     }
                 }
                 
@@ -533,7 +511,7 @@ struct MonthView: View {
             .background(cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
-            .frame(width: 320) // Set explicit width instead of stretching
+            .frame(width: 320)
             Spacer()
         }
         .padding(.horizontal, 12)
@@ -665,8 +643,8 @@ extension Color {
     static let customCard = Color.white
 }
 
-#Preview {
-    DoctorDashboardView()
+struct DoctorDashboardView_Previews: PreviewProvider {
+    static var previews: some View {
+        DoctorDashboardView()
+    }
 }
-
-
