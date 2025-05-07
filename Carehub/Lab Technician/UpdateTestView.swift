@@ -43,12 +43,22 @@ struct DocumentPicker: UIViewControllerRepresentable {
     }
 }
 
+
+import SwiftUI
+import FirebaseFirestore
+import FirebaseStorage
+import UniformTypeIdentifiers
+
+// ... [Keep the DocumentPicker struct unchanged] ...
+
 struct UpdateTestView: View {
     let medicalTestId: String
     @State private var isCompleted: Bool = false
     @State private var isLoading = false
     @State private var pdfURL: URL? = nil
     @State private var isShowingPDFPicker = false
+    @State private var firestoreDocumentId: String? = nil
+    @State private var showValidationError = false // Combined error state
     @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
@@ -65,25 +75,8 @@ struct UpdateTestView: View {
                 
                 // Form Fields
                 VStack(spacing: 15) {
-                    // Status Toggle
-                    HStack {
-                        Text("Status : ")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.gray)
-                        
-                        Spacer()
-                        
-                        Toggle(isOn: $isCompleted) {
-                            Text(isCompleted ? "Completed" : "Pending")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.gray)
-                        }
-                        .tint(.green)
-                    }
-                    .padding(.horizontal, 20)
-                    
                     // PDF Upload
-                   Button(action: {
+                    Button(action: {
                         isShowingPDFPicker = true
                     }) {
                         VStack(spacing: 8) {
@@ -112,30 +105,55 @@ struct UpdateTestView: View {
                     .sheet(isPresented: $isShowingPDFPicker) {
                         DocumentPicker(pdfURL: $pdfURL, onPDFSelected: uploadPDF)
                     }
+                    
+                    // Status Toggle
+                    HStack {
+                        Text("Status : ")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.gray)
+                        
+                        Spacer()
+                        
+                        Toggle(isOn: $isCompleted) {
+                            Text(isCompleted ? "Completed" : "Pending")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.gray)
+                        }
+                        .tint(.green)
+                    }
+                    .padding(.horizontal, 20)
                 }
                 .padding(.horizontal, 20)
                 
                 // Save Button
                 Button(action: {
-                    saveChanges()
+                    validateAndSave()
                 }) {
-                    Text("Save Changes")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color(red: 0.43, green: 0.34, blue: 0.99),
-                                    Color(red: 0.55, green: 0.48, blue: 0.99)
-                                ]),
-                                startPoint: .leading,
-                                endPoint: .trailing
+                    ZStack {
+                        Text("Save Changes")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.43, green: 0.34, blue: 0.99),
+                                        Color(red: 0.55, green: 0.48, blue: 0.99)
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
                             )
-                        )
-                        .cornerRadius(12)
-                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 3)
+                            .cornerRadius(12)
+                            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 3)
+                        
+                        if isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(1.2)
+                        }
+                    }
                 }
                 .padding(.horizontal, 20)
                 .disabled(isLoading)
@@ -146,64 +164,137 @@ struct UpdateTestView: View {
             .onAppear {
                 loadTestData()
             }
+            .alert(isPresented: $showValidationError) {
+                Alert(
+                    title: Text("Cannot Save Changes"),
+                    message: Text(validationErrorMessage()),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
         }
+    }
+    
+    private func validationErrorMessage() -> String {
+        var errors = [String]()
+        
+        if !isCompleted {
+            errors.append("• Status must be set to 'Completed'")
+        }
+        
+        if pdfURL == nil {
+            errors.append("• You must select a PDF file")
+        }
+        
+        return errors.joined(separator: "\n")
+    }
+    
+    private func validateAndSave() {
+        guard isCompleted else {
+            showValidationError = true
+            return
+        }
+        
+        guard pdfURL != nil else {
+            showValidationError = true
+            return
+        }
+        
+        saveChanges()
     }
     
     private func loadTestData() {
         isLoading = true
         let db = Firestore.firestore()
-        db.collection("medicalTests").document(medicalTestId).getDocument { (doc, error) in
-            isLoading = false
-            if let doc = doc, doc.exists, let data = doc.data() {
+        
+        db.collection("medicalTests")
+            .whereField("id", isEqualTo: medicalTestId)
+            .getDocuments { (querySnapshot, error) in
+                isLoading = false
+                if let error = error {
+                    print("Error getting documents: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let document = querySnapshot?.documents.first else {
+                    print("No matching document found")
+                    return
+                }
+                
+                self.firestoreDocumentId = document.documentID
+                let data = document.data()
                 let status = data["status"] as? String ?? "Pending"
                 isCompleted = (status == "Completed")
-            } else {
-                print("Error or document not found: \(error?.localizedDescription ?? "No error details")")
             }
-        }
     }
     
     private func saveChanges() {
+        guard let firestoreDocumentId = firestoreDocumentId else {
+            print("No Firestore document ID found")
+            isLoading = false
+            return
+        }
+        
+        guard let pdfURL = pdfURL else {
+            print("No PDF selected")
+            isLoading = false
+            return
+        }
+        
         isLoading = true
         let db = Firestore.firestore()
         var data: [String: Any] = [
-            "status": isCompleted ? "Completed" : "Pending"
+            "status": isCompleted ? "Completed" : "Pending",
+            "updatedAt": FieldValue.serverTimestamp()
         ]
         
-        let dispatchGroup = DispatchGroup()
+        // First ensure we can access the file
+        guard pdfURL.startAccessingSecurityScopedResource() else {
+            print("Failed to access security scoped resource")
+            isLoading = false
+            return
+        }
         
-        if let pdfURL = pdfURL {
-            let storageRef = Storage.storage().reference().child("medicalTests/\(medicalTestId)/result.pdf")
-            dispatchGroup.enter()
-            storageRef.putFile(from: pdfURL, metadata: nil) { metadata, error in
+        defer {
+            pdfURL.stopAccessingSecurityScopedResource()
+        }
+        
+        do {
+            // Get file data
+            let fileData = try Data(contentsOf: pdfURL)
+            
+            let storageRef = Storage.storage().reference().child("medicalTests/\(medicalTestId)/\(UUID().uuidString).pdf")
+            
+            // Upload the file
+            storageRef.putData(fileData, metadata: nil) { metadata, error in
                 if let error = error {
                     print("Upload failed: \(error.localizedDescription)")
-                    dispatchGroup.leave()
-                    isLoading = false
+                    self.isLoading = false
                     return
                 }
+                
+                // Get download URL
                 storageRef.downloadURL { url, error in
-                    defer { dispatchGroup.leave() }
                     if let downloadURL = url {
-                        print("Download URL retrieved: \(downloadURL.absoluteString)")
                         data["pdfUrl"] = downloadURL.absoluteString
+                        
+                        // Update Firestore document
+                        db.collection("medicalTests").document(firestoreDocumentId).updateData(data) { error in
+                            self.isLoading = false
+                            if let error = error {
+                                print("Error updating document: \(error.localizedDescription)")
+                            } else {
+                                self.presentationMode.wrappedValue.dismiss()
+                            }
+                        }
                     } else if let error = error {
                         print("Error getting download URL: \(error.localizedDescription)")
+                        self.isLoading = false
                     }
                 }
             }
-        }
-        
-        dispatchGroup.notify(queue: .main) {
-            db.collection("medicalTests").document(medicalTestId).updateData(data) { error in
-                isLoading = false
-                if let error = error {
-                    print("Error updating document: \(error.localizedDescription)")
-                } else {
-                    print("Document updated successfully with data: \(data)")
-                    presentationMode.wrappedValue.dismiss()
-                }
-            }
+        } catch {
+            print("Error reading file data: \(error.localizedDescription)")
+            isLoading = false
         }
     }
     

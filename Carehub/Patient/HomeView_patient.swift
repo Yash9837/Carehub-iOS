@@ -1165,8 +1165,6 @@ struct Notification: Identifiable {
     let appointmentId: String?
     let type: String
 }
-
-// MARK: - HomeView_patient
 struct HomeView_patient: View {
     let patient: PatientF
     @Environment(\.colorScheme) var colorScheme
@@ -1197,11 +1195,11 @@ struct HomeView_patient: View {
                         HStack(alignment: .center) {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Hello, \(patient.userData.Name)")
-                                    .font(.system(size: 28, weight: .bold))
+                                    .font(FontSizeManager.font(for: 28, weight: .bold))
                                     .foregroundColor(.black)
                                 
                                 Text("Welcome to CareHub")
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(FontSizeManager.font(for: 16, weight: .medium))
                                     .foregroundColor(.gray)
                             }
                             
@@ -1222,7 +1220,7 @@ struct HomeView_patient: View {
                                     
                                     Image(systemName: "bell.fill")
                                         .foregroundColor(primaryColor)
-                                        .font(.system(size: 18))
+                                        .font(.system(size: FontSizeManager.fontSize(for: 18)))
                                     
                                     if notificationCount > 0 {
                                         ZStack {
@@ -1230,7 +1228,7 @@ struct HomeView_patient: View {
                                                 .fill(Color.red)
                                                 .frame(width: 20, height: 20)
                                             Text("\(notificationCount)")
-                                                .font(.system(size: 12, weight: .bold))
+                                                .font(FontSizeManager.font(for: 12, weight: .bold))
                                                 .foregroundColor(.white)
                                         }
                                         .offset(x: 12, y: -12)
@@ -1265,11 +1263,11 @@ struct HomeView_patient: View {
                                     
                                     VStack(alignment: .leading, spacing: 8) {
                                         Text("Book an Appointment")
-                                            .font(.system(size: 18, weight: .bold))
+                                            .font(FontSizeManager.font(for: 18, weight: .bold))
                                             .foregroundColor(.white)
                                         
                                         Text("Schedule with your preferred doctor")
-                                            .font(.system(size: 14, weight: .medium))
+                                            .font(FontSizeManager.font(for: 14, weight: .medium))
                                             .foregroundColor(.white.opacity(0.8))
                                     }
                                     
@@ -1277,7 +1275,7 @@ struct HomeView_patient: View {
                                     
                                     Image(systemName: "chevron.right")
                                         .foregroundColor(.white)
-                                        .font(.system(size: 18))
+                                        .font(.system(size: FontSizeManager.fontSize(for: 18)))
                                         .padding(.trailing, 16)
                                 }
                                 .padding(.vertical, 16)
@@ -1301,7 +1299,7 @@ struct HomeView_patient: View {
                                     formatDate: formatDate
                                 )) {
                                     Text("See All")
-                                        .font(.system(size: 14, weight: .semibold))
+                                        .font(FontSizeManager.font(for: 14, weight: .semibold))
                                         .foregroundColor(primaryColor)
                                 }
                             }
@@ -1350,7 +1348,7 @@ struct HomeView_patient: View {
                                     formatDate: formatDate
                                 )) {
                                     Text("See All")
-                                        .font(.system(size: 14, weight: .semibold))
+                                        .font(FontSizeManager.font(for: 14, weight: .semibold))
                                         .foregroundColor(primaryColor)
                                 }
                             }
@@ -1377,7 +1375,7 @@ struct HomeView_patient: View {
                                                 label: {
                                                     ImprovedMedicalRecordCard(
                                                         type: appointment.status,
-                                                        doctorName: "Dr. \(getDoctorName(for: appointment.docId))",
+                                                        doctorName: "\(getDoctorName(for: appointment.docId))",
                                                         date: formatDate(appointment.date),
                                                         title: appointment.description
                                                     )
@@ -1394,7 +1392,6 @@ struct HomeView_patient: View {
                             viewModel.fetchRecentPrescriptions(forPatientId: patient.patientId)
                         }
                         
-                        // Previously Visited Doctors Section
                         VStack(alignment: .leading, spacing: 16) {
                             sectionHeader(
                                 title: "Previously Visited Doctors",
@@ -1405,7 +1402,7 @@ struct HomeView_patient: View {
                                     formatDate: formatDate
                                 )) {
                                     Text("See All")
-                                        .font(.system(size: 14, weight: .semibold))
+                                        .font(FontSizeManager.font(for: 14, weight: .semibold))
                                         .foregroundColor(primaryColor)
                                 }
                             }
@@ -1421,7 +1418,7 @@ struct HomeView_patient: View {
                                     HStack(spacing: 16) {
                                         ForEach(viewModel.recentPrescriptions) { appointment in
                                             ImprovedDoctorCard(
-                                                name: "Dr. \(getDoctorName(for: appointment.docId))",
+                                                name: " \(getDoctorName(for: appointment.docId))",
                                                 specialty: "General Medicine",
                                                 lastVisit: formatDate(appointment.date),
                                                 imageName: "defaultDoctorImage"
@@ -1481,7 +1478,7 @@ struct HomeView_patient: View {
     private func sectionHeader<T: View>(title: String, hasContent: Bool, @ViewBuilder action: @escaping () -> T) -> some View {
         HStack {
             Text(title)
-                .font(.system(size: 20, weight: .bold))
+                .font(FontSizeManager.font(for: 20, weight: .bold))
                 .foregroundColor(.black)
             
             Spacer()
@@ -1501,13 +1498,14 @@ struct HomeView_patient: View {
                     .scaledToFit()
                     .frame(width: 36, height: 36)
                     .foregroundColor(.gray.opacity(0.7))
+                    .font(.system(size: FontSizeManager.fontSize(for: 36)))
                 
                 Text(title)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(FontSizeManager.font(for: 16, weight: .semibold))
                     .foregroundColor(.primary)
                 
                 Text(message)
-                    .font(.system(size: 14))
+                    .font(FontSizeManager.font(for: 14, weight: .regular))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -1690,11 +1688,12 @@ struct NotificationsView: View {
                                 .scaledToFit()
                                 .frame(width: 60, height: 60)
                                 .foregroundColor(.gray)
+                                .font(.system(size: FontSizeManager.fontSize(for: 60)))
                             Text("No Updates")
-                                .font(.title3.bold())
+                                .font(FontSizeManager.font(for: 20, weight: .bold))
                                 .foregroundColor(.primary)
                             Text("You have no new notifications.")
-                                .font(.subheadline)
+                                .font(FontSizeManager.font(for: 16, weight: .regular))
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal)
@@ -1761,7 +1760,7 @@ struct NotificationCard: View {
                         .clipShape(Circle())
                     
                     Text("You have an upcoming appointment with \(doctorName) at \(time)")
-                        .font(.system(size: 16, weight: .medium))
+                        .font(FontSizeManager.font(for: 16, weight: .medium))
                         .foregroundColor(.black)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1770,11 +1769,11 @@ struct NotificationCard: View {
                 }
                 HStack(spacing: 8) {
                     Image(systemName: "calendar")
-                        .font(.system(size: 14))
+                        .font(.system(size: FontSizeManager.fontSize(for: 14)))
                         .foregroundColor(.black.opacity(0.6))
                     
                     Text(date)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(FontSizeManager.font(for: 15, weight: .medium))
                         .foregroundColor(.black.opacity(0.8))
                 }
                 .padding(.horizontal, 14)
@@ -1810,13 +1809,14 @@ struct AllAppointmentsView: View {
                             .scaledToFit()
                             .frame(width: 60, height: 60)
                             .foregroundColor(.gray.opacity(0.7))
+                            .font(.system(size: FontSizeManager.fontSize(for: 60)))
                         
                         Text("No Upcoming Appointments")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(FontSizeManager.font(for: 18, weight: .semibold))
                             .foregroundColor(.primary)
                         
                         Text("You don't have any scheduled appointments")
-                            .font(.system(size: 14))
+                            .font(FontSizeManager.font(for: 14, weight: .regular))
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                     }
@@ -1895,20 +1895,21 @@ struct AppointmentListCard: View {
                                 .scaledToFit()
                                 .frame(width: 64, height: 64)
                                 .foregroundColor(primaryColor)
+                                .font(.system(size: FontSizeManager.fontSize(for: 64)))
                         }
                     }
                     
                     VStack(alignment: .leading, spacing: 6) {
                         Text(doctorName)
-                            .font(.system(size: 16, weight: .bold))
+                            .font(FontSizeManager.font(for: 16, weight: .bold))
                             .foregroundColor(.primary)
                         
                         Text(specialty)
-                            .font(.system(size: 14))
+                            .font(FontSizeManager.font(for: 14, weight: .regular))
                             .foregroundColor(.secondary)
                         
                         Text(date)
-                            .font(.system(size: 12))
+                            .font(FontSizeManager.font(for: 12, weight: .regular))
                             .foregroundColor(.gray)
                     }
                     
@@ -1916,7 +1917,7 @@ struct AppointmentListCard: View {
                     
                     Image(systemName: "chevron.right")
                         .foregroundColor(.gray)
-                        .font(.system(size: 16))
+                        .font(.system(size: FontSizeManager.fontSize(for: 16)))
                 }
                 .padding(16)
             }
@@ -1935,18 +1936,14 @@ struct AppointmentListCard: View {
         .accessibilityLabel("Appointment with \(doctorName) for \(specialty), on \(date)")
     }
 }
-
-// MARK: - AllPrescriptionsView
 struct AllPrescriptionsView: View {
     let prescriptions: [Appointment]
     let formatDate: (Date?) -> String
     private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
-    
     var body: some View {
         ZStack {
             Color(.systemBackground)
                 .ignoresSafeArea()
-            
             ScrollView {
                 VStack(spacing: 16) {
                     if prescriptions.isEmpty {
@@ -1956,11 +1953,12 @@ struct AllPrescriptionsView: View {
                                 .scaledToFit()
                                 .frame(width: 60, height: 60)
                                 .foregroundColor(.secondary)
+                                .font(.system(size: FontSizeManager.fontSize(for: 60)))
                             Text("No Prescriptions Available")
-                                .font(.title3.bold())
+                                .font(FontSizeManager.font(for: 20, weight: .bold))
                                 .foregroundColor(.primary)
                             Text("Your prescriptions and reports will appear here once added.")
-                                .font(.subheadline)
+                                .font(FontSizeManager.font(for: 16, weight: .regular))
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal)
@@ -1974,12 +1972,12 @@ struct AllPrescriptionsView: View {
                                 label: {
                                     ImprovedMedicalRecordCard(
                                         type: appointment.status,
-                                        doctorName: "Dr. \(getDoctorName(for: appointment.docId))",
+                                        doctorName: "\(getDoctorName(for: appointment.docId))",
                                         date: formatDate(appointment.date),
                                         title: appointment.description
                                     )
                                     .padding(.horizontal, 20)
-                                    .accessibilityLabel("Prescription: \(appointment.description) by Dr. \(getDoctorName(for: appointment.docId)), dated \(formatDate(appointment.date))")
+                                    .accessibilityLabel("Prescription: \(appointment.description) by \(getDoctorName(for: appointment.docId)), dated \(formatDate(appointment.date))")
                                 }
                             )
                             .buttonStyle(.plain)
@@ -2002,10 +2000,10 @@ struct AllPrescriptionsView: View {
             } else {
                 VStack {
                     Text("Unable to Load Prescription")
-                        .font(.headline)
+                        .font(FontSizeManager.font(for: 18, weight: .bold))
                         .foregroundColor(.primary)
                     Text("The document is not available.")
-                        .font(.subheadline)
+                        .font(FontSizeManager.font(for: 16, weight: .regular))
                         .foregroundColor(.secondary)
                 }
             }
@@ -2021,73 +2019,6 @@ struct AllPrescriptionsView: View {
         return "Unknown Doctor"
     }
 }
-
-// MARK: - AllVisitedDoctorsView
-struct AllVisitedDoctorsView: View {
-    let recentPrescriptions: [Appointment]
-    let formatDate: (Date?) -> String
-    private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
-    private let backgroundColor = Color(red: 0.97, green: 0.97, blue: 1.0)
-    
-    var body: some View {
-        ZStack {
-            backgroundColor
-                .edgesIgnoringSafeArea(.all)
-            
-            ScrollView {
-                VStack(spacing: 16) {
-                    if recentPrescriptions.isEmpty {
-                        VStack(spacing: 12) {
-                            Image(systemName: "person.2.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 60, height: 60)
-                                .foregroundColor(.gray.opacity(0.7))
-                            
-                            Text("No Doctor Visits")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.primary)
-                            
-                            Text("Your previously visited doctors will appear here")
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 100)
-                        .padding(.horizontal)
-                    } else {
-                        VStack(spacing: 16) {
-                            ForEach(recentPrescriptions, id: \.apptId) { appointment in
-                                ImprovedDoctorCard(
-                                    name: "Dr. \(getDoctorName(for: appointment.docId))",
-                                    specialty: "General Medicine",
-                                    lastVisit: formatDate(appointment.date),
-                                    imageName: "defaultDoctorImage"
-                                )
-                                .padding(.horizontal, 20)
-                            }
-                        }
-                        .padding(.bottom, 20)
-                    }
-                }
-                .padding(.top, 20)
-            }
-        }
-        .navigationTitle("Visited Doctors")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-    
-    private func getDoctorName(for docId: String) -> String {
-        for specialty in DoctorData.doctors.keys {
-            if let doctor = DoctorData.doctors[specialty]?.first(where: { $0.id == docId }) {
-                return doctor.doctor_name
-            }
-        }
-        return "Unknown Doctor"
-    }
-}
-
 // MARK: - ImprovedAppointmentCard
 struct ImprovedAppointmentCard: View {
     let doctorName: String
@@ -2124,16 +2055,17 @@ struct ImprovedAppointmentCard: View {
                                     .scaledToFit()
                                     .frame(width: 50, height: 50)
                                     .foregroundColor(.white)
+                                    .font(.system(size: FontSizeManager.fontSize(for: 50)))
                             }
                         }
                         
                         VStack(alignment: .leading, spacing: 4) {
                             Text(doctorName)
-                                .font(.system(size: 18, weight: .semibold))
+                                .font(FontSizeManager.font(for: 18, weight: .semibold))
                                 .foregroundColor(.white)
                             
                             Text(specialty)
-                                .font(.system(size: 14, weight: .regular))
+                                .font(FontSizeManager.font(for: 14, weight: .regular))
                                 .foregroundColor(.white.opacity(0.9))
                         }
                         
@@ -2145,10 +2077,10 @@ struct ImprovedAppointmentCard: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "calendar")
                                     .foregroundColor(.white)
-                                    .font(.system(size: 14))
+                                    .font(.system(size: FontSizeManager.fontSize(for: 14)))
                                 
                                 Text(date)
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(FontSizeManager.font(for: 14, weight: .medium))
                                     .foregroundColor(.white)
                             }
                             .padding(.vertical, 8)
@@ -2163,10 +2095,10 @@ struct ImprovedAppointmentCard: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "clock")
                                     .foregroundColor(.white)
-                                    .font(.system(size: 14))
+                                    .font(.system(size: FontSizeManager.fontSize(for: 14)))
                                 
                                 Text(time)
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(FontSizeManager.font(for: 14, weight: .medium))
                                     .foregroundColor(.white)
                             }
                             .padding(.vertical, 8)
@@ -2222,21 +2154,22 @@ struct ImprovedMedicalRecordCard: View {
                         .scaledToFit()
                         .frame(width: 22, height: 22)
                         .foregroundColor(primaryColor)
+                        .font(.system(size: FontSizeManager.fontSize(for: 22)))
                 }
                 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(title)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(FontSizeManager.font(for: 16, weight: .bold))
                         .foregroundColor(.primary)
                         .lineLimit(1)
                     
                     Text(doctorName)
-                        .font(.system(size: 14))
+                        .font(FontSizeManager.font(for: 14, weight: .regular))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                     
                     Text(date)
-                        .font(.system(size: 12))
+                        .font(FontSizeManager.font(for: 12, weight: .regular))
                         .foregroundColor(.secondary)
                 }
                 
@@ -2244,7 +2177,7 @@ struct ImprovedMedicalRecordCard: View {
                 
                 Image(systemName: "chevron.right")
                     .foregroundColor(.secondary)
-                    .font(.system(size: 14))
+                    .font(.system(size: FontSizeManager.fontSize(for: 14)))
             }
             .padding(16)
         }
@@ -2253,7 +2186,13 @@ struct ImprovedMedicalRecordCard: View {
     }
 }
 
-// MARK: - ImprovedDoctorCard
+struct DoctorVisit: Identifiable {
+    let id: String 
+    let name: String
+    let specialty: String
+    let lastVisit: Date
+}
+
 struct ImprovedDoctorCard: View {
     let name: String
     let specialty: String
@@ -2268,24 +2207,28 @@ struct ImprovedDoctorCard: View {
                 .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
             
             HStack(spacing: 16) {
-                Image(imageName)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 64, height: 64)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(primaryColor, lineWidth: 2))
+                ZStack {
+                    Circle()
+                        .frame(width: 64, height: 64)
+                        .foregroundColor(.clear)
+                        .overlay(Circle().stroke(primaryColor, lineWidth: 2))
+                    
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 40)) // Reduced size of the icon
+                        .foregroundColor(primaryColor)
+                }
                 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(name)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(FontSizeManager.font(for: 16, weight: .bold))
                         .foregroundColor(.primary)
                     
                     Text(specialty)
-                        .font(.system(size: 14))
+                        .font(FontSizeManager.font(for: 14, weight: .regular))
                         .foregroundColor(.secondary)
                     
                     Text("Last Visit: \(lastVisit)")
-                        .font(.system(size: 12))
+                        .font(FontSizeManager.font(for: 12, weight: .regular))
                         .foregroundColor(.gray)
                 }
                 
@@ -2299,7 +2242,7 @@ struct ImprovedDoctorCard: View {
                         
                         Image(systemName: "phone.fill")
                             .foregroundColor(primaryColor)
-                            .font(.system(size: 16))
+                            .font(.system(size: FontSizeManager.fontSize(for: 16)))
                     }
                 }
                 .accessibilityLabel("Call \(name)")
@@ -2308,5 +2251,102 @@ struct ImprovedDoctorCard: View {
             .padding(.vertical, 12)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+// MARK: - AllVisitedDoctorsView
+struct AllVisitedDoctorsView: View {
+    let recentPrescriptions: [Appointment]
+    let formatDate: (Date?) -> String
+    private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    private let backgroundColor = Color(red: 0.97, green: 0.97, blue: 1.0)
+    
+    var body: some View {
+        ZStack {
+            backgroundColor
+                .edgesIgnoringSafeArea(.all)
+            
+            ScrollView {
+                let uniqueDoctors = getUniqueDoctors()
+                VStack(spacing: 16) {
+                    if uniqueDoctors.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "person.2.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 60, height: 60)
+                                .foregroundColor(.gray.opacity(0.7))
+                                .font(.system(size: FontSizeManager.fontSize(for: 60)))
+                            
+                            Text("No Doctor Visits")
+                                .font(FontSizeManager.font(for: 18, weight: .semibold))
+                                .foregroundColor(.primary)
+                            
+                            Text("Your previously visited doctors will appear here")
+                                .font(FontSizeManager.font(for: 14, weight: .regular))
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 100)
+                        .padding(.horizontal)
+                    } else {
+                        VStack(spacing: 16) {
+                            ForEach(uniqueDoctors) { doctor in
+                                ImprovedDoctorCard(
+                                    name: " \(doctor.name)",
+                                    specialty: doctor.specialty,
+                                    lastVisit: formatDate(doctor.lastVisit),
+                                    imageName: "defaultDoctorImage"
+                                )
+                                .padding(.horizontal, 20)
+                            }
+                        }
+                        .padding(.bottom, 20)
+                    }
+                }
+                .padding(.top, 20)
+            }
+        }
+        .navigationTitle("Visited Doctors")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    private func getDoctorName(for docId: String) -> String {
+        for specialty in DoctorData.doctors.keys {
+            if let doctor = DoctorData.doctors[specialty]?.first(where: { $0.id == docId }) {
+                return doctor.doctor_name
+            }
+        }
+        return "Unknown Doctor"
+    }
+    
+    private func getDoctorSpecialty(for docId: String) -> String {
+        for specialty in DoctorData.doctors.keys {
+            if DoctorData.doctors[specialty]?.contains(where: { $0.id == docId }) ?? false {
+                return specialty
+            }
+        }
+        return "Unknown Specialty"
+    }
+    
+    private func getUniqueDoctors() -> [DoctorVisit] {
+        var doctorMap: [String: DoctorVisit] = [:]
+        
+        for appointment in recentPrescriptions {
+            let docId = appointment.docId
+            let doctorName = getDoctorName(for: docId)
+            let specialty = getDoctorSpecialty(for: docId)
+            let visitDate = appointment.date ?? Date.distantPast
+            
+            if let existing = doctorMap[docId] {
+                if visitDate > existing.lastVisit {
+                    doctorMap[docId] = DoctorVisit(id: docId, name: doctorName, specialty: specialty, lastVisit: visitDate)
+                }
+            } else {
+                doctorMap[docId] = DoctorVisit(id: docId, name: doctorName, specialty: specialty, lastVisit: visitDate)
+            }
+        }
+        
+        return doctorMap.values.sorted { $0.lastVisit > $1.lastVisit }
     }
 }

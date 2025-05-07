@@ -13,7 +13,6 @@ struct PatientTabView: View {
         UITabBar.appearance().standardAppearance = tabBarAppearance
         UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
     }
-    
     var body: some View {
         TabView {
             NavigationStack {

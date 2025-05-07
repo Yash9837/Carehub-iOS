@@ -11,6 +11,7 @@ class AuthManager: ObservableObject {
     @Published var currentPatient: PatientF?
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var navigateToDashboard: Bool = false
     
     private let db = Firestore.firestore()
     
@@ -442,6 +443,7 @@ class AuthManager: ObservableObject {
             try Auth.auth().signOut()
             currentStaffMember = nil
             currentPatient = nil
+            navigateToDashboard = false
             logger.debug("User logged out successfully")
         } catch {
             logger.error("Logout failed: \(error.localizedDescription)")

@@ -11,12 +11,11 @@ struct LoginView: View {
     @State private var errorMessage: String?
     
     @StateObject private var authManager = AuthManager.shared
-    @State private var navigateToDashboard = false
     @EnvironmentObject private var appState: AppState
     
     var body: some View {
         ZStack {
-            if navigateToDashboard {
+            if authManager.navigateToDashboard {
                 dashboardContent
             } else {
                 loginContent
@@ -219,7 +218,7 @@ struct LoginView: View {
                 .padding()
             Button("Try Again") {
                 authManager.logout()
-                navigateToDashboard = false
+                authManager.navigateToDashboard = false
             }
             .buttonStyle(.borderedProminent)
         }
@@ -247,7 +246,7 @@ struct LoginView: View {
                     // Check for all possible user types
                     if self.selectedRole == .patient {
                         if AuthManager.shared.currentPatient != nil {
-                            self.navigateToDashboard = true
+                            authManager.navigateToDashboard = true
                         } else {
                             self.errorMessage = "Invalid patient credentials"
                             self.showAlert = true
@@ -255,7 +254,7 @@ struct LoginView: View {
                     } else { // For staff or doctor
                         if AuthManager.shared.currentStaffMember != nil ||
                             AuthManager.shared.currentDoctor != nil {
-                            self.navigateToDashboard = true
+                            authManager.navigateToDashboard = true
                         } else {
                             self.errorMessage = "Invalid credentials"
                             self.showAlert = true
