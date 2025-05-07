@@ -21,14 +21,14 @@ struct DoctorView: View {
                     VStack {
                         Text("Failed to load specialties")
                             .foregroundColor(.red)
-                            .font(.system(size: 18, weight: .medium))
+                            .font(FontSizeManager.font(for: 18, weight: .medium))
                         Button(action: {
                             isDataLoaded = false
                             isDataLoadFailed = false
                             loadData()
                         }) {
                             Text("Retry")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(FontSizeManager.font(for: 16, weight: .semibold))
                                 .foregroundColor(.white)
                                 .padding()
                                 .background(Color(red: 0.43, green: 0.34, blue: 0.99))
@@ -40,7 +40,7 @@ struct DoctorView: View {
                     ScrollView {
                         VStack(spacing: 20) {
                             Text("Select a Specialty")
-                                .font(.system(size: 28, weight: .bold))
+                                .font(FontSizeManager.font(for: 28, weight: .bold))
                                 .padding(.top, 16)
                                 .padding(.bottom, 8)
                                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
@@ -60,7 +60,7 @@ struct DoctorView: View {
                 }
             }
             .navigationTitle("Doctors")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.large)
             .onAppear {
                 loadData()
             }
@@ -102,13 +102,13 @@ struct SpecialtyCard: View {
     var body: some View {
         VStack(spacing: 14) {
             Image(systemName: iconName)
-                .font(.system(size: 32))
+                .font(.system(size: FontSizeManager.fontSize(for: 32)))
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                 .frame(height: 36)
                 .padding(.top, 8)
             
             Text(specialty)
-                .font(.system(size: 16, weight: .semibold))
+                .font(FontSizeManager.font(for: 16, weight: .semibold))
                 .foregroundColor(.black)
                 .padding(.bottom, 10)
         }
@@ -149,14 +149,14 @@ struct SpecialtyDoctorsView: View {
                 VStack {
                     Text("Failed to load doctors")
                         .foregroundColor(.red)
-                        .font(.system(size: 18, weight: .medium))
+                        .font(FontSizeManager.font(for: 18, weight: .medium))
                     Button(action: {
                         isDataLoaded = false
                         isDataLoadFailed = false
                         loadDoctors()
                     }) {
                         Text("Retry")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(FontSizeManager.font(for: 16, weight: .semibold))
                             .foregroundColor(.white)
                             .padding()
                             .background(Color(red: 0.43, green: 0.34, blue: 0.99))
@@ -171,11 +171,11 @@ struct SpecialtyDoctorsView: View {
                             HStack {
                                 Image(systemName: "magnifyingglass")
                                     .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                    .font(.system(size: 18))
+                                    .font(.system(size: FontSizeManager.fontSize(for: 18)))
                                     .padding(.leading, 12)
                                 
                                 TextField("Search by doctor name...", text: $searchText)
-                                    .font(.system(size: 16))
+                                    .font(FontSizeManager.font(for: 16))
                                     .padding(.vertical, 12)
                             }
                             .background(Color.white)
@@ -186,14 +186,16 @@ struct SpecialtyDoctorsView: View {
                             Menu {
                                 Button(action: { sortByExp = false }) {
                                     Text("Sort by Exp (Low to High)")
+                                        .font(FontSizeManager.font(for: 14))
                                 }
                                 Button(action: { sortByExp = true }) {
                                     Text("Sort by Exp (High to Low)")
+                                        .font(FontSizeManager.font(for: 14))
                                 }
                             } label: {
                                 Image(systemName: "slider.horizontal.3")
                                     .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                    .font(.system(size: 20))
+                                    .font(.system(size: FontSizeManager.fontSize(for: 20)))
                                     .padding(.trailing, 16)
                                     .padding(.vertical, 12)
                             }
@@ -204,11 +206,11 @@ struct SpecialtyDoctorsView: View {
                         
                         HStack {
                             Text(selectedSpecialty)
-                                .font(.system(size: 18, weight: .bold))
+                                .font(FontSizeManager.font(for: 18, weight: .bold))
                                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                             
                             Text("(\(filteredDoctors.count))")
-                                .font(.system(size: 18, weight: .medium))
+                                .font(FontSizeManager.font(for: 18, weight: .medium))
                                 .foregroundColor(.gray)
                             
                             Spacer()
@@ -262,7 +264,7 @@ struct DoctorCardView: View {
             Image(systemName: imageName)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 50, height: 50)
+                .frame(width: FontSizeManager.fontSize(for: 50), height: FontSizeManager.fontSize(for: 50))
                 .foregroundColor(.white)
                 .padding(6)
                 .background(
@@ -280,21 +282,21 @@ struct DoctorCardView: View {
             
             VStack(alignment: .leading, spacing: 6) {
                 Text(name)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(FontSizeManager.font(for: 18, weight: .semibold))
                     .foregroundColor(.black)
                     .lineLimit(1)
                 
                 Text(specialty)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(FontSizeManager.font(for: 14, weight: .medium))
                     .foregroundColor(.gray)
                 
                 HStack(spacing: 4) {
                     Image(systemName: "briefcase.fill")
                         .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                        .font(.system(size: 12))
+                        .font(.system(size: FontSizeManager.fontSize(for: 12)))
                     
                     Text("\(experience) yrs exp")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(FontSizeManager.font(for: 12, weight: .medium))
                         .foregroundColor(Color.black.opacity(0.7))
                 }
             }
@@ -304,7 +306,7 @@ struct DoctorCardView: View {
             
             Image(systemName: "chevron.right")
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: FontSizeManager.fontSize(for: 14), weight: .semibold))
                 .padding(.trailing, 8)
         }
         .padding(.vertical, 14)
@@ -335,7 +337,7 @@ struct DoctorDetailView: View {
                         Image(systemName: "person.circle.fill")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 100, height: 100)
+                            .frame(width: FontSizeManager.fontSize(for: 100), height: FontSizeManager.fontSize(for: 100))
                             .foregroundColor(.white)
                             .padding(8)
                             .background(
@@ -354,20 +356,20 @@ struct DoctorDetailView: View {
                         // Right side - Details
                         VStack(alignment: .leading, spacing: 10) {
                             Text(doctor.doctor_name)
-                                .font(.system(size: 22, weight: .bold))
+                                .font(FontSizeManager.font(for: 22, weight: .bold))
                                 .foregroundColor(.black)
                             
                             Text(specialty)
-                                .font(.system(size: 16, weight: .medium))
+                                .font(FontSizeManager.font(for: 16, weight: .medium))
                                 .foregroundColor(.gray)
                             
                             HStack(spacing: 6) {
                                 Image(systemName: "briefcase.fill")
                                     .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                    .font(.system(size: 14))
+                                    .font(.system(size: FontSizeManager.fontSize(for: 14)))
                                 
                                 Text("\(doctor.doctor_experience ?? 0) years experience")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(FontSizeManager.font(for: 14, weight: .medium))
                                     .foregroundColor(Color.black.opacity(0.7))
                             }
                         }
@@ -385,7 +387,7 @@ struct DoctorDetailView: View {
                 // Qualifications Section
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Qualifications")
-                        .font(.system(size: 20, weight: .bold))
+                        .font(FontSizeManager.font(for: 20, weight: .bold))
                         .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                         .padding(.horizontal, 16)
                     
@@ -394,10 +396,10 @@ struct DoctorDetailView: View {
                             HStack(spacing: 10) {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                    .font(.system(size: 16))
+                                    .font(.system(size: FontSizeManager.fontSize(for: 16)))
                                 
                                 Text(qualification)
-                                    .font(.system(size: 16))
+                                    .font(FontSizeManager.font(for: 16))
                                     .foregroundColor(.black)
                             }
                         }
@@ -418,7 +420,7 @@ struct DoctorDetailView: View {
                     HStack {
                         Spacer()
                         Text("Book Appointment")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(FontSizeManager.font(for: 18, weight: .semibold))
                             .foregroundColor(.white)
                             .padding(.vertical, 16)
                         Spacer()
@@ -435,11 +437,5 @@ struct DoctorDetailView: View {
         .background(Color(red: 0.94, green: 0.94, blue: 1.0))
         .navigationTitle("Doctor Profile")
         .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-struct DoctorView_Previews: PreviewProvider {
-    static var previews: some View {
-        DoctorView(patientId: "12345")
     }
 }

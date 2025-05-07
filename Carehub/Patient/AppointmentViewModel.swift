@@ -11,21 +11,18 @@ class AppointmentViewModel: ObservableObject {
         print("Fetching prescriptions for patient ID: \(patientId)")
         
         db.collection("appointments")
-            .whereField("patientId", isEqualTo: patientId) // Adjust the query as needed
+            .whereField("patientId", isEqualTo: patientId)
             .getDocuments { (querySnapshot, error) in
                 if let error = error {
                     self.errorMessage = "Error fetching data: \(error.localizedDescription)"
-                    print("Error fetching documents: \(error.localizedDescription)")  // Debugging error
+                    print("Error fetching documents: \(error.localizedDescription)")
                     return
                 }
                 
-                print("Fetched documents: \(querySnapshot?.documents.count ?? 0)")  // Debugging how many documents were fetched
+                print("Fetched documents: \(querySnapshot?.documents.count ?? 0)")
 
                 self.recentPrescriptions = querySnapshot?.documents.compactMap { document in
-                    // Debugging the document ID
                     print("Processing document with ID: \(document.documentID)")
-                    
-                    // Manually decode the document data
                     if let apptId = document.data()["apptId"] as? String,
                        let patientId = document.data()["patientId"] as? String,
                        let description = document.data()["description"] as? String,

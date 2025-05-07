@@ -84,7 +84,14 @@ struct ProfileView_doc: View {
                             }
                             Button(action: {
                                 authManager.logout()
-                                isLoggedOut = true
+                                if authManager.errorMessage == nil {
+                                    isLoggedOut = true
+                                    print("Logout successful, presenting LoginView")
+                                } else {
+                                    showLogoutAlert = true
+                                    logoutErrorMessage = authManager.errorMessage
+                                    print("Logout failed: \(authManager.errorMessage ?? "Unknown error")")
+                                }
                             }) {
                                 Text("Logout")
                                     .font(.system(size: 16, weight: .medium))

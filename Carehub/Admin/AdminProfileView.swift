@@ -121,7 +121,7 @@ struct AdminProfileView: View {
                         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
                     VStack(spacing: 12) {
                         Button(action: {
-                            // Trigger navigation to LoginView
+                            AuthManager.shared.logout()
                             showLoginView = true
                         }) {
                             Text("Logout")

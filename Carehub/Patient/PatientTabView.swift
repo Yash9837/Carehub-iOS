@@ -13,34 +13,27 @@ struct PatientTabView: View {
         UITabBar.appearance().standardAppearance = tabBarAppearance
         UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
     }
-    
     var body: some View {
         TabView {
-            NavigationStack {
-                HomeView_patient(patient: patient)
-                    .navigationBarBackButtonHidden(true)
-            }
-            .tabItem {
-                Image(systemName: "house")
-                Text("Home")
-            }
+            HomeView_patient(patient: patient)
+                .tabItem {
+                    Image(systemName: "house")
+                    Text("Home")
+                }
             
-            NavigationStack {
-                DoctorView(patientId: patient.patientId)
-            }
-            .tabItem {
-                Image(systemName: "stethoscope")
-                Text("Doctor")
-            }
+            DoctorView(patientId: patient.patientId)
+                .tabItem {
+                    Image(systemName: "stethoscope")
+                    Text("Doctor")
+                }
             
-            NavigationStack {
-                ProfileView_patient(patient: patient)
-            }
-            .tabItem {
-                Image(systemName: "person")
-                Text("Profile")
-            }
+            ProfileView_patient(patient: patient)
+                .tabItem {
+                    Image(systemName: "person")
+                    Text("Profile")
+                }
         }
+        .navigationBarBackButtonHidden(true)
         .accentColor(Color(red: 0.43, green: 0.34, blue: 0.99))
     }
 }

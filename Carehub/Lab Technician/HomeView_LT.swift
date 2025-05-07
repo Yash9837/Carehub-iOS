@@ -8,7 +8,6 @@ struct PatientCard: View {
     
     var body: some View {
         HStack(spacing: 16) {
-            // Patient Image with improved styling
             Image(systemName: "person.circle.fill")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
@@ -28,9 +27,8 @@ struct PatientCard: View {
                 .clipShape(Circle())
                 .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.3), radius: 5, x: 0, y: 3)
             
-            // Patient Details
             VStack(alignment: .leading, spacing: 6) {
-                Text(patientWithTest.patient.fullName)
+                Text(patientWithTest.patient.name)
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.black)
                     .lineLimit(1)
@@ -40,7 +38,7 @@ struct PatientCard: View {
                     .foregroundColor(.gray)
                 
                 HStack(spacing: 4) {
-                    Text("ID: \(patientWithTest.patient.generatedID) | Age: \(patientWithTest.patient.age)")
+                    Text("ID: \(patientWithTest.patient.patientId) | Age: \(patientWithTest.patient.age)")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.gray)
                 }
@@ -59,7 +57,6 @@ struct PatientCard: View {
             
             Spacer()
             
-            // Disclosure indicator
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
@@ -83,12 +80,13 @@ struct HomeView_LT: View {
     @State private var selectedCategory = "All"
     @State private var patientsWithTests: [PatientWithTest] = []
     @State private var isLoading = false
+    @State private var errorMessage: String?
     
     let categories = ["All", "Blood Count", "Lipid Panel", "Thyroid Function", "Glucose Test", "Cholesterol Test", "Allergy Test", "Joint Fluid Analysis", "Blood Test"]
     
     var filteredPatients: [PatientWithTest] {
         patientsWithTests.filter { patientWithTest in
-            (searchText.isEmpty || patientWithTest.patient.fullName.lowercased().contains(searchText.lowercased())) &&
+            (searchText.isEmpty || patientWithTest.patient.name.lowercased().contains(searchText.lowercased())) &&
             (selectedCategory == "All" || patientWithTest.medicalTest.testName == selectedCategory)
         }
     }
@@ -101,7 +99,6 @@ struct HomeView_LT: View {
                 
                 ScrollView {
                     VStack(spacing: 0) {
-                        // Search Bar with Filter Button
                         HStack {
                             HStack {
                                 Image(systemName: "magnifyingglass")
@@ -139,7 +136,6 @@ struct HomeView_LT: View {
                         .padding(.top, 16)
                         .padding(.bottom, 16)
                         
-                        // Section title with count
                         HStack {
                             Text(selectedCategory == "All" ? "Pending Tests" : selectedCategory)
                                 .font(.system(size: 18, weight: .bold))
@@ -154,12 +150,23 @@ struct HomeView_LT: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 14)
                         
-                        // Loading Indicator or Patient Cards
                         if isLoading {
                             ProgressView()
                                 .padding(.vertical, 20)
+                        } else if let error = errorMessage {
+                            VStack {
+                                Text("Error: \(error)")
+                                    .foregroundColor(.red)
+                                Button("Retry") {
+                                    fetchPendingTests()
+                                }
+                                .padding()
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                            }
                         } else if filteredPatients.isEmpty {
-                            Text("No pending tests found")
+                            Text("No patients found")
                                 .font(.system(size: 16))
                                 .foregroundColor(.gray)
                                 .padding(.vertical, 20)
@@ -181,78 +188,58 @@ struct HomeView_LT: View {
             .onAppear {
                 fetchPendingTests()
             }
+            .onDisappear {
+                // Refresh data when returning to this view
+                fetchPendingTests()
+            }
         }
     }
     
     private func fetchPendingTests() {
         isLoading = true
-        let db = Firestore.firestore()
+        errorMessage = nil
         
-        db.collection("medicalTests")
-            .whereField("status", isEqualTo: "Pending")
-            .addSnapshotListener { (snapshot, error) in
-                isLoading = false
-                if let error = error {
-                    print("Error fetching medical tests: \(error.localizedDescription)")
-                    return
-                }
+        FirebaseManager.shared.fetchPendingTests { tests, error in
+            if let error = error {
+                self.isLoading = false
+                self.errorMessage = error.localizedDescription
+                return
+            }
+            
+            guard let tests = tests else {
+                self.isLoading = false
+                self.patientsWithTests = []
+                return
+            }
+            
+            var fetchedPatientsWithTests: [PatientWithTest] = []
+            let group = DispatchGroup()
+            
+            for test in tests {
+                group.enter()
                 
-                guard let documents = snapshot?.documents else {
-                    print("No documents found")
-                    return
-                }
-                
-                let medicalTests = documents.compactMap { doc -> MedicalTest? in
-                    let data = doc.data()
-                    return MedicalTest(
-                        id: doc.documentID,
-                        date: data["date"] as? String ?? "",
-                        notes: data["notes"] as? String ?? "",
-                        patientId: data["patientId"] as? String ?? "",
-                        results: data["results"] as? String ?? "",
-                        status: data["status"] as? String ?? "",
-                        testName: data["testName"] as? String ?? ""
-                    )
-                }
-                
-                let patientIds = Set(medicalTests.map { $0.patientId })
-                var patientDict: [String: Patient1] = [:]
-                
-                let patientGroup = DispatchGroup()
-                
-                for patientId in patientIds {
-                    patientGroup.enter()
-                    db.collection("patients").document(patientId).getDocument { (doc, error) in
-                        defer { patientGroup.leave() }
-                        if let doc = doc, doc.exists, let data = doc.data() {
-                            let patient = Patient1(
-                                id: doc.documentID,
-                                fullName: data["fullName"] as? String ?? "",
-                                generatedID: data["generatedID"] as? String ?? "",
-                                age: data["age"] as? String ?? "",
-                                previousProblems: data["previousProblems"] as? String ?? "",
-                                allergies: data["allergies"] as? String ?? "",
-                                medications: data["medications"] as? String ?? ""
-                            )
-                            patientDict[patientId] = patient
-                        }
+                FirebaseManager.shared.fetchPatientByPatientId(test.patientId) { patient, error in
+                    if let error = error {
+                        print("Error fetching patient for patientId \(test.patientId): \(error.localizedDescription)")
+                    } else if let patient = patient {
+                        let patientWithTest = PatientWithTest(id: test.id, patient: patient, medicalTest: test)
+                        fetchedPatientsWithTests.append(patientWithTest)
+                    } else {
+                        print("No patient found for patientId: \(test.patientId)")
                     }
-                }
-                
-                patientGroup.notify(queue: .main) {
-                    let patientWithTests = medicalTests.compactMap { medicalTest in
-                        if let patient = patientDict[medicalTest.patientId] {
-                            return PatientWithTest(id: medicalTest.id, patient: patient, medicalTest: medicalTest)
-                        }
-                        return nil
-                    }
-                    self.patientsWithTests = patientWithTests
+                    group.leave()
                 }
             }
+            
+            group.notify(queue: .main) {
+                self.patientsWithTests = fetchedPatientsWithTests
+                self.isLoading = false
+                print("Fetched patients with tests: \(self.patientsWithTests.map { $0.patient.patientId })")
+            }
+        }
     }
 }
 
-// Preview Provider
 struct HomeView_LT_Previews: PreviewProvider {
     static var previews: some View {
         HomeView_LT()
