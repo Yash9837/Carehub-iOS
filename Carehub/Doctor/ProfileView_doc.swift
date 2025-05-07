@@ -26,6 +26,8 @@ struct ProfileView_doc: View {
     @State private var showLogoutAlert = false
     @State private var logoutErrorMessage: String?
     @State private var isLoggedOut = false
+    @State private var patientCount: Int = 0
+    @State private var appointments: [Appointment] = [] // New state for appointments
     private let purpleColor = Color(hex: "6D57FC")
     private let lightPurple = Color(hex: "6D57FC").opacity(0.05)
     private let mediumPurple = Color(hex: "6D57FC").opacity(0.7)
@@ -34,31 +36,69 @@ struct ProfileView_doc: View {
 
     private let db = Firestore.firestore()
 
+    // Computed properties for monthly summary
+    private var currentMonthAppointments: [Appointment] {
+        let calendar = Calendar.current
+        let currentMonth = calendar.component(.month, from: Date())
+        let currentYear = calendar.component(.year, from: Date())
+        return appointments.filter { appointment in
+            guard let date = appointment.date else { return false }
+            let appointmentMonth = calendar.component(.month, from: date)
+            let appointmentYear = calendar.component(.year, from: date)
+            return appointmentMonth == currentMonth && appointmentYear == currentYear
+        }
+    }
+
+    private var totalAppointments: Int {
+        currentMonthAppointments.count
+    }
+
+    private var completedAppointments: Int {
+        currentMonthAppointments.filter { $0.status.lowercased() == "completed" }.count
+    }
+
+    private var upcomingAppointments: Int {
+        currentMonthAppointments.filter { appointment in
+            guard let date = appointment.date else { return false }
+            return appointment.status.lowercased() == "scheduled" && date > Date()
+        }.count
+    }
+
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
-                    if isLoading {
-                        ProgressView("Loading profile...")
-                            .progressViewStyle(CircularProgressViewStyle())
-                            .foregroundColor(purpleColor)
-                    } else if let doctor = doctor {
+                VStack(alignment: .leading, spacing: 20) {
+                    if let doctor = doctor {
                         ProfileHeaderView(doctor: doctor, purpleColor: purpleColor, darkPurple: darkPurple)
+                            .padding(.bottom, -5)
+                        
                         DoctorIDCardView(doctor: doctor, purpleColor: purpleColor)
-                        StatsView(doctor: doctor, purpleColor: purpleColor)
-                        MonthlySummaryView(purpleColor: purpleColor, lightPurple: lightPurple)
-                        QualificationsView(purpleColor: purpleColor)
+                            .padding(.bottom, 5)
+                            
+                        StatsView(doctor: doctor, purpleColor: purpleColor, patientCount: patientCount)
+                            .padding(.bottom, 5)
+                            
+                        MonthlySummaryView(
+                            totalAppointments: totalAppointments,
+                            completedAppointments: completedAppointments,
+                            upcomingAppointments: upcomingAppointments,
+                            purpleColor: purpleColor,
+                            lightPurple: lightPurple
+                        ) // Pass dynamic values
+                            .padding(.bottom, 5)
                         
                         // Doctor's Notes section
-                        VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 12) {
                             Text("Doctor's Notes")
                                 .font(.system(size: 20, weight: .bold, design: .rounded))
                                 .foregroundColor(.black)
+                                .padding(.top, 5)
 
                             if doctor.doctorsNotes?.isEmpty ?? true {
                                 Text("No notes available.")
                                     .font(.system(size: 15, weight: .regular, design: .rounded))
                                     .foregroundColor(.gray)
+                                    .padding(.bottom, 5)
                             } else {
                                 ForEach(doctor.doctorsNotes ?? [], id: \.id) { note in
                                     NavigationLink(
@@ -82,16 +122,12 @@ struct ProfileView_doc: View {
                                     }
                                 }
                             }
+                            
+                            Spacer(minLength: 20)
+                            
                             Button(action: {
                                 authManager.logout()
-                                if authManager.errorMessage == nil {
-                                    isLoggedOut = true
-                                    print("Logout successful, presenting LoginView")
-                                } else {
-                                    showLogoutAlert = true
-                                    logoutErrorMessage = authManager.errorMessage
-                                    print("Logout failed: \(authManager.errorMessage ?? "Unknown error")")
-                                }
+                                isLoggedOut = true
                             }) {
                                 Text("Logout")
                                     .font(.system(size: 16, weight: .medium))
@@ -101,11 +137,12 @@ struct ProfileView_doc: View {
                                     .background(Color.red.opacity(0.1))
                                     .cornerRadius(8)
                             }
+                            .padding(.top, 5)
                         }
-                        .padding(.vertical, 12)
+                        .padding(.vertical, 5)
 
                         Spacer()
-                            .frame(height: 100)
+                            .frame(height: 80)
                     } else if let errorMessage = errorMessage {
                         Text("Error: \(errorMessage)")
                             .foregroundColor(.red)
@@ -113,7 +150,6 @@ struct ProfileView_doc: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.vertical, 32)
             }
             .background(backgroundColor)
             .edgesIgnoringSafeArea(.bottom)
@@ -177,7 +213,6 @@ struct ProfileView_doc: View {
                 return
             }
 
-            print("Updated doctorId to: \(docId) from Firestore")
             doctorId = docId
 
             let experience = data["Doctor_experience"] as? Double ?? Double(data["Doctor_experience"] as? Int ?? 0)
@@ -203,170 +238,226 @@ struct ProfileView_doc: View {
                     self.doctor = updatedDoctor
                 }
             }
+
+            // Fetch patient count
+            fetchPatientCount()
+
+            // Fetch appointments for monthly summary
+            fetchAppointments()
         }
     }
+
+    private func fetchPatientCount() {
+        guard !doctorId.isEmpty else {
+            patientCount = 0
+            return
+        }
+
+        db.collection("appointments")
+            .whereField("docId", isEqualTo: doctorId)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error fetching appointments for patient count: \(error)")
+                    self.patientCount = 0
+                    return
+                }
+
+                guard let documents = snapshot?.documents else {
+                    print("No appointment documents found for docId: \(self.doctorId)")
+                    self.patientCount = 0
+                    return
+                }
+
+                let patientIds = Set(documents.compactMap { $0.data()["patientId"] as? String })
+                self.patientCount = patientIds.count
+                print("Fetched patient count: \(self.patientCount)")
+            }
+    }
+
+    private func fetchAppointments() {
+        guard !doctorId.isEmpty else {
+            appointments = []
+            return
+        }
+
+        db.collection("appointments")
+            .whereField("docId", isEqualTo: doctorId)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error fetching appointments: \(error)")
+                    self.appointments = []
+                    return
+                }
+
+                guard let documents = snapshot?.documents else {
+                    print("No appointment documents found for docId: \(self.doctorId)")
+                    self.appointments = []
+                    return
+                }
+
+                self.appointments = documents.compactMap { doc -> Appointment? in
+                    let data = doc.data()
+                    guard let apptId = data["apptId"] as? String,
+                          let patientId = data["patientId"] as? String,
+                          let docId = data["docId"] as? String,
+                          let description = (data["description"] as? String) ?? (data["Description"] as? String),
+                          let status = (data["status"] as? String) ?? (data["Status"] as? String) else {
+                        print("Failed to map document: \(doc.documentID), missing required fields")
+                        return nil
+                    }
+
+                    return Appointment(
+                        id: doc.documentID,
+                        apptId: apptId,
+                        patientId: patientId,
+                        description: description,
+                        docId: docId,
+                        status: status.lowercased(),
+                        billingStatus: data["billingStatus"] as? String ?? "",
+                        amount: data["amount"] as? Double,
+                        date: (data["date"] as? Timestamp)?.dateValue(),
+                        doctorsNotes: (data["doctorsNotes"] as? String) ?? (data["doctorNotes"] as? String),
+                        prescriptionId: data["prescriptionId"] as? String,
+                        followUpRequired: data["followUpRequired"] as? Bool,
+                        followUpDate: (data["followUpDate"] as? Timestamp)?.dateValue()
+                    )
+                }
+                print("Fetched appointments for monthly summary: \(self.appointments.count)")
+            }
+    }
 }
-
-// ... [rest of your code remains the same]
-
-// MARK: - Subviews (unchanged)
 struct ProfileHeaderView: View {
     let doctor: Doctor
     let purpleColor: Color
     let darkPurple: Color
 
     var body: some View {
-        VStack(spacing: 20) {
-            HStack {
-                Text("My Profile")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundColor(.black)
-                Spacer()
-            }
-            .padding(.bottom, 12)
+       
 
-            VStack(spacing: 20) {
-                Image(doctor.imageURL ?? "placeholder")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 130, height: 130)
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle()
-                            .stroke(purpleColor.opacity(0.2), lineWidth: 4)
-                    )
-                    .shadow(color: purpleColor.opacity(0.15), radius: 12, x: 0, y: 6)
+            VStack(spacing: 15) {
+                ZStack {
+                    
+                        Image(systemName: "person.circle")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 100, height: 100)
+                            .foregroundColor(purpleColor.opacity(0.7))
+                }
+                
 
-                VStack(spacing: 8) {
+                VStack(spacing: 5) {
                     Text(doctor.doctor_name)
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
                         .foregroundColor(.black)
 
                     Text(doctor.department)
-                        .font(.system(size: 17, weight: .medium, design: .rounded))
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
                         .foregroundColor(darkPurple)
                 }
             }
             .frame(maxWidth: .infinity)
         }
     }
-}
+
 
 struct DoctorIDCardView: View {
     let doctor: Doctor
     let purpleColor: Color
 
     var body: some View {
-        VStack(spacing: 20) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(
-                        LinearGradient(
-                            gradient: Gradient(colors: [purpleColor, purpleColor.opacity(0.85)]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+        ZStack {
+            RoundedRectangle(cornerRadius: 18)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [purpleColor, purpleColor.opacity(0.85)]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
-                    .shadow(color: purpleColor.opacity(0.2), radius: 12, x: 0, y: 6)
+                )
+                .shadow(color: purpleColor.opacity(0.2), radius: 10, x: 0, y: 5)
 
-                VStack(alignment: .leading, spacing: 18) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("DOCTOR ID")
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.8))
+            VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("DOCTOR ID")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.8))
 
-                        Text(doctor.id)
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-
-                    Divider()
-                        .background(.white.opacity(0.4))
-
-                    VStack(alignment: .leading, spacing: 14) {
-                        CardInfoRow(title: "LICENSE NUMBER", value: doctor.license_number ?? "N/A")
-                        CardInfoRow(title: "ISSUED DATE", value: "16 JUN 2013")
-                        CardInfoRow(title: "VALIDITY", value: "LIFETIME")
-                    }
-
-                    HStack {
-                        Spacer()
-                        Text("Medical Council of India")
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.8))
-                    }
+                    Text(doctor.id)
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
                 }
-                .padding(24)
+
+                Divider()
+                    .background(.white.opacity(0.4))
+                    .padding(.vertical, 2)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("LICENSE NUMBER")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.8))
+                        
+                    Text(doctor.license_number ?? "N/A")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                }
+
+                HStack {
+                    Spacer()
+                    Text("Medical Council of India")
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.8))
+                }
             }
-            .frame(height: 240)
+            .padding(20)
         }
-        .padding(.vertical, 12)
+        .frame(height: 180)
     }
 }
 
 struct StatsView: View {
     let doctor: Doctor
     let purpleColor: Color
+    let patientCount: Int // New parameter for dynamic patient count
 
     var body: some View {
         HStack(spacing: 0) {
-            StatView(icon: "person.2.fill", value: "1246", label: "Patients", color: purpleColor)
+            StatView(icon: "person.2.fill", value: "\(patientCount)", label: "Patients", color: purpleColor)
             StatView(icon: "clock.fill", value: "\(doctor.doctor_experience ?? 0) Yrs", label: "Experience", color: purpleColor)
-            StatView(icon: "star.fill", value: "4.8", label: "Rating", color: purpleColor)
         }
         .background(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: 18)
                 .fill(.white)
-                .shadow(color: purpleColor.opacity(0.08), radius: 12, x: 0, y: 6)
+                .shadow(color: purpleColor.opacity(0.08), radius: 10, x: 0, y: 5)
         )
-        .padding(.vertical, 8)
     }
 }
 
 struct MonthlySummaryView: View {
+    let totalAppointments: Int
+    let completedAppointments: Int
+    let upcomingAppointments: Int
     let purpleColor: Color
     let lightPurple: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 15) {
             Text("Monthly Summary")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.black)
+                .padding(.bottom, -5)
 
-            HStack(spacing: 24) {
-                SummaryItem(value: "68", label: "Appointments", icon: "calendar", color: purpleColor)
-                SummaryItem(value: "52", label: "Completed", icon: "checkmark.circle.fill", color: purpleColor)
-                SummaryItem(value: "16", label: "Upcoming", icon: "clock.fill", color: purpleColor)
+            HStack(spacing: 18) {
+                SummaryItem(value: "\(totalAppointments)", label: "Appointments", icon: "calendar", color: purpleColor)
+                SummaryItem(value: "\(completedAppointments)", label: "Completed", icon: "checkmark.circle.fill", color: purpleColor)
+                SummaryItem(value: "\(upcomingAppointments)", label: "Upcoming", icon: "clock.fill", color: purpleColor)
             }
         }
-        .padding(24)
+        .padding(20)
         .background(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: 18)
                 .fill(lightPurple)
-                .shadow(color: purpleColor.opacity(0.08), radius: 12, x: 0, y: 6)
+                .shadow(color: purpleColor.opacity(0.08), radius: 10, x: 0, y: 5)
         )
-    }
-}
-
-struct QualificationsView: View {
-    let purpleColor: Color
-
-    let qualifications = [
-        Qualification(degree: "MD in Cardiology", institution: "AIIMS Delhi", years: "2008-2012", description: "Specialized in interventional cardiology."),
-        Qualification(degree: "MBBS", institution: "Maulana Azad Medical College", years: "2002-2007", description: "Graduated with honors."),
-        Qualification(degree: "Board Certification", institution: "Medical Council of India", years: "2013", description: "National board certified cardiologist.")
-    ]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Qualifications")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundColor(.black)
-
-            ForEach(qualifications, id: \.degree) { qualification in
-                QualificationCard(qualification: qualification, color: purpleColor)
-            }
-        }
     }
 }
 
@@ -387,41 +478,6 @@ struct CardInfoRow: View {
     }
 }
 
-struct QualificationCard: View {
-    let qualification: Qualification
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top) {
-                Image(systemName: "graduationcap.fill")
-                    .foregroundColor(color)
-                    .font(.system(size: 20))
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(qualification.degree)
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                        .foregroundColor(.black)
-                    Text("\(qualification.institution) | \(qualification.years)")
-                        .font(.system(size: 15, weight: .medium, design: .rounded))
-                        .foregroundColor(color.opacity(0.7))
-                }
-                Spacer()
-            }
-            Text(qualification.description)
-                .font(.system(size: 15, weight: .regular, design: .rounded))
-                .foregroundColor(.black.opacity(0.65))
-                .lineSpacing(6)
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.white)
-                .shadow(color: color.opacity(0.08), radius: 8, x: 0, y: 4)
-        )
-        .padding(.vertical, 4)
-    }
-}
-
 struct StatView: View {
     let icon: String
     let value: String
@@ -429,23 +485,23 @@ struct StatView: View {
     let color: Color
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             ZStack {
                 Circle()
                     .fill(color.opacity(0.08))
-                    .frame(width: 52, height: 52)
+                    .frame(width: 44, height: 44)
                 Image(systemName: icon)
-                    .font(.system(size: 22))
+                    .font(.system(size: 20))
                     .foregroundColor(color)
             }
             Text(value)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.black)
             Text(label)
-                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundColor(color.opacity(0.7))
         }
-        .padding(.vertical, 28)
+        .padding(.vertical, 20)
         .frame(maxWidth: .infinity)
     }
 }
@@ -457,15 +513,15 @@ struct SummaryItem: View {
     let color: Color
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 20))
+                .font(.system(size: 18))
                 .foregroundColor(color)
             Text(value)
-                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(.black)
             Text(label)
-                .font(.system(size: 13, weight: .medium, design: .rounded))
+                .font(.system(size: 12, weight: .medium, design: .rounded))
                 .foregroundColor(color.opacity(0.7))
         }
         .frame(maxWidth: .infinity)
@@ -477,29 +533,29 @@ struct NoteCard: View {
     let color: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: "note.text")
                     .foregroundColor(color)
-                    .font(.system(size: 18))
+                    .font(.system(size: 16))
                 Text("Appointment ID: \(note.appointmentID)")
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundColor(.black)
                 Spacer()
             }
             Text("Patient ID: \(note.patientID)")
-                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .font(.system(size: 13, weight: .medium, design: .rounded))
                 .foregroundColor(color.opacity(0.7))
             Text(note.note)
-                .font(.system(size: 14, weight: .regular, design: .rounded))
+                .font(.system(size: 13, weight: .regular, design: .rounded))
                 .foregroundColor(.black.opacity(0.65))
                 .lineLimit(2)
         }
-        .padding(16)
+        .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 14)
                 .fill(.white)
-                .shadow(color: color.opacity(0.08), radius: 8, x: 0, y: 4)
+                .shadow(color: color.opacity(0.08), radius: 6, x: 0, y: 3)
         )
     }
 }

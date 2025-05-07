@@ -15,25 +15,31 @@ struct PatientTabView: View {
     }
     var body: some View {
         TabView {
-            HomeView_patient(patient: patient)
-                .tabItem {
-                    Image(systemName: "house")
-                    Text("Home")
-                }
+            NavigationStack {
+                HomeView_patient(patient: patient)
+                    .navigationBarBackButtonHidden(true)
+            }
+            .tabItem {
+                Image(systemName: "house")
+                Text("Home")
+            }
             
-            DoctorView(patientId: patient.patientId)
-                .tabItem {
-                    Image(systemName: "stethoscope")
-                    Text("Doctor")
-                }
+            NavigationStack {
+                DoctorView(patientId: patient.patientId)
+            }
+            .tabItem {
+                Image(systemName: "stethoscope")
+                Text("Doctor")
+            }
             
-            ProfileView_patient(patient: patient)
-                .tabItem {
-                    Image(systemName: "person")
-                    Text("Profile")
-                }
+            NavigationStack {
+                ProfileView_patient(patient: patient)
+            }
+            .tabItem {
+                Image(systemName: "person")
+                Text("Profile")
+            }
         }
-        .navigationBarBackButtonHidden(true)
         .accentColor(Color(red: 0.43, green: 0.34, blue: 0.99))
     }
 }
