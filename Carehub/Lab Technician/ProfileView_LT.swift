@@ -52,14 +52,6 @@ class LabTechViewModel: ObservableObject {
     }
 }
 
-// AuthManager1 (mocked for logout functionality)
-class AuthManager1 {
-    static let shared = AuthManager1()
-    func logout() {
-        // Implement logout logic here (e.g., clear user session)
-    }
-}
-
 struct ProfileView_LT: View {
     let labTechId: String
     @StateObject private var viewModel = LabTechViewModel()
@@ -118,7 +110,7 @@ struct ProfileView_LT: View {
                     Section {
                         Button("Logout") {
                             isLoggingOut = true
-                            AuthManager1.shared.logout()
+                            AuthManager.shared.logout()
                             showLoginView = true
                         }
                         .foregroundColor(.red)
