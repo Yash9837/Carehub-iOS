@@ -153,29 +153,27 @@ struct ProfileView_LT: View {
                         .padding(.vertical, 8)
 
                         // Logout Button
-                        Button(action: {
-                            isLoggingOut = true
-                            AuthManager.shared.logout()
-                            showLoginView = true
-                        }) {
-                            Text("Log Out")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.43, green: 0.34, blue: 0.99),
-                                            Color(red: 0.55, green: 0.48, blue: 0.99)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .cornerRadius(10)
-                                .shadow(color: primaryColor.opacity(0.3), radius: 5, x: 0, y: 3)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Button(action: {
+                                isLoggingOut = true
+                                AuthManager.shared.logout()
+                                showLoginView = true
+                            }) {
+                                Label("Log Out", systemImage: "arrow.right.circle")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.red)
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 16)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
                         }
+                        .padding(.vertical, 14)
+                        .padding(.horizontal, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color.white)
+                                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                        )
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
 
@@ -283,4 +281,3 @@ struct ProfileRow2: View {
         .padding(.horizontal, 16)
     }
 }
-
