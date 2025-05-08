@@ -58,19 +58,31 @@ struct StaffListView: View {
                     }
                     .padding(.top, 10)
                 }
-            }
-            .navigationTitle("Staff Management")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showingAddStaff = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.headline)
-                            .foregroundColor(purpleColor)
+
+                // Floating Plus Button
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            showingAddStaff = true
+                        }) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(width: 50, height: 50)
+                                .background(
+                                    Circle()
+                                        .fill(purpleColor)
+                                        .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
+                                )
+                        }
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 16)
                     }
                 }
             }
+            .navigationTitle("Staff Management")
             .sheet(isPresented: $showingAddStaff) {
                 AddStaffView(staffManager: staffManager)
             }

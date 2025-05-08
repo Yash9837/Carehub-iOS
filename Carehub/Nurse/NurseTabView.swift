@@ -1,10 +1,3 @@
-//
-//  NurseTabView.swift
-//  Carehub
-//
-//  Created by user@87 on 29/04/25.
-//
-
 import SwiftUI
 
 struct NurseTabView: View {
@@ -23,11 +16,22 @@ struct NurseTabView: View {
                     Text("Profile")
                 }
         }
+        .tint(Color(red: 0.43, green: 0.34, blue: 0.99)) // Updated color for selected tab
         .navigationBarBackButtonHidden(true)
-        .onAppear { // Added to set tab colors
-            let tabBarAppearance = UITabBar.appearance()
-            tabBarAppearance.tintColor = UIColor.purple // Selected tab color
-            tabBarAppearance.unselectedItemTintColor = UIColor.gray // Unselected tab color
+        .onAppear {
+            let tabBarAppearance = UITabBarAppearance()
+            tabBarAppearance.configureWithOpaqueBackground()
+            
+            // Selected tab color
+            tabBarAppearance.selectionIndicatorTintColor = UIColor(red: 0.43, green: 0.34, blue: 0.99, alpha: 1.0) // Updated color
+            
+            // Unselected tab color
+            tabBarAppearance.stackedLayoutAppearance.normal.iconColor = UIColor.gray
+            tabBarAppearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.gray]
+            
+            // Apply appearance to both standard and scroll edge
+            UITabBar.appearance().standardAppearance = tabBarAppearance
+            UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
         }
     }
 }

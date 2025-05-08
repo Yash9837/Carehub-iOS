@@ -470,31 +470,36 @@ struct TestResultCard: View {
                     }
                     
                     Button(action: {
-                        isLoading = true
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isLoading = true
+                        }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            isLoading = false
-                            isNavigating = true
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isLoading = false
+                                isNavigating = true
+                            }
                         }
                     }) {
-                        if isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .frame(width: 20, height: 20)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                .cornerRadius(8)
-                        } else {
-                            Text("View PDF")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                .cornerRadius(8)
+                        HStack {
+                            Spacer()
+                            ZStack {
+                                Text("View PDF")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .opacity(isLoading ? 0 : 1)
+                                
+                                if isLoading {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                }
+                            }
+                            Spacer()
                         }
+                        .frame(height: 32) // Fixed height
                     }
-                    .padding(.top, 8)
+                    .background(Color(red: 0.43, green: 0.34, blue: 0.99))
+                    .cornerRadius(8)
+                    .disabled(isLoading)
                 }
                 if let error = pdfLoadError {
                     Text(error)
