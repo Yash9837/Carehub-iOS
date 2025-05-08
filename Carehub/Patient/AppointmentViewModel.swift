@@ -11,7 +11,6 @@ class AppointmentViewModel: ObservableObject {
 
     func fetchRecentPrescriptions(forPatientId patientId: String) {
         print("Fetching prescriptions for patient ID: \(patientId)")
-        
         // Step 1: Fetch medical tests for the patient
         fetchMedicalTests(forPatientId: patientId) {
             // Step 2: Fetch appointments after medical tests are loaded

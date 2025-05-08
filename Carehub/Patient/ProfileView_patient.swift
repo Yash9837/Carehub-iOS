@@ -11,6 +11,7 @@ struct ProfileView_patient: View {
     @AppStorage("isVoiceOverEnabled") private var isVoiceOverEnabled = false // New toggle for VoiceOver
     @State private var speechSynthesizer = AVSpeechSynthesizer() // Speech synthesizer instance
     @State private var isInitialLoad = true
+
     var body: some View {
         NavigationStack {
             ZStack {

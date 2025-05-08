@@ -250,7 +250,6 @@ struct HomeView_patient: View {
                             viewModel.fetchRecentPrescriptions(forPatientId: patient.patientId)
                         }
                         
-                        // Previously Visited Doctors Section
                         VStack(alignment: .leading, spacing: 16) {
                             sectionHeader(
                                 title: "Previously Visited Doctors",
@@ -844,20 +843,16 @@ struct AppointmentListCard: View {
         .accessibilityLabel("Appointment with \(doctorName) for \(specialty), on \(date)")
     }
 }
-
-// MARK: - AllPrescriptionsView
 struct AllPrescriptionsView: View {
     let prescriptions: [Appointment]
     let formatDate: (Date?) -> String
     let viewModel: AppointmentViewModel // Add viewModel as a parameter
     
     private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
-    
     var body: some View {
         ZStack {
             Color(.systemBackground)
                 .ignoresSafeArea()
-            
             ScrollView {
                 VStack(spacing: 16) {
                     if prescriptions.isEmpty {
@@ -1101,7 +1096,6 @@ struct ImprovedMedicalRecordCard: View {
         .accessibilityLabel("\(title) by \(doctorName), dated \(date)")
     }
 }
-
 
 struct DoctorVisit: Identifiable {
     let id: String 
