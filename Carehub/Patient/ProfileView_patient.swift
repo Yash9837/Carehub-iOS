@@ -11,7 +11,6 @@ struct ProfileView_patient: View {
     @AppStorage("isVoiceOverEnabled") private var isVoiceOverEnabled = false // New toggle for VoiceOver
     @State private var speechSynthesizer = AVSpeechSynthesizer() // Speech synthesizer instance
     @State private var isInitialLoad = true
-
     var body: some View {
         NavigationStack {
             ZStack {
@@ -153,8 +152,7 @@ struct ProfileView_patient: View {
                         )
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-
-                        // Medical Information
+                        
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Medical Information")
                                 .font(FontSizeManager.font(for: 18, weight: .bold))
@@ -196,6 +194,11 @@ struct ProfileView_patient: View {
                                 value: patient.vitals.weight.last?.value ?? "Not Recorded",
                                 icon: "scalemass"
                             )
+                            ProfileRow(
+                                title: "Last Updated",
+                                value: formatDate(patient.lastModified),
+                                icon: "clock.fill"
+                            )
                         }
                         .padding(.vertical, 14)
                         .padding(.horizontal, 16)
@@ -234,6 +237,7 @@ struct ProfileView_patient: View {
                     .padding(.top, 16)
                     .padding(.bottom, 24)
                 }
+                .navigationTitle("Profile")
                 .navigationBarTitleDisplayMode(.large)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
@@ -266,13 +270,19 @@ struct ProfileView_patient: View {
                     speechSynthesizer.stopSpeaking(at: .immediate) // Stop speech when leaving the view
                 }
     }
-
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
     private func readProfileText() {
         let textToRead = """
         Profile. \(patient.userData.Name).
-        Personal Information. Patient ID \(patient.patientId). Date of Birth \(patient.userData.Dob). Email \(patient.userData.Email).
-        Contact Information. Phone Number \(patient.userData.phoneNo). Address \(patient.userData.Address). Aadhar Number \(patient.userData.aadharNo.isEmpty ? "Not Provided" : patient.userData.aadharNo). Emergency Contacts \(patient.emergencyContact.map { "\($0.name) \($0.Number)" }.joined(separator: ", ")).
-        Medical Information. Allergies \(patient.vitals.allergies.joined(separator: ", ")). Latest Blood Pressure \(patient.vitals.bp.last?.value ?? "Not Recorded"). Latest Heart Rate \(patient.vitals.heartRate.last?.value ?? "Not Recorded"). Latest Height \(patient.vitals.height.last?.value ?? "Not Recorded"). Latest Temperature \(patient.vitals.temperature.last?.value ?? "Not Recorded"). Latest Weight \(patient.vitals.weight.last?.value ?? "Not Recorded").
+        Patient ID \(patient.patientId). Date of Birth \(patient.userData.Dob). Email \(patient.userData.Email).
+        Phone Number \(patient.userData.phoneNo). Address \(patient.userData.Address). Aadhar Number \(patient.userData.aadharNo.isEmpty ? "Not Provided" : patient.userData.aadharNo). Emergency Contacts \(patient.emergencyContact.map { "\($0.name) \($0.Number)" }.joined(separator: ", ")).
+         Allergies \(patient.vitals.allergies.joined(separator: ", ")). Latest Blood Pressure \(patient.vitals.bp.last?.value ?? "Not Recorded"). Latest Heart Rate \(patient.vitals.heartRate.last?.value ?? "Not Recorded"). Latest Height \(patient.vitals.height.last?.value ?? "Not Recorded"). Latest Temperature \(patient.vitals.temperature.last?.value ?? "Not Recorded"). Latest Weight \(patient.vitals.weight.last?.value ?? "Not Recorded").
         """
         speak(text: textToRead)
     }
@@ -291,7 +301,7 @@ struct ProfileRow: View {
     let icon: String
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 6) {
             Image(systemName: icon)
                 .font(FontSizeManager.font(for: 14))
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
@@ -304,10 +314,11 @@ struct ProfileRow: View {
             Spacer()
             
             Text(value)
-                .font(FontSizeManager.font(for: 16, weight: .regular))
+                .font(FontSizeManager.font(for: 15, weight: .regular))
                 .foregroundColor(.gray)
-                .multilineTextAlignment(.trailing)
-                .lineLimit(2)
+                .lineLimit(1) // Restrict to one line
+                .truncationMode(.tail) // Add ellipsis if the text is too long
+                .frame(maxWidth: .infinity, alignment: .trailing) // Ensure it takes available space but aligns right
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 16)
