@@ -96,12 +96,14 @@ struct AddStaffView: View {
             .navigationTitle("Add New Staff")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Cancel") {
                         dismiss()
                     }
                     .foregroundColor(accentColor)
+                    
                 }
+                
             }
             .alert("Validation Error", isPresented: $showingAlert) {
                 Button("OK", role: .cancel) { }
