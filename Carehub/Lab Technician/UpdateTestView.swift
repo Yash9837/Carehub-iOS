@@ -3,7 +3,7 @@ import FirebaseFirestore
 import FirebaseStorage
 import UniformTypeIdentifiers
 
-// UIViewControllerRepresentable to handle PDF picking on iOS
+// DocumentPicker struct remains unchanged
 struct DocumentPicker: UIViewControllerRepresentable {
     @Binding var pdfURL: URL?
     var onPDFSelected: (URL) -> Void
@@ -43,14 +43,6 @@ struct DocumentPicker: UIViewControllerRepresentable {
     }
 }
 
-
-import SwiftUI
-import FirebaseFirestore
-import FirebaseStorage
-import UniformTypeIdentifiers
-
-// ... [Keep the DocumentPicker struct unchanged] ...
-
 struct UpdateTestView: View {
     let medicalTestId: String
     @State private var isCompleted: Bool = false
@@ -58,7 +50,7 @@ struct UpdateTestView: View {
     @State private var pdfURL: URL? = nil
     @State private var isShowingPDFPicker = false
     @State private var firestoreDocumentId: String? = nil
-    @State private var showValidationError = false // Combined error state
+    @State private var showValidationError = false
     @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
@@ -105,23 +97,6 @@ struct UpdateTestView: View {
                     .sheet(isPresented: $isShowingPDFPicker) {
                         DocumentPicker(pdfURL: $pdfURL, onPDFSelected: uploadPDF)
                     }
-                    
-                    // Status Toggle
-                    HStack {
-                        Text("Status : ")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.gray)
-                        
-                        Spacer()
-                        
-                        Toggle(isOn: $isCompleted) {
-                            Text(isCompleted ? "Completed" : "Pending")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.gray)
-                        }
-                        .tint(.green)
-                    }
-                    .padding(.horizontal, 20)
                 }
                 .padding(.horizontal, 20)
                 
@@ -130,7 +105,7 @@ struct UpdateTestView: View {
                     validateAndSave()
                 }) {
                     ZStack {
-                        Text("Save Changes")
+                        Text("Upload Report")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                             .padding()
@@ -155,7 +130,9 @@ struct UpdateTestView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 20
+
+)
                 .disabled(isLoading)
                 
                 Spacer()
@@ -175,25 +152,13 @@ struct UpdateTestView: View {
     }
     
     private func validationErrorMessage() -> String {
-        var errors = [String]()
-        
-        if !isCompleted {
-            errors.append("• Status must be set to 'Completed'")
-        }
-        
         if pdfURL == nil {
-            errors.append("• You must select a PDF file")
+            return "• You must select a PDF file"
         }
-        
-        return errors.joined(separator: "\n")
+        return ""
     }
     
     private func validateAndSave() {
-        guard isCompleted else {
-            showValidationError = true
-            return
-        }
-        
         guard pdfURL != nil else {
             showValidationError = true
             return
@@ -243,7 +208,7 @@ struct UpdateTestView: View {
         isLoading = true
         let db = Firestore.firestore()
         var data: [String: Any] = [
-            "status": isCompleted ? "Completed" : "Pending",
+            "status": "Completed",
             "updatedAt": FieldValue.serverTimestamp()
         ]
         
@@ -300,5 +265,6 @@ struct UpdateTestView: View {
     
     private func uploadPDF(to url: URL) {
         pdfURL = url
+        isCompleted = true
     }
 }

@@ -69,32 +69,6 @@ struct MedicalTest: Identifiable, Codable {
 }
 
 
-//
-//// Define the structure for vital signs entries (e.g., bp, heartRate, etc.)
-//struct VitalEntry: Codable {
-//    let timestamp: Timestamp
-//    let value: String // For bp, value is "120/80"; for others, it's a single value like "72"
-//}
-//
-//// Define the structure for the vitals map
-//struct Vitals: Codable {
-//    let allergies: [String]?
-//    let bp: [VitalEntry]?
-//    let heartRate: [VitalEntry]?
-//    let height: [VitalEntry]?
-//    let temperature: [VitalEntry]?
-//    let weight: [VitalEntry]?
-//
-//    enum CodingKeys: String, CodingKey {
-//        case allergies
-//        case bp
-//        case heartRate
-//        case height
-//        case temperature
-//        case weight
-//    }
-//}
-
 struct PatientInfo: Identifiable, Codable {
     @DocumentID var id: String?
     let patientId: String

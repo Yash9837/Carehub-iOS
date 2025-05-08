@@ -14,8 +14,8 @@ struct AddStaffView: View {
     @State private var shiftEndTime = Date()
     @State private var showingAlert = false
     @State private var alertMessage = ""
-    @State private var profileImage: UIImage?
-    @State private var showImagePicker = false
+//    @State private var profileImage: UIImage?
+//    @State private var showImagePicker = false
     @State private var showingSuccessAlert = false
     
     // Doctor-specific fields
@@ -41,7 +41,7 @@ struct AddStaffView: View {
                 ScrollView {
                     VStack(spacing: 24) {
                         // Profile image at the top
-                        profileImageSection
+//                        profileImageSection
                         
                         // Personal Information Section
                         formSection(title: "Personal Information") {
@@ -96,63 +96,29 @@ struct AddStaffView: View {
             .navigationTitle("Add New Staff")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Cancel") {
                         dismiss()
                     }
                     .foregroundColor(accentColor)
+                    
                 }
+                
             }
             .alert("Validation Error", isPresented: $showingAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(alertMessage)
             }
-            .sheet(isPresented: $showImagePicker) {
-                ImagePicker(image: $profileImage)
-            }
+//            .sheet(isPresented: $showImagePicker) {
+//                ImagePicker(image: $profileImage)
+//            }
         }
         .alert("Saved Successfully", isPresented: $showingSuccessAlert) {
             Button("OK") {
                 dismiss() // Navigates back to the Admin Dashboard
             }
         }
-    }
-
-    
-    // MARK: - UI Components
-    
-    private var profileImageSection: some View {
-        Button {
-            showImagePicker = true
-        } label: {
-            ZStack {
-                Circle()
-                    .fill(cardBackgroundColor)
-                    .frame(width: 110, height: 110)
-                    .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
-                
-                if let image = profileImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 100, height: 100)
-                        .clipShape(Circle())
-                } else {
-                    VStack(spacing: 8) {
-                        Image(systemName: "person.crop.circle.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(accentColor.opacity(0.8))
-                        
-                        Text("Add Photo")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(accentColor)
-                    }
-                    .frame(width: 100, height: 100)
-                }
-            }
-        }
-        .padding(.vertical, 10)
     }
     
     private func formSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {

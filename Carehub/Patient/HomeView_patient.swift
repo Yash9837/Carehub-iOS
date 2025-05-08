@@ -31,6 +31,7 @@ struct HomeView_patient: View {
     @AppStorage("isVoiceOverEnabled") private var isVoiceOverEnabled = false
     @State private var speechSynthesizer = AVSpeechSynthesizer()
     @State private var isInitialLoad = true
+    @State private var navigateToChat = false
     
     var body: some View {
         NavigationStack {
@@ -44,6 +45,33 @@ struct HomeView_patient: View {
                 .edgesIgnoringSafeArea(.all)
             
             scrollContent
+            // Chatbot Icon Button (Floating Action Button)
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        navigateToChat = true
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(primaryColor)
+                                .frame(width: 60, height: 60)
+                                .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                            
+                            Image(systemName: "message.fill")
+                                .foregroundColor(.white)
+                                .font(.system(size: FontSizeManager.fontSize(for: 24)))
+                        }
+                    }
+                    .accessibilityLabel("Open Chatbot")
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 16)
+                }
+            }
+        }
+        .navigationDestination(isPresented: $navigateToChat) {
+            ChatView()
         }
         .navigationBarBackButtonHidden(true)
         .onAppear(perform: handleOnAppear)
@@ -463,7 +491,7 @@ struct HomeView_patient: View {
 //            ZStack {
 //                backgroundColor
 //                    .edgesIgnoringSafeArea(.all)
-//                
+//
 //                ScrollView(showsIndicators: false) {
 //                    VStack(spacing: 24) {
 //                        // Header
@@ -472,14 +500,14 @@ struct HomeView_patient: View {
 //                                Text("Hello, \(patient.userData.Name)")
 //                                    .font(FontSizeManager.font(for: 28, weight: .bold))
 //                                    .foregroundColor(.black)
-//                                
+//
 //                                Text("Welcome to CareHub")
 //                                    .font(FontSizeManager.font(for: 16, weight: .medium))
 //                                    .foregroundColor(.gray)
 //                            }
-//                            
+//
 //                            Spacer()
-//                            
+//
 //                            Button(action: {
 //                                navigateToNotifications = true
 //                                hasViewedNotifications = true
@@ -492,11 +520,11 @@ struct HomeView_patient: View {
 //                                        .fill(cardBackground)
 //                                        .frame(width: 44, height: 44)
 //                                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-//                                    
+//
 //                                    Image(systemName: "bell.fill")
 //                                        .foregroundColor(primaryColor)
 //                                        .font(.system(size: FontSizeManager.fontSize(for: 18)))
-//                                    
+//
 //                                    if notificationCount > 0 {
 //                                        ZStack {
 //                                            Circle()
@@ -514,7 +542,7 @@ struct HomeView_patient: View {
 //                        }
 //                        .padding(.horizontal, 16)
 //                        .padding(.top, 16)
-//                        
+//
 //                        // Book Appointment Card
 //                        Button(action: {
 //                            navigateToBooking = true
@@ -527,7 +555,7 @@ struct HomeView_patient: View {
 //                                        endPoint: .bottomTrailing
 //                                    ))
 //                                    .shadow(color: primaryColor.opacity(0.2), radius: 10, x: 0, y: 5)
-//                                
+//
 //                                HStack(spacing: 16) {
 //                                    Image(systemName: "calendar.badge.plus")
 //                                        .resizable()
@@ -535,19 +563,19 @@ struct HomeView_patient: View {
 //                                        .frame(width: 50, height: 50)
 //                                        .foregroundColor(.white)
 //                                        .padding(.leading, 16)
-//                                    
+//
 //                                    VStack(alignment: .leading, spacing: 8) {
 //                                        Text("Book an Appointment")
 //                                            .font(FontSizeManager.font(for: 18, weight: .bold))
 //                                            .foregroundColor(.white)
-//                                        
+//
 //                                        Text("Schedule with your preferred doctor")
 //                                            .font(FontSizeManager.font(for: 14, weight: .medium))
 //                                            .foregroundColor(.white.opacity(0.8))
 //                                    }
-//                                    
+//
 //                                    Spacer()
-//                                    
+//
 //                                    Image(systemName: "chevron.right")
 //                                        .foregroundColor(.white)
 //                                        .font(.system(size: FontSizeManager.fontSize(for: 18)))
@@ -560,7 +588,7 @@ struct HomeView_patient: View {
 //                        .buttonStyle(PlainButtonStyle())
 //                        .padding(.horizontal, 16)
 //                        .padding(.bottom, 10)
-//                        
+//
 //                        // Upcoming Appointments Section
 //                        VStack(alignment: .leading, spacing: 16) {
 //                            sectionHeader(
@@ -580,7 +608,7 @@ struct HomeView_patient: View {
 //                                        .foregroundColor(primaryColor)
 //                                }
 //                            }
-//                            
+//
 //                            if isLoading {
 //                                HStack {
 //                                    Spacer()
@@ -613,7 +641,7 @@ struct HomeView_patient: View {
 //                                }
 //                            }
 //                        }
-//                        
+//
 //                        // Recent Prescriptions Section
 //                        VStack(alignment: .leading, spacing: 16) {
 //                            sectionHeader(
@@ -632,7 +660,7 @@ struct HomeView_patient: View {
 //                                        .foregroundColor(primaryColor)
 //                                }
 //                            }
-//                            
+//
 //                            if viewModel.recentPrescriptions.isEmpty {
 //                                emptyStateView(
 //                                    icon: "doc.text",
@@ -665,9 +693,9 @@ struct HomeView_patient: View {
 //                            viewModel.fetchRecentPrescriptions(forPatientId: patient.patientId)
 //                            print("Recent prescriptions count: \(viewModel.recentPrescriptions.count)")
 //                        }
-//                        
+//
 //                        //medical tests section
-//                        
+//
 //                        VStack(alignment: .leading, spacing: 16) {
 //                            sectionHeader(
 //                                title: "Recent Medical Reports",
@@ -685,7 +713,7 @@ struct HomeView_patient: View {
 //                                        .foregroundColor(primaryColor)
 //                                }
 //                            }
-//                            
+//
 //                            if viewModel.medicalTests.isEmpty {
 //                                emptyStateView(
 //                                    icon: "doc.text",
@@ -721,7 +749,7 @@ struct HomeView_patient: View {
 //                                await viewModel.fetchRecentPrescriptions(forPatientId: patient.patientId)
 //                            }
 //                        }
-//                        
+//
 //                        // Previously Visited Doctors Section
 //                        VStack(alignment: .leading, spacing: 16) {
 //                            sectionHeader(
@@ -739,7 +767,7 @@ struct HomeView_patient: View {
 //                                        .foregroundColor(primaryColor)
 //                                }
 //                            }
-//                            
+//
 //                            if viewModel.recentPrescriptions.isEmpty {
 //                                emptyStateView(
 //                                    icon: "person.2",
@@ -1528,7 +1556,7 @@ struct AllPrescriptionsView: View {
 //    let prescriptions: [TestResult]
 //    let formatDate: (Date?) -> String
 //    let viewModel: AppointmentViewModel // Add viewModel as a parameter
-//    
+//
 //    private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
 //    var body: some View {
 //        ZStack {
@@ -1581,7 +1609,7 @@ struct AllPrescriptionsView: View {
 //        .navigationTitle("All Medical Reports")
 //        .navigationBarTitleDisplayMode(.inline)
 //    }
-//    
+//
 //    private func prescriptionDestination(for testResult: TestResult) -> some View {
 //        if let url = URL(string: testResult.pdfUrl), !testResult.pdfUrl.isEmpty {
 //            return AnyView(
@@ -1612,7 +1640,7 @@ struct AllPrescriptionsView: View {
 //            )
 //        }
 //    }
-//    
+//
 //    private func getDoctorName(for docId: String) -> String {
 //        for specialty in DoctorData.doctors.keys {
 //            if let doctor = DoctorData.doctors[specialty]?.first(where: { $0.id == docId }) {
@@ -1925,7 +1953,7 @@ struct ImprovedMedicalRecordCard: View {
 }
 
 struct DoctorVisit: Identifiable {
-    let id: String 
+    let id: String
     let name: String
     let specialty: String
     let lastVisit: Date

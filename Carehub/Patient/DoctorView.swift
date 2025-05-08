@@ -1,169 +1,168 @@
 import SwiftUI
 import FirebaseFirestore
 import AVFoundation
+
 struct DoctorView: View {
     let patientId: String
     @State private var specialties: [String] = []
     @State private var isDataLoaded = false
     @State private var isDataLoadFailed = false
     @State private var searchText = ""
+    @State private var doctorNames: [String] = []
     let columns = [GridItem(.flexible()), GridItem(.flexible())]
     @AppStorage("isVoiceOverEnabled") private var isVoiceOverEnabled = false
     @State private var speechSynthesizer = AVSpeechSynthesizer()
     @State private var isInitialLoad = true
-    let symptomToSpecialty: [String: [String]] = [
-        "chest pain": ["Cardiology"],
-        "shortness of breath": ["Cardiology", "Pulmonology"],
-        "palpitations": ["Cardiology"],
-        "high blood pressure": ["Cardiology"],
-        "swelling in legs": ["Cardiology"],
-        "joint pain": ["Orthopedics"],
-        "back pain": ["Orthopedics", "Neurology"],
-        "knee pain": ["Orthopedics"],
-        "shoulder pain": ["Orthopedics"],
-        "fracture": ["Orthopedics"],
-        "arthritis": ["Orthopedics"],
-        "headache": ["Neurology"],
-        "dizziness": ["Neurology", "ENT"],
-        "numbness": ["Neurology"],
-        "seizures": ["Neurology"],
-        "memory loss": ["Neurology", "Psychiatry"],
-        "irregular periods": ["Gynecology"],
-        "pelvic pain": ["Gynecology", "Urology"],
-        "vaginal bleeding": ["Gynecology"],
-        "infertility": ["Gynecology"],
-        "menopause symptoms": ["Gynecology"],
-        "abdominal pain": ["Surgery", "Gastroenterology"],
-        "hernia": ["Surgery"],
-        "appendicitis": ["Surgery"],
-        "gallstones": ["Surgery"],
-        "swelling or lump": ["Surgery", "Oncology"],
-        "rash": ["Dermatology"],
-        "itching": ["Dermatology"],
-        "skin redness": ["Dermatology"],
-        "acne": ["Dermatology"],
-        "hair loss": ["Dermatology"],
-        "weight gain": ["Endocrinology"],
-        "weight loss": ["Endocrinology", "Oncology"],
-        "fatigue": ["Endocrinology", "General Medicine"],
-        "diabetes": ["Endocrinology"],
-        "thyroid issues": ["Endocrinology"],
-        "ear pain": ["ENT"],
-        "hearing loss": ["ENT"],
-        "sore throat": ["ENT"],
-        "nasal congestion": ["ENT"],
-        "sinus pain": ["ENT"],
-        "unexplained weight loss": ["Oncology", "Endocrinology"],
-        "lump in breast": ["Oncology", "Surgery"],
-        "persistent cough": ["Oncology", "Pulmonology"],
-        "blood in urine": ["Oncology", "Urology"],
-        "chronic pain": ["Oncology"],
-        "anxiety": ["Psychiatry"],
-        "depression": ["Psychiatry"],
-        "insomnia": ["Psychiatry", "Neurology"],
-        "mood swings": ["Psychiatry"],
-        "stress": ["Psychiatry"],
-        "painful urination": ["Urology"],
-        "frequent urination": ["Urology"],
-        "kidney pain": ["Urology"],
-        "erectile dysfunction": ["Urology"],
-        "fever in child": ["Pediatrics"],
-        "child growth issues": ["Pediatrics"],
-        "child vomiting": ["Pediatrics"],
-        "child rash": ["Pediatrics", "Dermatology"],
-        "child cough": ["Pediatrics"],
-        "fever": ["General Medicine", "Pediatrics"],
-        "cough": ["Pulmonology", "General Medicine"],
-        "vomiting": ["Gastroenterology", "General Medicine"],
-        "diarrhea": ["Gastroenterology"],
-        "constipation": ["Gastroenterology"]
-    ]
+
     var filteredSpecialties: [String] {
         if searchText.isEmpty {
             return specialties
         } else {
             let searchTextLowercased = searchText.lowercased()
             var matchingSpecialties: Set<String> = []
-            
-            // Step 1: Check for symptom matches
-            for (symptom, specialties) in symptomToSpecialty {
+
+            // Check if the search query matches a doctor's name
+            let doctorMatches = doctorNames.filter { $0.lowercased().contains(searchTextLowercased) }
+            if !doctorMatches.isEmpty {
+                // If searching by doctor name, return empty specialties to show only doctor names
+                return []
+            }
+
+            // Check for symptom matches
+            for (symptom, specialties) in SymptomToSpecialtyData.symptomToSpecialty {
                 if symptom.lowercased().contains(searchTextLowercased) {
                     matchingSpecialties.formUnion(specialties)
                 }
             }
-            
-            // Step 2: Check for direct specialty name matches
+
+            // Check for direct specialty name matches
             let specialtyMatches = specialties.filter { specialty in
                 specialty.lowercased().contains(searchTextLowercased)
             }
             matchingSpecialties.formUnion(specialtyMatches)
-            
-            // Filter the specialties list to only include matching ones
+
             return specialties.filter { specialty in
                 matchingSpecialties.contains(specialty)
             }
         }
     }
-    
+
+    var filteredDoctorNames: [String] {
+        if searchText.isEmpty {
+            return []
+        } else {
+            let searchTextLowercased = searchText.lowercased()
+            return doctorNames.filter { $0.lowercased().contains(searchTextLowercased) }
+        }
+    }
+
     var body: some View {
-            NavigationView {
-                ZStack {
-                    Color(red: 0.94, green: 0.94, blue: 1.0)
-                        .edgesIgnoringSafeArea(.all)
-                    if !isDataLoaded && !isDataLoadFailed {
-                        ProgressView()
-                            .tint(Color(red: 0.43, green: 0.34, blue: 0.99))
-                            .padding()
-                    } else if isDataLoadFailed {
-                        VStack {
-                            Text("Failed to load specialties")
-                                .foregroundColor(.red)
-                                .font(FontSizeManager.font(for: 18, weight: .medium))
-                            Button(action: {
-                                isDataLoaded = false
-                                isDataLoadFailed = false
-                                loadData()
-                            }) {
-                                Text("Retry")
-                                    .font(FontSizeManager.font(for: 16, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .padding()
-                                    .background(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                    .cornerRadius(10)
-                            }
-                        }
+        NavigationView {
+            ZStack {
+                Color(red: 0.94, green: 0.94, blue: 1.0)
+                    .edgesIgnoringSafeArea(.all)
+                if !isDataLoaded && !isDataLoadFailed {
+                    ProgressView()
+                        .tint(Color(red: 0.43, green: 0.34, blue: 0.99))
                         .padding()
-                    } else {
-                        ScrollView {
-                            VStack(spacing: 20) {
-                                // Search Bar
-                                HStack {
-                                    Image(systemName: "magnifyingglass")
-                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                        .font(.system(size: FontSizeManager.fontSize(for: 18)))
-                                        .padding(.leading, 12)
-                                    
-                                    TextField("Search by symptom or specialty", text: $searchText)
-                                        .font(FontSizeManager.font(for: 16))
-                                        .padding(.vertical, 12)
-                                }
-                                .background(Color.white)
-                                .cornerRadius(12)
-                                .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
-                                .padding(.horizontal, 16)
-                                .padding(.top, 16)
+                        .accessibilityLabel("Loading specialties")
+                } else if isDataLoadFailed {
+                    VStack {
+                        Text("Failed to load specialties")
+                            .foregroundColor(.red)
+                            .font(FontSizeManager.font(for: 18, weight: .medium))
+                            .accessibilityLabel("Failed to load specialties")
+                        Button(action: {
+                            isDataLoaded = false
+                            isDataLoadFailed = false
+                            loadData()
+                        }) {
+                            Text("Retry")
+                                .font(FontSizeManager.font(for: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                .cornerRadius(10)
+                        }
+                        .accessibilityLabel("Retry loading specialties")
+                        .accessibilityHint("Tap to retry loading the specialties")
+                    }
+                    .padding()
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Error loading specialties")
+                } else {
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            // Search Bar
+                            HStack {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                    .font(.system(size: FontSizeManager.fontSize(for: 18)))
+                                    .padding(.leading, 12)
+                                    .accessibilityHidden(true)
                                 
+                                TextField("Search by symptom, specialty, or doctor name", text: $searchText)
+                                    .font(FontSizeManager.font(for: 16))
+                                    .padding(.vertical, 12)
+                                    .accessibilityLabel("Search")
+                                    .accessibilityHint(isVoiceOverEnabled ? "Enter a symptom, specialty, or doctor name to search" : "")
+                            }
+                            .background(Color.white)
+                            .cornerRadius(12)
+                            .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 16)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel("Search bar")
+                            
+                            // Results Section
+                            if !filteredDoctorNames.isEmpty {
+                                // Doctor Names Section
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Matching Doctors")
+                                        .font(FontSizeManager.font(for: 28, weight: .bold))
+                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                        .padding(.horizontal, 16)
+                                        .accessibilityAddTraits(.isHeader)
+                                    
+                                    ForEach(filteredDoctorNames, id: \.self) { doctorName in
+                                        NavigationLink(destination: doctorDetailView(for: doctorName)) {
+                                            HStack {
+                                                Text(doctorName)
+                                                    .font(FontSizeManager.font(for: 16, weight: .semibold))
+                                                    .foregroundColor(.black)
+                                                Spacer()
+                                                Image(systemName: "chevron.right")
+                                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                                    .font(.system(size: FontSizeManager.fontSize(for: 14), weight: .semibold))
+                                            }
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .background(Color.white)
+                                            .cornerRadius(12)
+                                            .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+                                            .padding(.horizontal, 16)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                        .accessibilityLabel("Doctor: \(doctorName)")
+                                        .accessibilityHint(isVoiceOverEnabled ? "Tap to view details for \(doctorName)" : "")
+                                    }
+                                }
+                                .padding(.bottom, 24)
+                            } else {
                                 // Specialties Section
                                 Text("Suggested Specialties")
                                     .font(FontSizeManager.font(for: 28, weight: .bold))
                                     .padding(.bottom, 8)
                                     .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                    .accessibilityAddTraits(.isHeader)
                                 
                                 if filteredSpecialties.isEmpty && !searchText.isEmpty {
                                     Text("No specialties found for this symptom or specialty")
                                         .font(FontSizeManager.font(for: 16, weight: .medium))
                                         .foregroundColor(.gray)
                                         .padding(.vertical, 20)
+                                        .accessibilityLabel("No specialties found")
                                 } else {
                                     LazyVGrid(columns: columns, spacing: 16) {
                                         ForEach(filteredSpecialties, id: \.self) { specialty in
@@ -171,6 +170,8 @@ struct DoctorView: View {
                                                 SpecialtyCard(specialty: specialty)
                                             }
                                             .buttonStyle(PlainButtonStyle())
+                                            .accessibilityLabel("Specialty: \(specialty)")
+                                            .accessibilityHint(isVoiceOverEnabled ? "Tap to view doctors in \(specialty)" : "")
                                         }
                                     }
                                     .padding(.horizontal, 16)
@@ -179,57 +180,89 @@ struct DoctorView: View {
                             }
                         }
                     }
-                }
-                .onAppear {
-                    loadData()
-                    if isInitialLoad {
-                                        isInitialLoad = false // Mark initial load as complete
-                                    } else if isVoiceOverEnabled {
-                                        readDoctorViewText() // Only read if not initial load and VoiceOver is enabled
-                                    }
-                }
-                .onChange(of: isVoiceOverEnabled) { newValue in
-                    if newValue {
-                        readDoctorViewText()
-                    } else {
-                        speechSynthesizer.stopSpeaking(at: .immediate)
-                    }
-                }
-                .onDisappear {
-                                speechSynthesizer.stopSpeaking(at: .immediate) // Stop speech when leaving the view
-                            }
-            }
-        
-        }
-
-        private func loadData() {
-            DoctorData.fetchDoctors {
-                specialties = DoctorData.specialties
-                isDataLoaded = true
-                if specialties.isEmpty {
-                    isDataLoadFailed = true
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Doctor Search View")
                 }
             }
-        }
-        private func readDoctorViewText() {
-            var textToRead = "Doctor View. Search by symptom or specialty. Suggested Specialties. "
-            if isDataLoadFailed {
-                textToRead += "Failed to load specialties. Retry."
-            } else if filteredSpecialties.isEmpty && !searchText.isEmpty {
-                textToRead += "No specialties found for this symptom or specialty."
-            } else {
-                textToRead += filteredSpecialties.joined(separator: ", ") + "."
+            .onAppear {
+                loadData()
+                if isInitialLoad {
+                    isInitialLoad = false
+                } else if isVoiceOverEnabled {
+                    readDoctorViewText()
+                }
             }
-            speak(text: textToRead)
-        }
-
-        private func speak(text: String) {
-            let utterance = AVSpeechUtterance(string: text)
-            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-            utterance.rate = 0.5
-            speechSynthesizer.speak(utterance)
+            .onChange(of: isVoiceOverEnabled) { newValue in
+                if newValue {
+                    readDoctorViewText()
+                } else {
+                    speechSynthesizer.stopSpeaking(at: .immediate)
+                }
+            }
+            .onChange(of: searchText) { _ in
+                if isVoiceOverEnabled {
+                    readDoctorViewText()
+                }
+            }
+            .onDisappear {
+                speechSynthesizer.stopSpeaking(at: .immediate)
+            }
         }
     }
+
+    private func loadData() {
+        DoctorData.fetchDoctors {
+            specialties = DoctorData.specialties
+            doctorNames = DoctorData.doctors.values.flatMap { $0.map { $0.doctor_name } }
+            isDataLoaded = true
+            if specialties.isEmpty {
+                isDataLoadFailed = true
+            }
+        }
+    }
+
+    private func readDoctorViewText() {
+        var textToRead = "Doctor Search View. "
+        if !searchText.isEmpty {
+            if !filteredDoctorNames.isEmpty {
+                textToRead += "Found \(filteredDoctorNames.count) matching doctors. "
+            } else if !filteredSpecialties.isEmpty {
+                textToRead += "Found \(filteredSpecialties.count) matching specialties. "
+            } else {
+                textToRead += "No results found. "
+            }
+        } else {
+            textToRead += "Showing all specialties. "
+        }
+        speak(text: textToRead)
+    }
+
+    private func speak(text: String) {
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        utterance.rate = 0.5
+        speechSynthesizer.speak(utterance)
+    }
+
+    private func doctorDetailView(for doctorName: String) -> some View {
+        // Find the doctor and their specialty
+        var doctor: Doctor?
+        var specialty: String = ""
+        for (spec, doctors) in DoctorData.doctors {
+            if let foundDoctor = doctors.first(where: { $0.doctor_name == doctorName }) {
+                doctor = foundDoctor
+                specialty = spec
+                break
+            }
+        }
+        
+        if let doctor = doctor {
+            return AnyView(DoctorDetailView(doctor: doctor, specialty: specialty, patientId: patientId))
+        } else {
+            return AnyView(Text("Doctor not found").foregroundColor(.red))
+        }
+    }
+}
 struct SpecialtyCard: View {
     let specialty: String
     var iconName: String {
@@ -257,6 +290,7 @@ struct SpecialtyCard: View {
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                 .frame(height: 36)
                 .padding(.top, 8)
+                .accessibilityHidden(true)
             
             Text(specialty)
                 .font(FontSizeManager.font(for: 16, weight: .semibold))
@@ -279,7 +313,9 @@ struct SpecialtyDoctorsView: View {
     @State private var doctors: [Doctor] = []
     @State private var isDataLoaded = false
     @State private var isDataLoadFailed = false
-    
+    @AppStorage("isVoiceOverEnabled") private var isVoiceOverEnabled = false
+    @State private var speechSynthesizer = AVSpeechSynthesizer()
+
     var filteredDoctors: [Doctor] {
         let filtered = doctors.filter { doctor in
             searchText.isEmpty || doctor.doctor_name.lowercased().contains(searchText.lowercased())
@@ -296,11 +332,13 @@ struct SpecialtyDoctorsView: View {
                 ProgressView()
                     .tint(Color(red: 0.43, green: 0.34, blue: 0.99))
                     .padding()
+                    .accessibilityLabel("Loading doctors")
             } else if isDataLoadFailed {
                 VStack {
                     Text("Failed to load doctors")
                         .foregroundColor(.red)
                         .font(FontSizeManager.font(for: 18, weight: .medium))
+                        .accessibilityLabel("Failed to load doctors")
                     Button(action: {
                         isDataLoaded = false
                         isDataLoadFailed = false
@@ -313,8 +351,12 @@ struct SpecialtyDoctorsView: View {
                             .background(Color(red: 0.43, green: 0.34, blue: 0.99))
                             .cornerRadius(10)
                     }
+                    .accessibilityLabel("Retry loading doctors")
+                    .accessibilityHint("Tap to retry loading the doctors")
                 }
                 .padding()
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Error loading doctors")
             } else {
                 ScrollView {
                     VStack(spacing: 0) {
@@ -324,15 +366,20 @@ struct SpecialtyDoctorsView: View {
                                     .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                                     .font(.system(size: FontSizeManager.fontSize(for: 18)))
                                     .padding(.leading, 12)
+                                    .accessibilityHidden(true)
                                 
                                 TextField("Search by doctor name...", text: $searchText)
                                     .font(FontSizeManager.font(for: 16))
                                     .padding(.vertical, 12)
+                                    .accessibilityLabel("Search doctors")
+                                    .accessibilityHint(isVoiceOverEnabled ? "Enter a doctor name to search" : "")
                             }
                             .background(Color.white)
                             .cornerRadius(12)
                             .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
                             .padding(.leading, 16)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel("Search bar")
                             
                             Menu {
                                 Button(action: { sortByExp = false }) {
@@ -350,6 +397,8 @@ struct SpecialtyDoctorsView: View {
                                     .padding(.trailing, 16)
                                     .padding(.vertical, 12)
                             }
+                            .accessibilityLabel("Sort options")
+                            .accessibilityHint(isVoiceOverEnabled ? "Tap to sort doctors by experience" : "")
                         }
                         .padding(.top, 16)
                         .padding(.bottom, 16)
@@ -368,6 +417,8 @@ struct SpecialtyDoctorsView: View {
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 14)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("\(selectedSpecialty), \(filteredDoctors.count) doctors")
                         
                         LazyVStack(spacing: 0) {
                             ForEach(filteredDoctors, id: \.id) { doctor in
@@ -380,17 +431,39 @@ struct SpecialtyDoctorsView: View {
                                     )
                                 }
                                 .buttonStyle(PlainButtonStyle())
+                                .accessibilityLabel("Doctor: \(doctor.doctor_name), \(selectedSpecialty), \(doctor.doctor_experience ?? 0) years experience")
+                                .accessibilityHint(isVoiceOverEnabled ? "Tap to view details for \(doctor.doctor_name)" : "")
                             }
                         }
                         .padding(.bottom, 24)
                     }
                 }
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Specialty Doctors View")
             }
         }
         .navigationTitle(selectedSpecialty)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             loadDoctors()
+            if isVoiceOverEnabled {
+                readSpecialtyDoctorsText()
+            }
+        }
+        .onChange(of: isVoiceOverEnabled) { newValue in
+            if newValue {
+                readSpecialtyDoctorsText()
+            } else {
+                speechSynthesizer.stopSpeaking(at: .immediate)
+            }
+        }
+        .onChange(of: searchText) { _ in
+            if isVoiceOverEnabled {
+                readSpecialtyDoctorsText()
+            }
+        }
+        .onDisappear {
+            speechSynthesizer.stopSpeaking(at: .immediate)
         }
     }
     
@@ -402,6 +475,14 @@ struct SpecialtyDoctorsView: View {
             isDataLoadFailed = true
         }
     }
+
+    private func readSpecialtyDoctorsText() {
+        let textToRead = "\(selectedSpecialty) Doctors View. Found \(filteredDoctors.count) doctors."
+        let utterance = AVSpeechUtterance(string: textToRead)
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        utterance.rate = 0.5
+        speechSynthesizer.speak(utterance)
+    }
 }
 
 struct DoctorCardView: View {
@@ -409,6 +490,7 @@ struct DoctorCardView: View {
     let specialty: String
     let experience: Int
     let imageName: String
+    @AppStorage("isVoiceOverEnabled") private var isVoiceOverEnabled = false
     
     var body: some View {
         HStack(spacing: 16) {
@@ -430,6 +512,7 @@ struct DoctorCardView: View {
                 )
                 .clipShape(Circle())
                 .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.3), radius: 5, x: 0, y: 3)
+                .accessibilityHidden(true)
             
             VStack(alignment: .leading, spacing: 6) {
                 Text(name)
@@ -445,6 +528,7 @@ struct DoctorCardView: View {
                     Image(systemName: "briefcase.fill")
                         .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                         .font(.system(size: FontSizeManager.fontSize(for: 12)))
+                        .accessibilityHidden(true)
                     
                     Text("\(experience) yrs exp")
                         .font(FontSizeManager.font(for: 12, weight: .medium))
@@ -459,6 +543,7 @@ struct DoctorCardView: View {
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                 .font(.system(size: FontSizeManager.fontSize(for: 14), weight: .semibold))
                 .padding(.trailing, 8)
+                .accessibilityHidden(true)
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 16)
@@ -469,6 +554,7 @@ struct DoctorCardView: View {
         )
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -477,7 +563,9 @@ struct DoctorDetailView: View {
     let specialty: String
     let patientId: String
     @State private var qualifications: [String] = ["MBBS", "MD - General Medicine", "DNB - Cardiology"]
-    
+    @AppStorage("isVoiceOverEnabled") private var isVoiceOverEnabled = false
+    @State private var speechSynthesizer = AVSpeechSynthesizer()
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -503,6 +591,7 @@ struct DoctorDetailView: View {
                             )
                             .clipShape(Circle())
                             .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.3), radius: 8, x: 0, y: 4)
+                            .accessibilityHidden(true)
                         
                         // Right side - Details
                         VStack(alignment: .leading, spacing: 10) {
@@ -518,6 +607,7 @@ struct DoctorDetailView: View {
                                 Image(systemName: "briefcase.fill")
                                     .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                                     .font(.system(size: FontSizeManager.fontSize(for: 14)))
+                                    .accessibilityHidden(true)
                                 
                                 Text("\(doctor.doctor_experience ?? 0) years experience")
                                     .font(FontSizeManager.font(for: 14, weight: .medium))
@@ -528,6 +618,8 @@ struct DoctorDetailView: View {
                         Spacer()
                     }
                     .padding(20)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Doctor: \(doctor.doctor_name), \(specialty), \(doctor.doctor_experience ?? 0) years experience")
                 }
                 .background(Color.white)
                 .cornerRadius(16)
@@ -541,6 +633,7 @@ struct DoctorDetailView: View {
                         .font(FontSizeManager.font(for: 20, weight: .bold))
                         .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                         .padding(.horizontal, 16)
+                        .accessibilityAddTraits(.isHeader)
                     
                     VStack(alignment: .leading, spacing: 14) {
                         ForEach(qualifications, id: \.self) { qualification in
@@ -548,11 +641,14 @@ struct DoctorDetailView: View {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                                     .font(.system(size: FontSizeManager.fontSize(for: 16)))
+                                    .accessibilityHidden(true)
                                 
                                 Text(qualification)
                                     .font(FontSizeManager.font(for: 16))
                                     .foregroundColor(.black)
                             }
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel("Qualification: \(qualification)")
                         }
                     }
                     .padding(16)
@@ -560,6 +656,8 @@ struct DoctorDetailView: View {
                     .cornerRadius(16)
                     .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
                     .padding(.horizontal, 16)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Qualifications Section")
                 }
                 
                 // Book appointment button
@@ -583,10 +681,26 @@ struct DoctorDetailView: View {
                     .padding(.bottom, 24)
                 }
                 .buttonStyle(PlainButtonStyle())
+                .accessibilityLabel("Book Appointment")
+                .accessibilityHint(isVoiceOverEnabled ? "Tap to schedule an appointment with \(doctor.doctor_name)" : "")
             }
         }
         .background(Color(red: 0.94, green: 0.94, blue: 1.0))
         .navigationTitle("Doctor Profile")
         .navigationBarTitleDisplayMode(.inline)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Doctor Profile View")
+        .onAppear {
+            if isVoiceOverEnabled {
+                let textToRead = "Doctor Profile for \(doctor.doctor_name), \(specialty). \(doctor.doctor_experience ?? 0) years experience."
+                let utterance = AVSpeechUtterance(string: textToRead)
+                utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+                utterance.rate = 0.5
+                speechSynthesizer.speak(utterance)
+            }
+        }
+        .onDisappear {
+            speechSynthesizer.stopSpeaking(at: .immediate)
+        }
     }
 }

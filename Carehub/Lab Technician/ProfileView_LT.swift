@@ -1,4 +1,3 @@
-
 import SwiftUI
 
 // Lab Technician Model
@@ -33,10 +32,10 @@ class LabTechViewModel: ObservableObject {
         // Simulated API call (replace with actual API call or Firestore fetch)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.isLoading = false
-            // Mock data based on your screenshot
+            // Mock data
             let mockLabTech = LabTechnician1(
-                fullName: "Sanyog",
-                id: "WFQ7R40YZICIGLXRJDYOHDXDLKD3",
+                fullName: "Sanyog Dani",
+                id: "LT001",
                 department: "Pathology",
                 email: "t1@gmail.com",
                 phoneNumber: "9816578234",
@@ -55,122 +54,230 @@ class LabTechViewModel: ObservableObject {
 struct ProfileView_LT: View {
     let labTechId: String
     @StateObject private var viewModel = LabTechViewModel()
-    let primaryColor = Color(red: 109/255, green: 87/255, blue: 252/255) // Same as NurseProfileView
-    @State private var isEditingProfile = false
+    let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     @State private var showLoginView = false
     @State private var isLoggingOut = false
 
     var body: some View {
         NavigationView {
-            List {
-                if viewModel.isLoading {
-                    ProgressView("Loading profile...")
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .listRowSeparator(.hidden)
-                } else if let labTech = viewModel.labTech {
-                    // Profile Header
-                    Section {
-                        VStack(alignment: .center, spacing: 16) {
-                            Image(systemName: "person.circle.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 100, height: 100)
-                                .foregroundColor(primaryColor)
+            ZStack {
+                Color(red: 0.94, green: 0.94, blue: 1.0)
+                    .edgesIgnoringSafeArea(.all)
 
-                            VStack(spacing: 4) {
-                                Text(labTech.fullName)
-                                    .font(.title2)
-                                    .fontWeight(.semibold)
+                VStack(spacing: 16) {
+                    if viewModel.isLoading {
+                        ProgressView("Loading profile...")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if let labTech = viewModel.labTech {
+                        // Contact Information Card
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 16) {
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .frame(width: 50, height: 50)
+                                    .foregroundColor(.white)
+                                    .padding(6)
+                                    .background(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color(red: 0.43, green: 0.34, blue: 0.99),
+                                                Color(red: 0.55, green: 0.48, blue: 0.99)
+                                            ]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .clipShape(Circle())
+                                    .shadow(color: primaryColor.opacity(0.3), radius: 5, x: 0, y: 3)
 
-                                Text(labTech.id)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(labTech.fullName)
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(.black)
+                                }
+                                Spacer()
                             }
+                            .padding(.vertical, 14)
+                            .padding(.horizontal, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(Color.white)
+                                    .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                            )
                         }
-                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(Color.clear)
-                    }
-                    .listRowBackground(Color.clear)
 
-                    // Contact Info
-                    Section(header: Text("Contact Information")) {
-                        LabeledContent(label: "Phone", content: labTech.phoneNumber)
-                        LabeledContent(label: "Email", content: labTech.email)
-                    }
+                        // Personal Information Section
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Personal Information")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(primaryColor)
+                                .padding(.horizontal, 16)
 
-                    // Account Details
-                    Section(header: Text("Account Details")) {
-                        LabeledContent(label: "Technician ID", content: labTech.id)
-                        LabeledContent(label: "Department", content: labTech.department)
-                        LabeledContent(label: "Last Login", content: labTech.joinDate.formatted(date: .abbreviated, time: .shortened))
-                    }
-
-                    // Logout Button
-                    Section {
-                        Button("Logout") {
-                            isLoggingOut = true
-                            AuthManager.shared.logout()
-                            showLoginView = true
+                            ProfileRow2(title: "Name", value: labTech.fullName, icon: "person.fill")
+                            ProfileRow2(title: "Phone Number", value: labTech.phoneNumber, icon: "phone.fill")
+                            ProfileRow2(title: "Email", value: labTech.email, icon: "envelope.fill")
                         }
-                        .foregroundColor(.red)
-                    }
-                } else if let error = viewModel.error {
-                    Section {
-                        VStack(spacing: 16) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.system(size: 40))
-                                .foregroundColor(.orange)
-                                .symbolRenderingMode(.hierarchical)
+                        .padding(.vertical, 14)
+                        .padding(.horizontal, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color.white)
+                                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
 
-                            VStack(spacing: 4) {
-                                Text("Error loading profile")
-                                    .font(.headline)
+                        // Account Details Section
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Account Details")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(primaryColor)
+                                .padding(.horizontal, 16)
 
-                                Text(error.localizedDescription)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                            }
-
-                            Button {
-                                viewModel.fetchLabTech(byId: labTechId)
-                            } label: {
-                                Label("Try Again", systemImage: "arrow.clockwise")
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(primaryColor)
+                            ProfileRow2(title: "Technician ID", value: labTech.id, icon: "person.text.rectangle.fill")
+                            ProfileRow2(title: "Department", value: labTech.department, icon: "building.fill")
+                            ProfileRow2(title: "Join Date", value: "26/4/2025", icon: "calendar")
                         }
-                        .padding(.vertical, 16)
-                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 14)
+                        .padding(.horizontal, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color.white)
+                                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+
+                        // Logout Button
+                        VStack(alignment: .leading, spacing: 8) {
+                            Button(action: {
+                                isLoggingOut = true
+                                AuthManager.shared.logout()
+                                showLoginView = true
+                            }) {
+                                Label("Log Out", systemImage: "arrow.right.circle")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.red)
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 16)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                        .padding(.vertical, 14)
+                        .padding(.horizontal, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color.white)
+                                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+
+                        Spacer()
+                    } else if let error = viewModel.error {
+                        ErrorView1(error: error) {
+                            viewModel.fetchLabTech(byId: labTechId)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
-                    .listRowSeparator(.hidden)
                 }
+                .padding(.top, 16)
+                .padding(.bottom, 24)
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
-            .refreshable {
-                if !isLoggingOut {
-                    viewModel.fetchLabTech(byId: labTechId)
-                }
-            }
-            .sheet(isPresented: $isEditingProfile) {
-                Text("Edit sheet coming soon!") // Replace with actual edit view if implemented
-            }
-            .fullScreenCover(isPresented: $showLoginView) {
-                LoginView() // Present LoginView in full-screen mode
-            }
         }
         .onAppear {
             if !isLoggingOut {
                 viewModel.fetchLabTech(byId: labTechId)
             }
         }
+        .fullScreenCover(isPresented: $showLoginView) {
+            LoginView()
+        }
     }
 }
 
-struct ProfileView_LT_Previews: PreviewProvider {
-    static var previews: some View {
-        ProfileView_LT(labTechId: "WFQ7R40YZICIGLXRJDYOHDXDLKD3")
+// Error View extracted for reusability
+struct ErrorView1: View {
+    let error: Error
+    let retryAction: () -> Void
+    let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 40))
+                .foregroundColor(.orange)
+                .symbolRenderingMode(.hierarchical)
+
+            VStack(spacing: 4) {
+                Text("Error loading profile")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.black)
+
+                Text(error.localizedDescription)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+            }
+
+            Button(action: retryAction) {
+                Text("Try Again")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 24)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color(red: 0.43, green: 0.34, blue: 0.99),
+                                Color(red: 0.55, green: 0.48, blue: 0.99)
+                            ]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(10)
+                    .shadow(color: primaryColor.opacity(0.3), radius: 5, x: 0, y: 3)
+            }
+        }
+        .padding(.vertical, 16)
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+}
+
+// ProfileRow for consistent styling
+struct ProfileRow2: View {
+    let title: String
+    let value: String
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                .frame(width: 24)
+
+            Text(title)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.black)
+
+            Spacer()
+
+            Text(value)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundColor(.gray)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
     }
 }

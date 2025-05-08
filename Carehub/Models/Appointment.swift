@@ -8,12 +8,12 @@ struct Appointment: Identifiable, Decodable, Equatable {
     let patientId: String
     let description: String
     let docId: String
-    let status: String
+    var status: String
     let billingStatus: String
     let amount: Double?
     var date: Date?
     let doctorsNotes: String?
-    let prescriptionId: String?
+    var prescriptionId: String?
     let followUpRequired: Bool?
     var followUpDate: Date?
     enum CodingKeys: String, CodingKey {
