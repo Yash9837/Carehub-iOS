@@ -85,14 +85,14 @@ struct ScheduleAppointmentView: View {
                 VStack {
                     Text("Failed to load data")
                         .foregroundColor(.red)
-                        .font(.system(size: 18, weight: .medium))
+                        .font(FontSizeManager.font(for: 18, weight: .medium))
                     Button(action: {
                         isDataLoaded = false
                         isDataLoadFailed = false
                         loadData()
                     }) {
                         Text("Retry")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(FontSizeManager.font(for: 16, weight: .semibold))
                             .foregroundColor(.white)
                             .padding()
                             .background(purpleColor)
@@ -133,11 +133,13 @@ struct ScheduleAppointmentView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text("Your appointment has been successfully scheduled.")
+                .font(FontSizeManager.font(for: 16))
         }
         .alert("Cannot Schedule Appointment", isPresented: $showErrorAlert) {
             Button("OK", role: .cancel) { }
         } message: {
             Text(errorMessage)
+                .font(FontSizeManager.font(for: 16))
         }
         .onAppear {
             loadData()
@@ -156,11 +158,11 @@ struct ScheduleAppointmentView: View {
     private var headerView: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Book Appointment")
-                .font(.system(size: 28, weight: .bold))
+                .font(FontSizeManager.font(for: 28, weight: .bold))
                 .foregroundColor(.black)
             
             Text("Schedule with your preferred doctor")
-                .font(.system(size: 16))
+                .font(FontSizeManager.font(for: 16))
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -172,11 +174,11 @@ struct ScheduleAppointmentView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "stethoscope")
-                    .font(.system(size: 18))
+                    .font(.system(size: FontSizeManager.fontSize(for: 18)))
                     .foregroundColor(purpleColor)
                 
                 Text("Specialty")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(FontSizeManager.font(for: 18, weight: .medium))
                     .foregroundColor(.black)
             }
             .padding(.horizontal, 20)
@@ -184,7 +186,7 @@ struct ScheduleAppointmentView: View {
             HStack {
                 Text(selectedSpecialty)
                     .foregroundColor(.black)
-                    .font(.system(size: 16))
+                    .font(FontSizeManager.font(for: 16))
                 
                 Spacer()
             }
@@ -203,11 +205,11 @@ struct ScheduleAppointmentView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "person.fill")
-                    .font(.system(size: 18))
+                    .font(.system(size: FontSizeManager.fontSize(for: 18)))
                     .foregroundColor(purpleColor)
                 
                 Text("Doctor")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(FontSizeManager.font(for: 18, weight: .medium))
                     .foregroundColor(.black)
             }
             .padding(.horizontal, 20)
@@ -215,7 +217,7 @@ struct ScheduleAppointmentView: View {
             HStack {
                 Text(selectedDoctor)
                     .foregroundColor(.black)
-                    .font(.system(size: 16))
+                    .font(FontSizeManager.font(for: 16))
                 
                 Spacer()
             }
@@ -234,11 +236,11 @@ struct ScheduleAppointmentView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "calendar")
-                    .font(.system(size: 18))
+                    .font(.system(size: FontSizeManager.fontSize(for: 18)))
                     .foregroundColor(purpleColor)
                 
                 Text("Date")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(FontSizeManager.font(for: 18, weight: .medium))
                     .foregroundColor(.black)
             }
             .padding(.horizontal, 20)
@@ -253,13 +255,13 @@ struct ScheduleAppointmentView: View {
                         HStack {
                             Text(formattedDate(selectedDate))
                                 .foregroundColor(.black)
-                                .font(.system(size: 16))
+                                .font(FontSizeManager.font(for: 16))
                             
                             Spacer()
                             
                             Image(systemName: "calendar")
                                 .foregroundColor(purpleColor)
-                                .font(.system(size: 14))
+                                .font(.system(size: FontSizeManager.fontSize(for: 14)))
                         }
                         .padding(.vertical, 14)
                         .padding(.horizontal, 16)
@@ -280,6 +282,7 @@ struct ScheduleAppointmentView: View {
                         .datePickerStyle(GraphicalDatePickerStyle())
                         .accentColor(purpleColor)
                         .padding(.top, 8)
+                        .font(FontSizeManager.font(for: 16))
                         
                         Button(action: {
                             withAnimation {
@@ -287,7 +290,7 @@ struct ScheduleAppointmentView: View {
                             }
                         }) {
                             Text("Done")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(FontSizeManager.font(for: 16, weight: .semibold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
@@ -319,11 +322,11 @@ struct ScheduleAppointmentView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "clock.fill")
-                    .font(.system(size: 18))
+                    .font(.system(size: FontSizeManager.fontSize(for: 18)))
                     .foregroundColor(purpleColor)
                 
                 Text("Available Time Slots")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(FontSizeManager.font(for: 18, weight: .medium))
                     .foregroundColor(.black)
             }
             .padding(.horizontal, 20)
@@ -332,10 +335,10 @@ struct ScheduleAppointmentView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "calendar.badge.clock")
                         .foregroundColor(purpleColor.opacity(0.8))
-                        .font(.system(size: 14))
+                        .font(.system(size: FontSizeManager.fontSize(for: 14)))
                     
                     Text(formattedDateWithDay(selectedDate))
-                        .font(.system(size: 14, weight: .medium))
+                        .font(FontSizeManager.font(for: 14, weight: .medium))
                         .foregroundColor(.gray)
                 }
                 .padding(.horizontal, 16)
@@ -350,7 +353,7 @@ struct ScheduleAppointmentView: View {
                             selectedTimeSlot = slot
                         }) {
                             Text(slot)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(FontSizeManager.font(for: 14, weight: .medium))
                                 .foregroundColor(slotTextColor(for: slot))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
@@ -409,17 +412,17 @@ struct ScheduleAppointmentView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "text.bubble")
-                    .font(.system(size: 18))
+                    .font(.system(size: FontSizeManager.fontSize(for: 18)))
                     .foregroundColor(purpleColor)
                 
                 Text("Description (Optional)")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(FontSizeManager.font(for: 18, weight: .medium))
                     .foregroundColor(.black)
             }
             .padding(.horizontal, 20)
             
             TextField("Brief description of your appointment", text: $description)
-                .font(.system(size: 16))
+                .font(FontSizeManager.font(for: 16))
                 .padding(.vertical, 14)
                 .padding(.horizontal, 16)
                 .background(
@@ -435,7 +438,7 @@ struct ScheduleAppointmentView: View {
         VStack(spacing: 20) {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Appointment Summary")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(FontSizeManager.font(for: 18, weight: .semibold))
                     .foregroundColor(purpleColor)
                 
                 VStack(spacing: 14) {
@@ -468,11 +471,11 @@ struct ScheduleAppointmentView: View {
                             .tint(.white)
                     } else {
                         Text("Confirm Appointment")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(FontSizeManager.font(for: 18, weight: .semibold))
                             .foregroundColor(.white)
                         
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 18))
+                            .font(.system(size: FontSizeManager.fontSize(for: 18)))
                             .foregroundColor(.white)
                     }
                 }
@@ -496,17 +499,17 @@ struct ScheduleAppointmentView: View {
     private func summaryRow(icon: String, title: String, value: String) -> some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(.system(size: FontSizeManager.fontSize(for: 14)))
                 .foregroundColor(purpleColor)
                 .frame(width: 20)
             
             Text(title)
-                .font(.system(size: 14, weight: .medium))
+                .font(FontSizeManager.font(for: 14, weight: .medium))
                 .foregroundColor(.gray)
                 .frame(width: 80, alignment: .leading)
             
             Text(value)
-                .font(.system(size: 14, weight: .semibold))
+                .font(FontSizeManager.font(for: 14, weight: .semibold))
                 .foregroundColor(.black)
                 .lineLimit(1)
             
@@ -607,6 +610,7 @@ struct ScheduleAppointmentView: View {
         
         let doctor = DoctorData.doctors[selectedSpecialty]?.first { $0.doctor_name == selectedDoctor }
         let doctorId = doctor?.id ?? ""
+        let consultationFee = doctor?.consultationFee ?? 0 // Default to 0 if consultationFee is nil
         
         let followUpDate = calendar.date(byAdding: .day, value: 7, to: appointmentDateTime) ?? Date()
         
@@ -622,7 +626,7 @@ struct ScheduleAppointmentView: View {
             "followUpRequired": false,
             "patientId": patientId,
             "prescriptionId": "",
-            "amount": 0.0
+            "amount": Double(consultationFee) // Use consultationFee as the amount
         ]
         
         let db = Firestore.firestore()
@@ -637,14 +641,6 @@ struct ScheduleAppointmentView: View {
                     self.presentationMode.wrappedValue.dismiss()
                 }
             }
-        }
-    }
-}
-
-struct ScheduleAppointmentView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationView {
-            ScheduleAppointmentView(patientId: "P123456", selectedSpecialty: "Cardiology", selectedDoctor: "Dr. John Doe")
         }
     }
 }

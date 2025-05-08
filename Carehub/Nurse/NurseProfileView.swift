@@ -5,16 +5,18 @@ struct NurseProfileView: View {
     @StateObject private var viewModel = NurseViewModel()
     let primaryColor = Color(red: 109/255, green: 87/255, blue: 252/255)
     @State private var isEditingProfile = false
-    @State private var showLoginView = false
+    @State private var showLogoutAlert = false
+    @State private var logoutErrorMessage: String?
+    @State private var isLoggedOut = false
 
     var body: some View {
         NavigationView {
             List {
-                if viewModel.isLoading && !showLoginView { // Only show loading if not logging out
+                if viewModel.isLoading && !isLoggedOut { // Only show loading if not logged out
                     ProgressView("Loading profile...")
                         .frame(maxWidth: .infinity, alignment: .center)
                         .listRowSeparator(.hidden)
-                } else if let nurse = viewModel.nurse, !showLoginView { // Only show profile if not logging out
+                } else if let nurse = viewModel.nurse, !isLoggedOut {
                     // Profile Header
                     Section {
                         VStack(alignment: .center, spacing: 16) {
@@ -60,78 +62,60 @@ struct NurseProfileView: View {
                     
                     // Logout Button
                     Section {
-                        Button("Logout") {
-                            // Perform logout and immediately trigger LoginView
-                            AuthManager.shared.logout()
-                            // Reset viewModel to prevent error state
-                            viewModel.nurse = nil
-                            viewModel.error = nil
-                            viewModel.isLoading = false
-                            showLoginView = true
+                        Button(action: {
+                            authManager.logout()
+                            if authManager.errorMessage == nil {
+                                isLoggedOut = true
+                                viewModel.nurse = nil
+                                viewModel.error = nil
+                                viewModel.isLoading = false
+                                print("Logout successful, presenting LoginView")
+                            } else {
+                                showLogoutAlert = true
+                                logoutErrorMessage = authManager.errorMessage
+                                print("Logout failed: \(authManager.errorMessage ?? "Unknown error")")
+                            }
+                        }) {
+                            Text("Logout")
+                                .foregroundColor(.red)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, 8)
                         }
-                        .foregroundColor(.red)
                     }
                 }
-//                } else if let error = viewModel.error, !showLoginView { // Only show error if not logging out
-//                    Section {
-//                        VStack(spacing: 16) {
-//                            Image(systemName: "exclamationmark.triangle")
-//                                .font(.system(size: 40))
-//                                .foregroundColor(.orange)
-//                                .symbolRenderingMode(.hierarchical)
-//
-//                            VStack(spacing: 4) {
-//                                Text("Error loading profile")
-//                                    .font(.headline)
-//
-//                                Text(error.localizedDescription)
-//                                    .font(.subheadline)
-//                                    .foregroundColor(.secondary)
-//                                    .multilineTextAlignment(.center)
-//                            }
-//
-//                            Button {
-//                                viewModel.fetchNurse(byNurseId: nurseId)
-//                            } label: {
-//                                Label("Try Again", systemImage: "arrow.clockwise")
-//                            }
-//                            .buttonStyle(.bordered)
-//                            .tint(primaryColor)
-//                        }
-//                        .padding(.vertical, 16)
-//                        .frame(maxWidth: .infinity, alignment: .center)
-//                    }
-//                    .listRowSeparator(.hidden)
-//                }
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
-            .fullScreenCover(isPresented: $showLoginView) {
-                LoginView()
+            .alert(isPresented: $showLogoutAlert) {
+                Alert(
+                    title: Text("Logout Failed"),
+                    message: Text(logoutErrorMessage ?? "An error occurred"),
+                    dismissButton: .default(Text("OK"))
+                )
             }
             .onAppear {
-                if !showLoginView { // Only fetch if not logging out
+//                if !isLoggedOut { // Only fetch if not logged out
                     viewModel.fetchNurse(byNurseId: nurseId)
-                }
+//                }
             }
-            .onChange(of: showLoginView) { newValue in
-                if newValue {
-                    // Ensure viewModel is reset when logging out
-                    viewModel.nurse = nil
-                    viewModel.error = nil
-                    viewModel.isLoading = false
-                }
+            .fullScreenCover(isPresented: $isLoggedOut) {
+                LoginView()
             }
+            
         }
     }
-}
 
-func formattedTime(from date: Date?) -> String {
-    guard let date = date else { return "N/A" }
-    let formatter = DateFormatter()
-    formatter.timeStyle = .short
-    formatter.dateStyle = .none
-    return formatter.string(from: date)
+    private var authManager: AuthManager {
+        AuthManager.shared
+    }
+
+    private func formattedTime(from date: Date?) -> String {
+        guard let date = date else { return "N/A" }
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter.string(from: date)
+    }
 }
 
 #Preview {

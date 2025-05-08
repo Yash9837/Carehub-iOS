@@ -1,12 +1,17 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import AVFoundation // For text-to-speech
 
 struct ProfileView_patient: View {
     let patient: PatientF
     @Environment(\.dismiss) private var dismiss
     @State private var navigateToLogin = false
-    
+    @AppStorage("isLargeFontEnabled") private var isLargeFontEnabled = false
+    @AppStorage("isVoiceOverEnabled") private var isVoiceOverEnabled = false // New toggle for VoiceOver
+    @State private var speechSynthesizer = AVSpeechSynthesizer() // Speech synthesizer instance
+    @State private var isInitialLoad = true
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -14,7 +19,56 @@ struct ProfileView_patient: View {
                     .edgesIgnoringSafeArea(.all)
                 ScrollView {
                     VStack(spacing: 16) {
-                        VStack(spacing: 12) {
+                        // Accessibility Section with Toggles
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Accessibility")
+                                .font(FontSizeManager.font(for: 18, weight: .bold))
+                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                .padding(.horizontal, 16)
+
+                            Toggle(isOn: $isLargeFontEnabled) {
+                                Label("Large Font Size", systemImage: "textformat.size")
+                                    .font(FontSizeManager.font(for: 16, weight: .medium))
+                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                            }
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(Color.white)
+                                    .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                            )
+
+                            Toggle(isOn: $isVoiceOverEnabled) {
+                                Label("VoiceOver (Read Aloud)", systemImage: "speaker.wave.2.fill")
+                                    .font(FontSizeManager.font(for: 16, weight: .medium))
+                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                            }
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(Color.white)
+                                    .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                            )
+                            .onChange(of: isVoiceOverEnabled) { newValue in
+                                if newValue {
+                                    readProfileText()
+                                } else {
+                                    speechSynthesizer.stopSpeaking(at: .immediate)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+
+                        // Profile Header
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Profile")
+                                .font(FontSizeManager.font(for: 24, weight: .bold))
+                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                .padding(.horizontal, 16)
+
                             HStack(spacing: 16) {
                                 Image(systemName: "person.circle.fill")
                                     .resizable()
@@ -36,24 +90,26 @@ struct ProfileView_patient: View {
                                 
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text(patient.userData.Name)
-                                        .font(.system(size: 20, weight: .semibold))
+                                        .font(FontSizeManager.font(for: 20, weight: .semibold))
                                         .foregroundColor(.black)
                                 }
                                 Spacer()
                             }
+                            .padding(.vertical, 14)
+                            .padding(.horizontal, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(Color.white)
+                                    .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                            )
                         }
-                        .padding(.vertical, 14)
-                        .padding(.horizontal, 16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(Color.white)
-                                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
-                        )
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
+
+                        // Personal Information
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Personal Information")
-                                .font(.system(size: 18, weight: .bold))
+                                .font(FontSizeManager.font(for: 18, weight: .bold))
                                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                                 .padding(.horizontal, 16)
                             
@@ -70,9 +126,11 @@ struct ProfileView_patient: View {
                         )
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
+
+                        // Contact Information
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Contact Information")
-                                .font(.system(size: 18, weight: .bold))
+                                .font(FontSizeManager.font(for: 18, weight: .bold))
                                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                                 .padding(.horizontal, 16)
                             
@@ -95,10 +153,11 @@ struct ProfileView_patient: View {
                         )
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        
+
+                        // Medical Information
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Medical Information")
-                                .font(.system(size: 18, weight: .bold))
+                                .font(FontSizeManager.font(for: 18, weight: .bold))
                                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                                 .padding(.horizontal, 16)
                             
@@ -147,14 +206,15 @@ struct ProfileView_patient: View {
                         )
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        
+
+                        // Sign Out Button
                         VStack(alignment: .leading, spacing: 8) {
                             Button(action: {
                                 AuthManager.shared.logout()
                                 navigateToLogin = true
                             }) {
                                 Label("Sign Out", systemImage: "arrow.right.circle")
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(FontSizeManager.font(for: 16, weight: .medium))
                                     .foregroundColor(.red)
                                     .padding(.vertical, 12)
                                     .padding(.horizontal, 16)
@@ -180,7 +240,7 @@ struct ProfileView_patient: View {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         NavigationLink(destination: EditProfileView(patient: patient)) {
                             Text("Edit")
-                                .font(.system(size: 16, weight: .medium))
+                                .font(FontSizeManager.font(for: 16, weight: .medium))
                                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                         }
                     }
@@ -189,29 +249,63 @@ struct ProfileView_patient: View {
                     LoginView()
                 }
             }
+            .navigationTitle("Profile")
         }
+        .onAppear {
+            if isVoiceOverEnabled {
+                readProfileText()
+            }
+        }
+        .onAppear {
+                    if isInitialLoad {
+                        isInitialLoad = false // Mark initial load as complete
+                    } else if isVoiceOverEnabled {
+                        readProfileText() // Only read if not initial load and VoiceOver is enabled
+                    }
+                }
+        .onDisappear {
+                    speechSynthesizer.stopSpeaking(at: .immediate) // Stop speech when leaving the view
+                }
+    }
+
+    private func readProfileText() {
+        let textToRead = """
+        Profile. \(patient.userData.Name).
+        Personal Information. Patient ID \(patient.patientId). Date of Birth \(patient.userData.Dob). Email \(patient.userData.Email).
+        Contact Information. Phone Number \(patient.userData.phoneNo). Address \(patient.userData.Address). Aadhar Number \(patient.userData.aadharNo.isEmpty ? "Not Provided" : patient.userData.aadharNo). Emergency Contacts \(patient.emergencyContact.map { "\($0.name) \($0.Number)" }.joined(separator: ", ")).
+        Medical Information. Allergies \(patient.vitals.allergies.joined(separator: ", ")). Latest Blood Pressure \(patient.vitals.bp.last?.value ?? "Not Recorded"). Latest Heart Rate \(patient.vitals.heartRate.last?.value ?? "Not Recorded"). Latest Height \(patient.vitals.height.last?.value ?? "Not Recorded"). Latest Temperature \(patient.vitals.temperature.last?.value ?? "Not Recorded"). Latest Weight \(patient.vitals.weight.last?.value ?? "Not Recorded").
+        """
+        speak(text: textToRead)
+    }
+
+    private func speak(text: String) {
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        utterance.rate = 0.5
+        speechSynthesizer.speak(utterance)
     }
 }
+
 struct ProfileRow: View {
     let title: String
     let value: String
     let icon: String
-    
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(FontSizeManager.font(for: 14))
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                 .frame(width: 24)
             
             Text(title)
-                .font(.system(size: 16, weight: .medium))
+                .font(FontSizeManager.font(for: 16, weight: .medium))
                 .foregroundColor(.black)
             
             Spacer()
             
             Text(value)
-                .font(.system(size: 16, weight: .regular))
+                .font(FontSizeManager.font(for: 16, weight: .regular))
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.trailing)
                 .lineLimit(2)
@@ -238,12 +332,12 @@ struct MultiItemProfileRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 14))
+                    .font(FontSizeManager.font(for: 14))
                     .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                     .frame(width: 24)
                 
                 Text(title)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(FontSizeManager.font(for: 16, weight: .medium))
                     .foregroundColor(.black)
                 
                 Spacer()
@@ -251,14 +345,14 @@ struct MultiItemProfileRow: View {
             
             if items.count == 1 {
                 Text(items[0])
-                    .font(.system(size: 16, weight: .regular))
+                    .font(FontSizeManager.font(for: 16, weight: .regular))
                     .foregroundColor(.gray)
                     .padding(.leading, 36)
             } else {
                 FlowLayout(spacing: 8) {
                     ForEach(items, id: \.self) { item in
                         Text(item)
-                            .font(.system(size: 14, weight: .medium))
+                            .font(FontSizeManager.font(for: 14, weight: .medium))
                             .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                             .padding(.vertical, 6)
                             .padding(.horizontal, 12)
@@ -325,6 +419,7 @@ struct FlowLayout: Layout {
         }
     }
 }
+
 struct EditProfileView: View {
     let patient: PatientF
     @State private var fullName: String
@@ -374,18 +469,18 @@ struct EditProfileView: View {
     private var personalInfoSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Personal Information")
-                .font(.system(size: 18, weight: .bold))
+                .font(FontSizeManager.font(for: 18, weight: .bold))
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                 .padding(.horizontal, 16)
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Full Name")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(FontSizeManager.font(for: 14, weight: .medium))
                     .foregroundColor(.gray)
                     .padding(.horizontal, 16)
                 
                 TextField("Full Name", text: $fullName)
-                    .font(.system(size: 16))
+                    .font(FontSizeManager.font(for: 16))
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
                     .background(Color.white)
@@ -395,12 +490,12 @@ struct EditProfileView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Email")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(FontSizeManager.font(for: 14, weight: .medium))
                     .foregroundColor(.gray)
                     .padding(.horizontal, 16)
                 
                 TextField("Email", text: $email)
-                    .font(.system(size: 16))
+                    .font(FontSizeManager.font(for: 16))
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
                     .background(Color.white)
@@ -410,12 +505,12 @@ struct EditProfileView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Date of Birth (DD/MM/YYYY)")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(FontSizeManager.font(for: 14, weight: .medium))
                     .foregroundColor(.gray)
                     .padding(.horizontal, 16)
                 
                 TextField("Date of Birth", text: $dob)
-                    .font(.system(size: 16))
+                    .font(FontSizeManager.font(for: 16))
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
                     .background(Color.white)
@@ -437,18 +532,18 @@ struct EditProfileView: View {
     private var contactInfoSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Contact Information")
-                .font(.system(size: 18, weight: .bold))
+                .font(FontSizeManager.font(for: 18, weight: .bold))
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                 .padding(.horizontal, 16)
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Phone Number")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(FontSizeManager.font(for: 14, weight: .medium))
                     .foregroundColor(.gray)
                     .padding(.horizontal, 16)
                 
                 TextField("Phone Number", text: $phoneNo)
-                    .font(.system(size: 16))
+                    .font(FontSizeManager.font(for: 16))
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
                     .background(Color.white)
@@ -458,12 +553,12 @@ struct EditProfileView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Address")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(FontSizeManager.font(for: 14, weight: .medium))
                     .foregroundColor(.gray)
                     .padding(.horizontal, 16)
                 
                 TextField("Address", text: $address)
-                    .font(.system(size: 16))
+                    .font(FontSizeManager.font(for: 16))
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
                     .background(Color.white)
@@ -473,12 +568,12 @@ struct EditProfileView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Aadhar Number (Optional)")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(FontSizeManager.font(for: 14, weight: .medium))
                     .foregroundColor(.gray)
                     .padding(.horizontal, 16)
                 
                 TextField("Aadhar Number", text: $aadharNo)
-                    .font(.system(size: 16))
+                    .font(FontSizeManager.font(for: 16))
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
                     .background(Color.white)
@@ -505,7 +600,7 @@ struct EditProfileView: View {
     private var medicalInfoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Medical Information")
-                .font(.system(size: 18, weight: .bold))
+                .font(FontSizeManager.font(for: 18, weight: .bold))
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -516,7 +611,7 @@ struct EditProfileView: View {
                 items: $allergies,
                 addButtonLabel: "Add Allergy"
             )
-            .animation(nil, value: allergies) // Disable animations for allergies
+            .animation(nil, value: allergies)
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 16)
@@ -545,7 +640,7 @@ struct EditProfileView: View {
                     Dob: dob,
                     Email: email,
                     Name: fullName,
-                    Password: patient.userData.Password, // Keep the original password
+                    Password: patient.userData.Password,
                     aadharNo: aadharNo,
                     phoneNo: phoneNo
                 ),
@@ -562,13 +657,11 @@ struct EditProfileView: View {
             )
             
             do {
-                // Save to Firestore using the Firebase UID as the document ID
                 try db.collection("patients").document(user.uid).setData(from: updatedPatient) { error in
                     if let error = error {
                         print("Error saving patient data: \(error.localizedDescription)")
                     } else {
                         print("Patient data updated successfully")
-                        // Update AuthManager's currentPatient to reflect the changes
                         AuthManager.shared.currentPatient = updatedPatient
                         dismiss()
                     }
@@ -578,7 +671,7 @@ struct EditProfileView: View {
             }
         }) {
             Text("Save Changes")
-                .font(.system(size: 16, weight: .semibold))
+                .font(FontSizeManager.font(for: 16, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -609,7 +702,7 @@ struct EditableEmergencyContactsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 16, weight: .medium))
+                .font(FontSizeManager.font(for: 16, weight: .medium))
                 .foregroundColor(.black)
                 .padding(.horizontal, 16)
             
@@ -617,7 +710,7 @@ struct EditableEmergencyContactsSection: View {
                 HStack {
                     VStack(alignment: .leading) {
                         TextField("Name", text: .constant(contact.name))
-                            .font(.system(size: 16))
+                            .font(FontSizeManager.font(for: 16))
                             .padding(.vertical, 12)
                             .padding(.horizontal, 16)
                             .background(Color.white)
@@ -626,7 +719,7 @@ struct EditableEmergencyContactsSection: View {
                             .disabled(true)
                         
                         TextField("Number", text: .constant(contact.Number))
-                            .font(.system(size: 16))
+                            .font(FontSizeManager.font(for: 16))
                             .padding(.vertical, 12)
                             .padding(.horizontal, 16)
                             .background(Color.white)
@@ -640,7 +733,7 @@ struct EditableEmergencyContactsSection: View {
                     }) {
                         Image(systemName: "minus.circle.fill")
                             .foregroundColor(.red)
-                            .font(.system(size: 22))
+                            .font(.system(size: FontSizeManager.fontSize(for: 22)))
                     }
                     .padding(.trailing, 8)
                 }
@@ -648,7 +741,7 @@ struct EditableEmergencyContactsSection: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 TextField("New Contact Name", text: $newContactName)
-                    .font(.system(size: 16))
+                    .font(FontSizeManager.font(for: 16))
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
                     .background(Color.white)
@@ -656,7 +749,7 @@ struct EditableEmergencyContactsSection: View {
                     .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
                 
                 TextField("New Contact Number", text: $newContactNumber)
-                    .font(.system(size: 16))
+                    .font(FontSizeManager.font(for: 16))
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
                     .background(Color.white)
@@ -675,7 +768,7 @@ struct EditableEmergencyContactsSection: View {
                     Image(systemName: "plus.circle.fill")
                     Text("Add Contact")
                 }
-                .font(.system(size: 16, weight: .medium))
+                .font(FontSizeManager.font(for: 16, weight: .medium))
                 .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                 .padding(.vertical, 8)
                 .padding(.horizontal, 16)
@@ -693,7 +786,7 @@ struct EditableItemsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 16, weight: .medium))
+                .font(FontSizeManager.font(for: 16, weight: .medium))
                 .foregroundColor(.black)
                 .padding(.horizontal, 16)
             
@@ -712,7 +805,7 @@ struct EditableItemsSection: View {
     private func itemRow(for index: Int) -> some View {
         HStack {
             TextField(placeholder, text: $items[index])
-                .font(.system(size: 16))
+                .font(FontSizeManager.font(for: 16))
                 .padding(.vertical, 12)
                 .padding(.horizontal, 16)
                 .background(Color.white)
@@ -724,7 +817,7 @@ struct EditableItemsSection: View {
             }) {
                 Image(systemName: "minus.circle.fill")
                     .foregroundColor(.red)
-                    .font(.system(size: 22))
+                    .font(.system(size: FontSizeManager.fontSize(for: 22)))
             }
             .padding(.trailing, 8)
         }
@@ -736,9 +829,9 @@ struct EditableItemsSection: View {
         }) {
             HStack {
                 Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 16))
+                    .font(.system(size: FontSizeManager.fontSize(for: 16)))
                 Text(addButtonLabel)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(FontSizeManager.font(for: 16, weight: .medium))
             }
             .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
             .padding(.vertical, 8)

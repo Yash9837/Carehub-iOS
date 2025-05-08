@@ -1,6 +1,6 @@
 import SwiftUI
 import FirebaseFirestore
-
+import AVFoundation
 struct AppointmentDetailsModal: View {
     let appointment: Appointment
     let doctorName: String
@@ -13,13 +13,14 @@ struct AppointmentDetailsModal: View {
     @State private var selectedDate = Date()
     @State private var selectedTime = ""
     @State private var isDatePickerExpanded = false
-    
+    @AppStorage("isVoiceOverEnabled") private var isVoiceOverEnabled = false
+    @State private var speechSynthesizer = AVSpeechSynthesizer()
+    @State private var isInitialLoad = true
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     private let gradientColors = [
         Color(red: 0.43, green: 0.34, blue: 0.99),
         Color(red: 0.55, green: 0.48, blue: 0.99)
     ]
-    
     var body: some View {
         ZStack {
             Color(red: 0.94, green: 0.94, blue: 1.0)
@@ -45,6 +46,7 @@ struct AppointmentDetailsModal: View {
                     isPresented = false
                     dismiss()
                 }
+                    .font(FontSizeManager.font(for: 16, weight: .semibold))
             }
         }
         .sheet(isPresented: $showReschedule) {
@@ -66,17 +68,35 @@ struct AppointmentDetailsModal: View {
             Button("Keep Appointment", role: .cancel) {}
         } message: {
             Text("Are you sure you want to cancel this appointment? This action cannot be undone.")
+                .font(FontSizeManager.font(for: 16))
         }
+        .onAppear {
+            if isInitialLoad {
+                            isInitialLoad = false // Mark initial load as complete
+                        } else if isVoiceOverEnabled {
+                            readAppointmentDetailsText() // Only read if not initial load and VoiceOver is enabled
+                        }
+        }
+        .onChange(of: isVoiceOverEnabled) { newValue in
+            if newValue {
+                readAppointmentDetailsText()
+            } else {
+                speechSynthesizer.stopSpeaking(at: .immediate)
+            }
+        }
+        .onDisappear {
+                    speechSynthesizer.stopSpeaking(at: .immediate) // Stop speech when the modal is dismissed
+                }
     }
     
     private var headerView: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Appointment Details")
-                .font(.system(size: 28, weight: .bold))
+                .font(FontSizeManager.font(for: 28, weight: .bold))
                 .foregroundColor(.black)
             
             Text("View and manage your appointment")
-                .font(.system(size: 16))
+                .font(FontSizeManager.font(for: 16))
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -88,11 +108,11 @@ struct AppointmentDetailsModal: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "person.fill")
-                    .font(.system(size: 18))
+                    .font(.system(size: FontSizeManager.fontSize(for: 18)))
                     .foregroundColor(purpleColor)
                 
                 Text("Doctor")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(FontSizeManager.font(for: 18, weight: .medium))
                     .foregroundColor(.black)
             }
             .padding(.horizontal, 20)
@@ -103,25 +123,25 @@ struct AppointmentDetailsModal: View {
                         Image(imageName)
                             .resizable()
                             .scaledToFill()
-                            .frame(width: 60, height: 60)
+                            .frame(width: FontSizeManager.fontSize(for: 60), height: FontSizeManager.fontSize(for: 60))
                             .clipShape(Circle())
                             .overlay(Circle().stroke(purpleColor, lineWidth: 2))
                     } else {
                         Image(systemName: "person.crop.circle.fill")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 60, height: 60)
+                            .frame(width: FontSizeManager.fontSize(for: 60), height: FontSizeManager.fontSize(for: 60))
                             .foregroundColor(purpleColor)
                     }
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(doctorName)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(FontSizeManager.font(for: 16, weight: .semibold))
                         .foregroundColor(.black)
                     
                     Text(specialty)
-                        .font(.system(size: 14))
+                        .font(FontSizeManager.font(for: 14))
                         .foregroundColor(.gray)
                 }
                 
@@ -141,11 +161,11 @@ struct AppointmentDetailsModal: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "info.circle")
-                    .font(.system(size: 18))
+                    .font(.system(size: FontSizeManager.fontSize(for: 18)))
                     .foregroundColor(purpleColor)
                 
                 Text("Details")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(FontSizeManager.font(for: 18, weight: .medium))
                     .foregroundColor(.black)
             }
             .padding(.horizontal, 20)
@@ -155,7 +175,7 @@ struct AppointmentDetailsModal: View {
                 DetailsRow(label: "Description", value: appointment.description, icon: "text.bubble", purpleColor: purpleColor)
                 DetailsRow(label: "Status", value: appointment.status.capitalized, icon: "checkmark.circle", purpleColor: purpleColor)
                 DetailsRow(label: "Billing Status", value: appointment.billingStatus.capitalized, icon: "dollarsign.circle", purpleColor: purpleColor)
-                DetailsRow(label: "Amount", value: String(format: "$%.2f", appointment.amount ?? 0.0), icon: "banknote", purpleColor: purpleColor)
+                DetailsRow(label: "Amount", value: String(format: "%.2f Rs", appointment.amount ?? 0.0), icon: "banknote", purpleColor: purpleColor)
                 if appointment.followUpRequired ?? false {
                     DetailsRow(label: "Follow-Up", value: formatDate(appointment.followUpDate ?? Date()), icon: "calendar.badge.plus", purpleColor: purpleColor)
                 }
@@ -176,7 +196,7 @@ struct AppointmentDetailsModal: View {
                 showReschedule = true
             }) {
                 Text("Reschedule")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(FontSizeManager.font(for: 16, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
@@ -195,7 +215,7 @@ struct AppointmentDetailsModal: View {
                 showCancelConfirmation = true
             }) {
                 Text("Cancel")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(FontSizeManager.font(for: 16, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
@@ -212,7 +232,21 @@ struct AppointmentDetailsModal: View {
         }
         .padding(.horizontal, 20)
     }
-    
+    private func readAppointmentDetailsText() {
+            var textToRead = "Appointment Details. View and manage your appointment. Doctor. \(doctorName). \(specialty). Details. Date and Time \(formatDate(appointment.date ?? Date())). Description \(appointment.description). Status \(appointment.status.capitalized). Billing Status \(appointment.billingStatus.capitalized). Amount \(String(format: "%.2f Rs", appointment.amount ?? 0.0)). "
+            if appointment.followUpRequired ?? false {
+                textToRead += "Follow-Up \(formatDate(appointment.followUpDate ?? Date())). "
+            }
+            textToRead += "Reschedule. Cancel."
+            speak(text: textToRead)
+        }
+
+        private func speak(text: String) {
+            let utterance = AVSpeechUtterance(string: text)
+            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+            utterance.rate = 0.5
+            speechSynthesizer.speak(utterance)
+        }
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -247,17 +281,17 @@ struct DetailsRow: View {
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(.system(size: FontSizeManager.fontSize(for: 14)))
                 .foregroundColor(purpleColor)
                 .frame(width: 20)
             
             Text(label)
-                .font(.system(size: 14, weight: .medium))
+                .font(FontSizeManager.font(for: 14, weight: .medium))
                 .foregroundColor(.gray)
                 .frame(width: 100, alignment: .leading)
             
             Text(value)
-                .font(.system(size: 14, weight: .semibold))
+                .font(FontSizeManager.font(for: 14, weight: .semibold))
                 .foregroundColor(.black)
                 .lineLimit(1)
             
@@ -342,11 +376,11 @@ struct RescheduleView: View {
                     VStack(spacing: 20) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Reschedule Appointment")
-                                .font(.system(size: 28, weight: .bold))
+                                .font(FontSizeManager.font(for: 28, weight: .bold))
                                 .foregroundColor(.black)
                             
                             Text("Choose a new date and time")
-                                .font(.system(size: 16))
+                                .font(FontSizeManager.font(for: 16))
                                 .foregroundColor(.gray)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -365,11 +399,11 @@ struct RescheduleView: View {
                                         .tint(.white)
                                 } else {
                                     Text("Save New Schedule")
-                                        .font(.system(size: 18, weight: .semibold))
+                                        .font(FontSizeManager.font(for: 18, weight: .semibold))
                                         .foregroundColor(.white)
                                     
                                     Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 18))
+                                        .font(.system(size: FontSizeManager.fontSize(for: 18)))
                                         .foregroundColor(.white)
                                 }
                             }
@@ -402,6 +436,7 @@ struct RescheduleView: View {
                     Button("Cancel") {
                         isPresented = false
                     }
+                        .font(FontSizeManager.font(for: 16, weight: .semibold))
                 }
             }
             .onAppear {
@@ -414,11 +449,11 @@ struct RescheduleView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "calendar")
-                    .font(.system(size: 18))
+                    .font(.system(size: FontSizeManager.fontSize(for: 18)))
                     .foregroundColor(purpleColor)
                 
                 Text("Date")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(FontSizeManager.font(for: 18, weight: .medium))
                     .foregroundColor(.black)
             }
             .padding(.horizontal, 20)
@@ -433,13 +468,13 @@ struct RescheduleView: View {
                         HStack {
                             Text(formattedDate(selectedDate))
                                 .foregroundColor(.black)
-                                .font(.system(size: 16))
+                                .font(FontSizeManager.font(for: 16))
                             
                             Spacer()
                             
                             Image(systemName: "calendar")
                                 .foregroundColor(purpleColor)
-                                .font(.system(size: 14))
+                                .font(.system(size: FontSizeManager.fontSize(for: 14)))
                         }
                         .padding(.vertical, 14)
                         .padding(.horizontal, 16)
@@ -460,6 +495,7 @@ struct RescheduleView: View {
                         .datePickerStyle(GraphicalDatePickerStyle())
                         .accentColor(purpleColor)
                         .padding(.top, 8)
+                        .font(FontSizeManager.font(for: 16))
                         
                         Button(action: {
                             withAnimation {
@@ -467,7 +503,7 @@ struct RescheduleView: View {
                             }
                         }) {
                             Text("Done")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(FontSizeManager.font(for: 16, weight: .semibold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
@@ -499,11 +535,11 @@ struct RescheduleView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "clock.fill")
-                    .font(.system(size: 18))
+                    .font(.system(size: FontSizeManager.fontSize(for: 18)))
                     .foregroundColor(purpleColor)
                 
                 Text("Available Time Slots")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(FontSizeManager.font(for: 18, weight: .medium))
                     .foregroundColor(.black)
             }
             .padding(.horizontal, 20)
@@ -512,10 +548,10 @@ struct RescheduleView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "calendar.badge.clock")
                         .foregroundColor(purpleColor.opacity(0.8))
-                        .font(.system(size: 14))
+                        .font(.system(size: FontSizeManager.fontSize(for: 14)))
                     
                     Text(formattedDateWithDay(selectedDate))
-                        .font(.system(size: 14, weight: .medium))
+                        .font(FontSizeManager.font(for: 14, weight: .medium))
                         .foregroundColor(.gray)
                 }
                 .padding(.horizontal, 16)
@@ -531,7 +567,7 @@ struct RescheduleView: View {
                             selectedTime = slot
                         }) {
                             Text(slot)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(FontSizeManager.font(for: 14, weight: .medium))
                                 .foregroundColor(slotTextColor(for: slot))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)

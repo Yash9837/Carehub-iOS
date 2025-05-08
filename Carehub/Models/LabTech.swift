@@ -17,12 +17,6 @@ struct LabTechnician {
     var phoneNo: String
     var shift: Shift
     var labTechId: String
-    
-    
-    struct Shift{
-        var endTime: Date
-        var startTime: Date
-    }
 }
 
 struct AssignedReport{
@@ -33,8 +27,8 @@ struct AssignedReport{
 
 // Combined data structure to link MedicalTest with Patient1
 struct PatientWithTest: Identifiable {
-    let id: String // Use medicalTest id
-    let patient: Patient1
+    let id: String // Use the medical test ID as the identifier
+    let patient: PatientInfo
     let medicalTest: MedicalTest
 }
 
@@ -50,46 +44,17 @@ struct Patient1: Codable, Identifiable {
 }
 
 // MedicalTest struct (from medicalTests collection)
-struct MedicalTest: Codable, Identifiable {
-    let id: String // Firestore document ID
-    let date: String
-    let notes: String
-    let patientId: String
-    let results: String
-    let status: String
-    let testName: String
-}
-
-struct PatientInfo: Identifiable, Codable {
-    @DocumentID var id: String?
-    let fullName: String
-    let generatedID: String
-    let age: String
-    let previousProblems: String
-    let allergies: String
-    let medications: String
-    
-    enum CodingKeys: String, CodingKey {
-        case id
-        case fullName
-        case generatedID
-        case age
-        case previousProblems
-        case allergies
-        case medications
-    }
-}
-
-struct TestResult: Identifiable, Codable {
+struct MedicalTest: Identifiable, Codable {
     let id: String
     let patientId: String
     let testName: String
     let date: String
     let status: String
-    let results: String
-    let notes: String
-    let pdfUrl: String
-    
+    let results: String?
+    let notes: String?
+    let pdfUrl: String? // Added pdfUrl field
+    let doc: String?    // Added doc field
+
     enum CodingKeys: String, CodingKey {
         case id
         case patientId
@@ -99,6 +64,95 @@ struct TestResult: Identifiable, Codable {
         case results
         case notes
         case pdfUrl
+        case doc
+    }
+}
+
+
+//
+//// Define the structure for vital signs entries (e.g., bp, heartRate, etc.)
+//struct VitalEntry: Codable {
+//    let timestamp: Timestamp
+//    let value: String // For bp, value is "120/80"; for others, it's a single value like "72"
+//}
+//
+//// Define the structure for the vitals map
+//struct Vitals: Codable {
+//    let allergies: [String]?
+//    let bp: [VitalEntry]?
+//    let heartRate: [VitalEntry]?
+//    let height: [VitalEntry]?
+//    let temperature: [VitalEntry]?
+//    let weight: [VitalEntry]?
+//
+//    enum CodingKeys: String, CodingKey {
+//        case allergies
+//        case bp
+//        case heartRate
+//        case height
+//        case temperature
+//        case weight
+//    }
+//}
+
+struct PatientInfo: Identifiable, Codable {
+    @DocumentID var id: String?
+    let patientId: String
+    let userData: [String: String]?
+    let vitals: Vitals?
+
+    var name: String {
+        userData?["Name"] ?? "Patient \(patientId)"
+    }
+
+    var age: String {
+        guard let dobString = userData?["Dob"],
+              let dob = dobString.toDate(format: "dd/MM/yyyy") else {
+            return "N/A"
+        }
+        let calendar = Calendar.current
+        let now = Date()
+        let ageComponents = calendar.dateComponents([.year], from: dob, to: now)
+        return "\(ageComponents.year ?? 0)"
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case patientId
+        case userData
+        case vitals
+    }
+}
+
+extension String {
+    func toDate(format: String) -> Date? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = format
+        return dateFormatter.date(from: self)
+    }
+}
+
+struct TestResult: Identifiable, Codable {
+    let id: String
+    let patientId: String
+    let testName: String
+    let date: String
+    let status: String
+    let results: String?
+    let pdfUrl: String
+    let doc: String
+    let notes: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case patientId
+        case testName
+        case date
+        case status
+        case results
+        case notes
+        case pdfUrl
+        case doc
     }
     
     init(id: String = UUID().uuidString,
@@ -106,9 +160,10 @@ struct TestResult: Identifiable, Codable {
          testName: String,
          date: String,
          status: String,
-         results: String,
-         notes: String,
-         pdfUrl: String = "") {
+         results: String? = nil,
+         notes: String? = nil,
+         pdfUrl: String = "",
+         doc: String = "") {
         self.id = id
         self.patientId = patientId
         self.testName = testName
@@ -117,6 +172,7 @@ struct TestResult: Identifiable, Codable {
         self.results = results
         self.notes = notes
         self.pdfUrl = pdfUrl
+        self.doc = doc
     }
     
     init(from decoder: Decoder) throws {
@@ -126,9 +182,10 @@ struct TestResult: Identifiable, Codable {
         testName = try container.decode(String.self, forKey: .testName)
         date = try container.decode(String.self, forKey: .date)
         status = try container.decode(String.self, forKey: .status)
-        results = try container.decode(String.self, forKey: .results)
-        notes = try container.decode(String.self, forKey: .notes)
+        results = try container.decodeIfPresent(String.self, forKey: .results)
+        notes = try container.decodeIfPresent(String.self, forKey: .notes)
         pdfUrl = try container.decodeIfPresent(String.self, forKey: .pdfUrl) ?? ""
+        doc = try container.decodeIfPresent(String.self, forKey: .doc) ?? ""
     }
     
     func encode(to encoder: Encoder) throws {
@@ -138,8 +195,10 @@ struct TestResult: Identifiable, Codable {
         try container.encode(testName, forKey: .testName)
         try container.encode(date, forKey: .date)
         try container.encode(status, forKey: .status)
-        try container.encode(results, forKey: .results)
-        try container.encode(notes, forKey: .notes)
+        try container.encodeIfPresent(results, forKey: .results)
+        try container.encodeIfPresent(notes, forKey: .notes)
         try container.encode(pdfUrl, forKey: .pdfUrl)
+        try container.encode(doc, forKey: .doc)
     }
 }
+

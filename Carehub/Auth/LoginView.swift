@@ -11,12 +11,11 @@ struct LoginView: View {
     @State private var errorMessage: String?
     
     @StateObject private var authManager = AuthManager.shared
-    @State private var navigateToDashboard = false
     @EnvironmentObject private var appState: AppState
     
     var body: some View {
         ZStack {
-            if navigateToDashboard {
+            if authManager.navigateToDashboard {
                 dashboardContent
             } else {
                 loginContent
@@ -26,6 +25,7 @@ struct LoginView: View {
     
     private var loginContent: some View {
         ZStack {
+            // Background gradient
             LinearGradient(
                 colors: [
                     Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4),
@@ -37,109 +37,106 @@ struct LoginView: View {
             )
             .edgesIgnoringSafeArea(.all)
             
-            ScrollView {
-                VStack(spacing: 25) {
-                    // Header
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("CareHub")
-                            .font(.system(size: 48, weight: .bold))
-                            .foregroundColor(.black)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 50)
-                    
-                    // Role Picker
-                    Picker("Login As", selection: $selectedRole) {
-                        Text("Patient").tag(Role.patient)
-                        Text("Staff").tag(Role.staff)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal, 20)
-                    
-                    // Form fields
-                    VStack(spacing: 20) {
-                        CareHubTextField(
-                            text: $email,
-                            placeholder: selectedRole == .patient ? "Enter your Email ID" : "Enter your Staff ID",
-                            isSecure: false,
-                            isValid: true,
-                            icon: "envelope.fill"
-                        )
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-                        .textContentType(.emailAddress)
-                        
-                        CareHubTextField(
-                            text: $password,
-                            placeholder: "Enter Password",
-                            isSecure: true,
-                            isValid: true,
-                            icon: "lock.fill"
-                        )
-                        .textContentType(.password)
-                    }
-                    .padding(.horizontal, 20)
-                    
-                    // Login button
-                    Button(action: login) {
-                        ZStack {
-                            Rectangle()
-                                .fill(Color.clear)
-                                .frame(height: 24)
-                            
-                            if isLoading {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Text("Login")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.white)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .padding(.vertical, 16)
-                    .background(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color(red: 0.43, green: 0.34, blue: 0.99),
-                                Color(red: 0.55, green: 0.48, blue: 0.99)
-                            ]),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                        .cornerRadius(12)
-                        .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.3), radius: 8, x: 0, y: 4)
-                    )
-                    .disabled(isLoading || email.isEmpty || password.isEmpty)
-                    .padding(.horizontal, 20)
-                    
-                    // Register link (only for patient role)
-                    if selectedRole == .patient {
-                        HStack {
-                            Text("Don't have an account?")
-                                .foregroundColor(.black)
-                            Button(action: {
-                                // Placeholder for registration flow
-                                // Replace with actual registration view presentation
-                                print("Navigate to RegisterView")
-                            }) {
-                                Text("Register")
-                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                    .underline()
-                                    .fontWeight(.semibold)
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 10)
-                    }
-                    
-                    Spacer()
+            // Main content - removed ScrollView
+            VStack(spacing: 25) {
+                // Header
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("CareHub")
+                        .font(.system(size: 48, weight: .bold))
+                        .foregroundColor(.black)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 50)
+                
+                // Role Picker
+                Picker("Login As", selection: $selectedRole) {
+                    Text("Patient").tag(Role.patient)
+                    Text("Staff").tag(Role.staff)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 20)
+                
+                // Form fields
+                VStack(spacing: 20) {
+                    CareHubTextField(
+                        text: $email,
+                        placeholder: selectedRole == .patient ? "Enter your Email ID" : "Enter your Staff ID",
+                        isSecure: false,
+                        isValid: true,
+                        icon: "envelope.fill"
+                    )
+                    .keyboardType(.emailAddress)
+                    .autocapitalization(.none)
+                    .textContentType(.emailAddress)
+                    
+                    CareHubTextField(
+                        text: $password,
+                        placeholder: "Enter Password",
+                        isSecure: true,
+                        isValid: true,
+                        icon: "lock.fill"
+                    )
+                    .textContentType(.password)
+                }
+                .padding(.horizontal, 20)
+                
+                // Login button
+                Button(action: login) {
+                    ZStack {
+                        Rectangle()
+                            .fill(Color.clear)
+                            .frame(height: 24)
+                        
+                        if isLoading {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Text("Login")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.vertical, 16)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color(red: 0.43, green: 0.34, blue: 0.99),
+                            Color(red: 0.55, green: 0.48, blue: 0.99)
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .cornerRadius(12)
+                    .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.3), radius: 8, x: 0, y: 4)
+                )
+                .disabled(isLoading || email.isEmpty || password.isEmpty)
+                .padding(.horizontal, 20)
+                
+                // Register link (only for patient role)
+                if selectedRole == .patient {
+                    HStack {
+                        Text("Don't have an account?")
+                            .foregroundColor(.black)
+                        Button(action: {
+                            RegisterView()
+                        }) {
+                            Text("Register")
+                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                .underline()
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 10)
+                }
+                
+                Spacer()
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .alert("Login Error", isPresented: $showAlert) {
             Button("OK", role: .cancel) { }
@@ -219,7 +216,7 @@ struct LoginView: View {
                 .padding()
             Button("Try Again") {
                 authManager.logout()
-                navigateToDashboard = false
+                authManager.navigateToDashboard = false
             }
             .buttonStyle(.borderedProminent)
         }
@@ -247,7 +244,7 @@ struct LoginView: View {
                     // Check for all possible user types
                     if self.selectedRole == .patient {
                         if AuthManager.shared.currentPatient != nil {
-                            self.navigateToDashboard = true
+                            authManager.navigateToDashboard = true
                         } else {
                             self.errorMessage = "Invalid patient credentials"
                             self.showAlert = true
@@ -255,7 +252,7 @@ struct LoginView: View {
                     } else { // For staff or doctor
                         if AuthManager.shared.currentStaffMember != nil ||
                             AuthManager.shared.currentDoctor != nil {
-                            self.navigateToDashboard = true
+                            authManager.navigateToDashboard = true
                         } else {
                             self.errorMessage = "Invalid credentials"
                             self.showAlert = true
@@ -267,12 +264,5 @@ struct LoginView: View {
                 }
             }
         }
-    }
-}
-
-struct LoginView_Previews: PreviewProvider {
-    static var previews: some View {
-        LoginView()
-            .environmentObject(AppState())
     }
 }

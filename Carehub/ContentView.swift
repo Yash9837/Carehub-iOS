@@ -1,35 +1,56 @@
 import SwiftUI
 
 struct SplashView: View {
-    @EnvironmentObject var appState: AppState
+    @State private var showOnboarding = false
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         ZStack {
-            Color.white.edgesIgnoringSafeArea(.all)
+            Color(red: 0.43, green: 0.34, blue: 0.99)
+                .edgesIgnoringSafeArea(.all)
             
-            LinearGradient(
-                colors: [
-                    Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4),
-                    Color.white.opacity(0.9),
-                    Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .edgesIgnoringSafeArea(.all)
-            
-            Image(systemName: "cross.fill")
-                .font(.system(size: 50, weight: .bold))
-                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-        }
-        .onAppear {
-            // Automatically hide splash after delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                withAnimation {
-                    // This will reveal either onboarding or main app view
-                    // based on appState.shouldShowOnboarding
+            if let image = UIImage(named: "appicon_background") {
+                VStack(spacing: 8) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: min(UIScreen.main.bounds.width * 0.5, 300))
+                        .accessibilityLabel("CareHub Logo")
+                    
+                    Text("CareHub")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("CareHub Logo with Title")
+            } else {
+                VStack(spacing: 8) {
+                    Image(systemName: "cross.fill")
+                        .font(.system(size: 50, weight: .bold))
+                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.8))
+                    
+                    Text("CareHub")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                }
+                
             }
+        }
+                .navigationDestination(isPresented: $showOnboarding) {
+            OnboardingView()
+        }
+    }
+}
+
+struct SplashView_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+            SplashView()
+                .preferredColorScheme(.light)
+            SplashView()
+                .preferredColorScheme(.dark)
         }
     }
 }
