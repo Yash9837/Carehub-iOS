@@ -426,11 +426,11 @@ struct AppointmentView: View {
                         )
                         .clipShape(Capsule())
                     
-                    if appointment.followUpRequired ?? false {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 12))
-                            .foregroundColor(forNowColor)
-                    }
+//                    if appointment.followUpRequired ?? false {
+//                        Image(systemName: "arrow.clockwise")
+//                            .font(.system(size: 12))
+//                            .foregroundColor(forNowColor)
+//                    }
                 }
                 
                 if !appointment.description.isEmpty {
