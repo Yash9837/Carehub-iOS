@@ -1971,18 +1971,7 @@ struct ImprovedDoctorCard: View {
                 }
                 
                 Spacer()
-                
-                Button(action: {}) {
-                    ZStack {
-                        Circle()
-                            .fill(primaryColor.opacity(0.1))
-                            .frame(width: 40, height: 40)
-                        
-                        Image(systemName: "phone.fill")
-                            .foregroundColor(primaryColor)
-                            .font(.system(size: FontSizeManager.fontSize(for: 16)))
-                    }
-                }
+            
                 .accessibilityLabel("Call \(name)")
             }
             .padding(.horizontal, 16)
