@@ -1,73 +1,25 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
-import AVFoundation // For text-to-speech
+import AVFoundation
 
-struct ProfileView_patient: View {
+
+// MARK: - Settings View
+struct SettingsView_patient: View {
     let patient: PatientF
     @Environment(\.dismiss) private var dismiss
     @State private var navigateToLogin = false
-    @AppStorage("isLargeFontEnabled") private var isLargeFontEnabled = false
-    @AppStorage("isVoiceOverEnabled") private var isVoiceOverEnabled = false // New toggle for VoiceOver
-    @State private var speechSynthesizer = AVSpeechSynthesizer() // Speech synthesizer instance
-    @State private var isInitialLoad = true
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(red: 0.94, green: 0.94, blue: 1.0)
                     .edgesIgnoringSafeArea(.all)
+                
                 ScrollView {
                     VStack(spacing: 16) {
-                        // Accessibility Section with Toggles
+                        // Patient Name Header
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Accessibility")
-                                .font(FontSizeManager.font(for: 18, weight: .bold))
-                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                .padding(.horizontal, 16)
-
-                            Toggle(isOn: $isLargeFontEnabled) {
-                                Label("Large Font Size", systemImage: "textformat.size")
-                                    .font(FontSizeManager.font(for: 16, weight: .medium))
-                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                            }
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(Color.white)
-                                    .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
-                            )
-
-                            Toggle(isOn: $isVoiceOverEnabled) {
-                                Label("VoiceOver (Read Aloud)", systemImage: "speaker.wave.2.fill")
-                                    .font(FontSizeManager.font(for: 16, weight: .medium))
-                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                            }
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(Color.white)
-                                    .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
-                            )
-                            .onChange(of: isVoiceOverEnabled) { newValue in
-                                if newValue {
-                                    readProfileText()
-                                } else {
-                                    speechSynthesizer.stopSpeaking(at: .immediate)
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-
-                        // Profile Header
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Profile")
-                                .font(FontSizeManager.font(for: 24, weight: .bold))
-                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                .padding(.horizontal, 16)
-
                             HStack(spacing: 16) {
                                 Image(systemName: "person.circle.fill")
                                     .resizable()
@@ -89,7 +41,7 @@ struct ProfileView_patient: View {
                                 
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text(patient.userData.Name)
-                                        .font(FontSizeManager.font(for: 20, weight: .semibold))
+                                        .font(FontSizeManager.font(for: 24, weight: .semibold))
                                         .foregroundColor(.black)
                                 }
                                 Spacer()
@@ -105,185 +57,290 @@ struct ProfileView_patient: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
 
-                        // Personal Information
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Personal Information")
-                                .font(FontSizeManager.font(for: 18, weight: .bold))
-                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                .padding(.horizontal, 16)
+                        // Options Section - Now with individual cards for each option
+                        VStack(spacing: 16) {
+                            NavigationLink(destination: ProfileDetailView(patient: patient)) {
+                                SettingsOptionCard(title: "Profile", icon: "person.fill")
+                            }
                             
-                            ProfileRow(title: "Patient ID", value: patient.patientId, icon: "person.text.rectangle.fill")
-                            ProfileRow(title: "Date of Birth", value: patient.userData.Dob, icon: "calendar")
-                            ProfileRow(title: "Email", value: patient.userData.Email, icon: "envelope.fill")
-                        }
-                        .padding(.vertical, 14)
-                        .padding(.horizontal, 16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(Color.white)
-                                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-
-                        // Contact Information
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Contact Information")
-                                .font(FontSizeManager.font(for: 18, weight: .bold))
-                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                .padding(.horizontal, 16)
+                            NavigationLink(destination: AccessibilityView()) {
+                                SettingsOptionCard(title: "Accessibility and VoiceOver", icon: "gearshape.fill")
+                            }
                             
-                            ProfileRow(title: "Phone Number", value: patient.userData.phoneNo, icon: "phone.fill")
-                            ProfileRow(title: "Address", value: patient.userData.Address, icon: "house.fill")
-                            ProfileRow(title: "Aadhar Number", value: patient.userData.aadharNo.isEmpty ? "Not Provided" : patient.userData.aadharNo, icon: "person.text.rectangle")
+                            NavigationLink(destination: ResetPasswordView()) {
+                                SettingsOptionCard(title: "Reset Password", icon: "lock.fill")
+                            }
                             
-                            MultiItemProfileRow(
-                                title: "Emergency Contacts",
-                                value: patient.emergencyContact.map { "\($0.name) (\($0.Number))" }.joined(separator: ", "),
-                                icon: "person.fill"
-                            )
-                        }
-                        .padding(.vertical, 14)
-                        .padding(.horizontal, 16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(Color.white)
-                                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Medical Information")
-                                .font(FontSizeManager.font(for: 18, weight: .bold))
-                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                .padding(.horizontal, 16)
-                            
-                            MultiItemProfileRow(
-                                title: "Allergies",
-                                value: patient.vitals.allergies.joined(separator: ", "),
-                                icon: "allergens"
-                            )
-                            
-                            ProfileRow(
-                                title: "Latest Blood Pressure",
-                                value: patient.vitals.bp.last?.value ?? "Not Recorded",
-                                icon: "heart.fill"
-                            )
-                            
-                            ProfileRow(
-                                title: "Latest Heart Rate",
-                                value: patient.vitals.heartRate.last?.value ?? "Not Recorded",
-                                icon: "heart.fill"
-                            )
-                            
-                            ProfileRow(
-                                title: "Latest Height",
-                                value: patient.vitals.height.last?.value ?? "Not Recorded",
-                                icon: "ruler"
-                            )
-                            
-                            ProfileRow(
-                                title: "Latest Temperature",
-                                value: patient.vitals.temperature.last?.value ?? "Not Recorded",
-                                icon: "thermometer"
-                            )
-                            
-                            ProfileRow(
-                                title: "Latest Weight",
-                                value: patient.vitals.weight.last?.value ?? "Not Recorded",
-                                icon: "scalemass"
-                            )
-                            ProfileRow(
-                                title: "Last Updated",
-                                value: formatDate(patient.lastModified),
-                                icon: "clock.fill"
-                            )
-                        }
-                        .padding(.vertical, 14)
-                        .padding(.horizontal, 16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(Color.white)
-                                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-
-                        // Sign Out Button
-                        VStack(alignment: .leading, spacing: 8) {
                             Button(action: {
                                 AuthManager.shared.logout()
                                 navigateToLogin = true
                             }) {
-                                Label("Sign Out", systemImage: "arrow.right.circle")
-                                    .font(FontSizeManager.font(for: 16, weight: .medium))
-                                    .foregroundColor(.red)
-                                    .padding(.vertical, 12)
-                                    .padding(.horizontal, 16)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                SettingsOptionCard(title: "Log Out", icon: "arrow.right.circle", textColor: .red)
                             }
                         }
-                        .padding(.vertical, 14)
-                        .padding(.horizontal, 16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(Color.white)
-                                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
-                        )
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                     }
                     .padding(.top, 16)
                     .padding(.bottom, 24)
                 }
-                .navigationTitle("Profile")
+                .navigationTitle("Settings")
                 .navigationBarTitleDisplayMode(.large)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        NavigationLink(destination: EditProfileView(patient: patient)) {
-                            Text("Edit")
-                                .font(FontSizeManager.font(for: 16, weight: .medium))
-                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                        }
-                    }
-                }
                 .fullScreenCover(isPresented: $navigateToLogin) {
                     LoginView()
                 }
             }
-            .navigationTitle("Profile")
         }
-        .onAppear {
-            if isVoiceOverEnabled {
-                readProfileText()
+    }
+}
+
+// MARK: - Settings Option Card
+struct SettingsOptionCard: View {
+    let title: String
+    let icon: String
+    var textColor: Color = Color(red: 0.43, green: 0.34, blue: 0.99)
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(FontSizeManager.font(for: 18))
+                .foregroundColor(textColor)
+                .frame(width: 30, height: 30)
+            
+            Text(title)
+                .font(FontSizeManager.font(for: 18, weight: .medium))
+                .foregroundColor(textColor)
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(FontSizeManager.font(for: 14))
+                .foregroundColor(.gray)
+        }
+        .padding(.vertical, 24)
+        .padding(.horizontal, 20)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+        )
+    }
+}
+
+// MARK: - Profile Detail View
+struct ProfileDetailView: View {
+    let patient: PatientF
+
+    var body: some View {
+        ZStack {
+            Color(red: 0.94, green: 0.94, blue: 1.0)
+                .edgesIgnoringSafeArea(.all)
+            
+            ScrollView {
+                VStack(spacing: 16) {
+                    // Personal Information
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Personal Information")
+                            .font(FontSizeManager.font(for: 18, weight: .bold))
+                            .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                            .padding(.horizontal, 16)
+                        
+                        ProfileRow(title: "Patient ID", value: patient.patientId, icon: "person.text.rectangle.fill")
+                        ProfileRow(title: "Date of Birth", value: patient.userData.Dob, icon: "calendar")
+                        ProfileRow(title: "Email", value: patient.userData.Email, icon: "envelope.fill")
+                    }
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.white)
+                            .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+
+                    // Contact Information
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Contact Information")
+                            .font(FontSizeManager.font(for: 18, weight: .bold))
+                            .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                            .padding(.horizontal, 16)
+                        
+                        ProfileRow(title: "Phone Number", value: patient.userData.phoneNo, icon: "phone.fill")
+                        ProfileRow(title: "Address", value: patient.userData.Address, icon: "house.fill")
+                        ProfileRow(title: "Aadhar Number", value: patient.userData.aadharNo.isEmpty ? "Not Provided" : patient.userData.aadharNo, icon: "person.text.rectangle")
+                        
+                        MultiItemProfileRow(
+                            title: "Emergency Contacts",
+                            value: patient.emergencyContact.map { "\($0.name) (\($0.Number))" }.joined(separator: ", "),
+                            icon: "person.fill"
+                        )
+                    }
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.white)
+                            .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+
+                    // Medical Information
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Medical Information")
+                            .font(FontSizeManager.font(for: 18, weight: .bold))
+                            .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                            .padding(.horizontal, 16)
+                        
+                        MultiItemProfileRow(
+                            title: "Allergies",
+                            value: patient.vitals.allergies.joined(separator: ", "),
+                            icon: "allergens"
+                        )
+                        
+                        ProfileRow(
+                            title: "Latest Blood Pressure",
+                            value: patient.vitals.bp.last?.value ?? "Not Recorded",
+                            icon: "heart.fill"
+                        )
+                        
+                        ProfileRow(
+                            title: "Latest Heart Rate",
+                            value: patient.vitals.heartRate.last?.value ?? "Not Recorded",
+                            icon: "heart.fill"
+                        )
+                        
+                        ProfileRow(
+                            title: "Latest Height",
+                            value: patient.vitals.height.last?.value ?? "Not Recorded",
+                            icon: "ruler"
+                        )
+                        
+                        ProfileRow(
+                            title: "Latest Temperature",
+                            value: patient.vitals.temperature.last?.value ?? "Not Recorded",
+                            icon: "thermometer"
+                        )
+                        
+                        ProfileRow(
+                            title: "Latest Weight",
+                            value: patient.vitals.weight.last?.value ?? "Not Recorded",
+                            icon: "scalemass"
+                        )
+                        
+                        ProfileRow(
+                            title: "Last Updated",
+                            value: formatDate(patient.lastModified),
+                            icon: "clock.fill"
+                        )
+                    }
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.white)
+                            .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                }
+                .padding(.top, 16)
+                .padding(.bottom, 24)
             }
-        }
-        .onAppear {
-                    if isInitialLoad {
-                        isInitialLoad = false // Mark initial load as complete
-                    } else if isVoiceOverEnabled {
-                        readProfileText() // Only read if not initial load and VoiceOver is enabled
+            .navigationTitle("Profile")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: EditProfileView(patient: patient)) {
+                        Text("Edit")
+                            .font(FontSizeManager.font(for: 16, weight: .medium))
+                            .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                     }
                 }
-        .onDisappear {
-                    speechSynthesizer.stopSpeaking(at: .immediate) // Stop speech when leaving the view
-                }
+            }
+        }
     }
-    
+
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
-    private func readProfileText() {
-        let textToRead = """
-        Profile. \(patient.userData.Name).
-        Patient ID \(patient.patientId). Date of Birth \(patient.userData.Dob). Email \(patient.userData.Email).
-        Phone Number \(patient.userData.phoneNo). Address \(patient.userData.Address). Aadhar Number \(patient.userData.aadharNo.isEmpty ? "Not Provided" : patient.userData.aadharNo). Emergency Contacts \(patient.emergencyContact.map { "\($0.name) \($0.Number)" }.joined(separator: ", ")).
-         Allergies \(patient.vitals.allergies.joined(separator: ", ")). Latest Blood Pressure \(patient.vitals.bp.last?.value ?? "Not Recorded"). Latest Heart Rate \(patient.vitals.heartRate.last?.value ?? "Not Recorded"). Latest Height \(patient.vitals.height.last?.value ?? "Not Recorded"). Latest Temperature \(patient.vitals.temperature.last?.value ?? "Not Recorded"). Latest Weight \(patient.vitals.weight.last?.value ?? "Not Recorded").
-        """
+}
+
+// MARK: - Accessibility View
+struct AccessibilityView: View {
+    @AppStorage("isLargeFontEnabled") private var isLargeFontEnabled = false
+    @AppStorage("isVoiceOverEnabled") private var isVoiceOverEnabled = false
+    @State private var speechSynthesizer = AVSpeechSynthesizer()
+    @State private var isInitialLoad = true
+
+    var body: some View {
+        ZStack {
+            Color(red: 0.94, green: 0.94, blue: 1.0)
+                .edgesIgnoringSafeArea(.all)
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    
+
+                    Toggle(isOn: $isLargeFontEnabled) {
+                        Label("Large Font Size", systemImage: "textformat.size")
+                            .font(FontSizeManager.font(for: 16, weight: .medium))
+                            .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.white)
+                            .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                    )
+
+                    Toggle(isOn: $isVoiceOverEnabled) {
+                        Label("VoiceOver (Read Aloud)", systemImage: "speaker.wave.2.fill")
+                            .font(FontSizeManager.font(for: 16, weight: .medium))
+                            .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.white)
+                            .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                    )
+                    .onChange(of: isVoiceOverEnabled) { newValue in
+                        if newValue {
+                            readAccessibilityText()
+                        } else {
+                            speechSynthesizer.stopSpeaking(at: .immediate)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .padding(.top, 16)
+                .padding(.bottom, 24)
+            }
+            .navigationTitle("Accessibility")
+            .navigationBarTitleDisplayMode(.large)
+        }
+        .onAppear {
+            if isInitialLoad {
+                isInitialLoad = false
+            } else if isVoiceOverEnabled {
+                readAccessibilityText()
+            }
+        }
+        .onDisappear {
+            speechSynthesizer.stopSpeaking(at: .immediate)
+        }
+    }
+
+    private func readAccessibilityText() {
+        let textToRead = "Accessibility. Large Font Size \(isLargeFontEnabled ? "Enabled" : "Disabled"). VoiceOver \(isVoiceOverEnabled ? "Enabled" : "Disabled")."
         speak(text: textToRead)
     }
 
@@ -295,6 +352,119 @@ struct ProfileView_patient: View {
     }
 }
 
+// MARK: - Reset Password View
+struct ResetPasswordView: View {
+    @State private var email: String = ""
+    @State private var errorMessage: String?
+    @State private var successMessage: String?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack {
+            Color(red: 0.94, green: 0.94, blue: 1.0)
+                .edgesIgnoringSafeArea(.all)
+            
+            ScrollView {
+                VStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Reset Password")
+                            .font(FontSizeManager.font(for: 18, weight: .bold))
+                            .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                            .padding(.horizontal, 16)
+                        
+                        Text("Enter your email address to receive a password reset link.")
+                            .font(FontSizeManager.font(for: 14, weight: .medium))
+                            .foregroundColor(.gray)
+                            .padding(.horizontal, 16)
+
+                        TextField("Email", text: $email)
+                            .font(FontSizeManager.font(for: 16))
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .background(Color.white)
+                            .cornerRadius(8)
+                            .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
+                            .autocapitalization(.none)
+                            .keyboardType(.emailAddress)
+
+                        if let errorMessage = errorMessage {
+                            Text(errorMessage)
+                                .font(FontSizeManager.font(for: 14))
+                                .foregroundColor(.red)
+                                .padding(.horizontal, 16)
+                        }
+
+                        if let successMessage = successMessage {
+                            Text(successMessage)
+                                .font(FontSizeManager.font(for: 14))
+                                .foregroundColor(.green)
+                                .padding(.horizontal, 16)
+                        }
+
+                        Button(action: {
+                            sendPasswordReset()
+                        }) {
+                            Text("Send Reset Link")
+                                .font(FontSizeManager.font(for: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color(red: 0.43, green: 0.34, blue: 0.99),
+                                            Color(red: 0.55, green: 0.48, blue: 0.99)
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(10)
+                                .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.3), radius: 5, x: 0, y: 3)
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.white)
+                            .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                }
+                .padding(.top, 16)
+                .padding(.bottom, 24)
+            }
+            .navigationTitle("Reset Password")
+            .navigationBarTitleDisplayMode(.large)
+        }
+    }
+
+    private func sendPasswordReset() {
+        guard !email.isEmpty else {
+            errorMessage = "Please enter your email address."
+            successMessage = nil
+            return
+        }
+
+        Auth.auth().sendPasswordReset(withEmail: email) { error in
+            if let error = error {
+                errorMessage = error.localizedDescription
+                successMessage = nil
+            } else {
+                successMessage = "Password reset email sent successfully. Check your inbox."
+                errorMessage = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    dismiss()
+                }
+            }
+        }
+    }
+}
+
+// MARK: - ProfileRow (Reused)
 struct ProfileRow: View {
     let title: String
     let value: String
@@ -316,15 +486,16 @@ struct ProfileRow: View {
             Text(value)
                 .font(FontSizeManager.font(for: 15, weight: .regular))
                 .foregroundColor(.gray)
-                .lineLimit(1) // Restrict to one line
-                .truncationMode(.tail) // Add ellipsis if the text is too long
-                .frame(maxWidth: .infinity, alignment: .trailing) // Ensure it takes available space but aligns right
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 16)
     }
 }
 
+// MARK: - MultiItemProfileRow (Reused)
 struct MultiItemProfileRow: View {
     let title: String
     let value: String
@@ -384,6 +555,7 @@ struct MultiItemProfileRow: View {
     }
 }
 
+// MARK: - FlowLayout (Reused)
 struct FlowLayout: Layout {
     var spacing: CGFloat = 10
     
@@ -430,6 +602,7 @@ struct FlowLayout: Layout {
     }
 }
 
+// MARK: - EditProfileView (Reused)
 struct EditProfileView: View {
     let patient: PatientF
     @State private var fullName: String
@@ -703,6 +876,7 @@ struct EditProfileView: View {
     }
 }
 
+// MARK: - EditableEmergencyContactsSection (Reused)
 struct EditableEmergencyContactsSection: View {
     let title: String
     @Binding var contacts: [EmergencyContact]
@@ -787,6 +961,7 @@ struct EditableEmergencyContactsSection: View {
     }
 }
 
+// MARK: - EditableItemsSection (Reused)
 struct EditableItemsSection: View {
     let title: String
     let placeholder: String

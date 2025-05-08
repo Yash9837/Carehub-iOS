@@ -27,10 +27,10 @@ struct PatientTabView: View {
                     Text("Doctor")
                 }
             
-            ProfileView_patient(patient: patient)
+            SettingsView_patient(patient: patient)
                 .tabItem {
-                    Image(systemName: "person")
-                    Text("Profile")
+                    Image(systemName: "gearshape")
+                    Text("Settings")
                 }
         }
         .navigationBarBackButtonHidden(true)

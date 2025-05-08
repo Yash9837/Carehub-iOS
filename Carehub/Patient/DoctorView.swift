@@ -14,74 +14,6 @@ struct DoctorView: View {
     @State private var speechSynthesizer = AVSpeechSynthesizer()
     @State private var isInitialLoad = true
 
-    let symptomToSpecialty: [String: [String]] = [
-        "chest pain": ["Cardiology"],
-        "shortness of breath": ["Cardiology", "Pulmonology"],
-        "palpitations": ["Cardiology"],
-        "high blood pressure": ["Cardiology"],
-        "swelling in legs": ["Cardiology"],
-        "joint pain": ["Orthopedics"],
-        "back pain": ["Orthopedics", "Neurology"],
-        "knee pain": ["Orthopedics"],
-        "shoulder pain": ["Orthopedics"],
-        "fracture": ["Orthopedics"],
-        "arthritis": ["Orthopedics"],
-        "headache": ["Neurology"],
-        "dizziness": ["Neurology", "ENT"],
-        "numbness": ["Neurology"],
-        "seizures": ["Neurology"],
-        "memory loss": ["Neurology", "Psychiatry"],
-        "irregular periods": ["Gynecology"],
-        "pelvic pain": ["Gynecology", "Urology"],
-        "vaginal bleeding": ["Gynecology"],
-        "infertility": ["Gynecology"],
-        "menopause symptoms": ["Gynecology"],
-        "abdominal pain": ["Surgery", "Gastroenterology"],
-        "hernia": ["Surgery"],
-        "appendicitis": ["Surgery"],
-        "gallstones": ["Surgery"],
-        "swelling or lump": ["Surgery", "Oncology"],
-        "rash": ["Dermatology"],
-        "itching": ["Dermatology"],
-        "skin redness": ["Dermatology"],
-        "acne": ["Dermatology"],
-        "hair loss": ["Dermatology"],
-        "weight gain": ["Endocrinology"],
-        "weight loss": ["Endocrinology", "Oncology"],
-        "fatigue": ["Endocrinology", "General Medicine"],
-        "diabetes": ["Endocrinology"],
-        "thyroid issues": ["Endocrinology"],
-        "ear pain": ["ENT"],
-        "hearing loss": ["ENT"],
-        "sore throat": ["ENT"],
-        "nasal congestion": ["ENT"],
-        "sinus pain": ["ENT"],
-        "unexplained weight loss": ["Oncology", "Endocrinology"],
-        "lump in breast": ["Oncology", "Surgery"],
-        "persistent cough": ["Oncology", "Pulmonology"],
-        "blood in urine": ["Oncology", "Urology"],
-        "chronic pain": ["Oncology"],
-        "anxiety": ["Psychiatry"],
-        "depression": ["Psychiatry"],
-        "insomnia": ["Psychiatry", "Neurology"],
-        "mood swings": ["Psychiatry"],
-        "stress": ["Psychiatry"],
-        "painful urination": ["Urology"],
-        "frequent urination": ["Urology"],
-        "kidney pain": ["Urology"],
-        "erectile dysfunction": ["Urology"],
-        "fever in child": ["Pediatrics"],
-        "child growth issues": ["Pediatrics"],
-        "child vomiting": ["Pediatrics"],
-        "child rash": ["Pediatrics", "Dermatology"],
-        "child cough": ["Pediatrics"],
-        "fever": ["General Medicine", "Pediatrics"],
-        "cough": ["Pulmonology", "General Medicine"],
-        "vomiting": ["Gastroenterology", "General Medicine"],
-        "diarrhea": ["Gastroenterology"],
-        "constipation": ["Gastroenterology"]
-    ]
-
     var filteredSpecialties: [String] {
         if searchText.isEmpty {
             return specialties
@@ -97,7 +29,7 @@ struct DoctorView: View {
             }
 
             // Check for symptom matches
-            for (symptom, specialties) in symptomToSpecialty {
+            for (symptom, specialties) in SymptomToSpecialtyData.symptomToSpecialty {
                 if symptom.lowercased().contains(searchTextLowercased) {
                     matchingSpecialties.formUnion(specialties)
                 }
@@ -332,6 +264,8 @@ struct DoctorView: View {
         }
     }
 }
+
+// The rest of the code (SpecialtyCard, SpecialtyDoctorsView, DoctorCardView, DoctorDetailView) remains unchanged
 
 struct SpecialtyCard: View {
     let specialty: String
