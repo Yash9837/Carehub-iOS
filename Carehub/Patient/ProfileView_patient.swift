@@ -159,7 +159,6 @@ struct ProfileDetailView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
 
-                    // Contact Information
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Contact Information")
                             .font(FontSizeManager.font(for: 18, weight: .bold))
@@ -353,10 +352,15 @@ struct AccessibilityView: View {
 }
 
 // MARK: - Reset Password View
+// MARK: - Reset Password View
 struct ResetPasswordView: View {
-    @State private var email: String = ""
+    @State private var oldPassword: String = ""
+    @State private var newPassword: String = ""
+    @State private var confirmPassword: String = ""
     @State private var errorMessage: String?
     @State private var successMessage: String?
+    @State private var isLoading: Bool = false
+    @State private var showConfirmationAlert: Bool = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -372,26 +376,68 @@ struct ResetPasswordView: View {
                             .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
                             .padding(.horizontal, 16)
                         
-                        Text("Enter your email address to receive a password reset link.")
+                        Text("Please enter your current password and then set a new password.")
                             .font(FontSizeManager.font(for: 14, weight: .medium))
                             .foregroundColor(.gray)
                             .padding(.horizontal, 16)
 
-                        TextField("Email", text: $email)
-                            .font(FontSizeManager.font(for: 16))
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 16)
-                            .background(Color.white)
-                            .cornerRadius(8)
-                            .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
-                            .autocapitalization(.none)
-                            .keyboardType(.emailAddress)
+                        // Old Password Field
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Current Password")
+                                .font(FontSizeManager.font(for: 14, weight: .medium))
+                                .foregroundColor(.gray)
+                                .padding(.horizontal, 16)
+                            
+                            SecureField("Current Password", text: $oldPassword)
+                                .font(FontSizeManager.font(for: 16))
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+                                .background(Color.white)
+                                .cornerRadius(8)
+                                .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
+                        }
+                        .padding(.top, 8)
+
+                        // New Password Field
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("New Password")
+                                .font(FontSizeManager.font(for: 14, weight: .medium))
+                                .foregroundColor(.gray)
+                                .padding(.horizontal, 16)
+                            
+                            SecureField("New Password", text: $newPassword)
+                                .font(FontSizeManager.font(for: 16))
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+                                .background(Color.white)
+                                .cornerRadius(8)
+                                .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
+                        }
+                        .padding(.top, 8)
+
+                        // Confirm Password Field
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Confirm New Password")
+                                .font(FontSizeManager.font(for: 14, weight: .medium))
+                                .foregroundColor(.gray)
+                                .padding(.horizontal, 16)
+                            
+                            SecureField("Confirm New Password", text: $confirmPassword)
+                                .font(FontSizeManager.font(for: 16))
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+                                .background(Color.white)
+                                .cornerRadius(8)
+                                .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
+                        }
+                        .padding(.top, 8)
 
                         if let errorMessage = errorMessage {
                             Text(errorMessage)
                                 .font(FontSizeManager.font(for: 14))
                                 .foregroundColor(.red)
                                 .padding(.horizontal, 16)
+                                .padding(.top, 8)
                         }
 
                         if let successMessage = successMessage {
@@ -399,30 +445,39 @@ struct ResetPasswordView: View {
                                 .font(FontSizeManager.font(for: 14))
                                 .foregroundColor(.green)
                                 .padding(.horizontal, 16)
+                                .padding(.top, 8)
                         }
 
                         Button(action: {
-                            sendPasswordReset()
+                            validateAndShowConfirmation()
                         }) {
-                            Text("Send Reset Link")
-                                .font(FontSizeManager.font(for: 16, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.43, green: 0.34, blue: 0.99),
-                                            Color(red: 0.55, green: 0.48, blue: 0.99)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .cornerRadius(10)
-                                .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.3), radius: 5, x: 0, y: 3)
+                            if isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                            } else {
+                                Text("Update Password")
+                                    .font(FontSizeManager.font(for: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                            }
                         }
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color(red: 0.43, green: 0.34, blue: 0.99),
+                                    Color(red: 0.55, green: 0.48, blue: 0.99)
+                                ]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(10)
+                        .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.3), radius: 5, x: 0, y: 3)
                         .padding(.vertical, 8)
+                        .disabled(isLoading)
                     }
                     .padding(.vertical, 14)
                     .padding(.horizontal, 16)
@@ -439,32 +494,143 @@ struct ResetPasswordView: View {
             }
             .navigationTitle("Reset Password")
             .navigationBarTitleDisplayMode(.large)
+            .alert("Are you sure?", isPresented: $showConfirmationAlert) {
+                Button("No", role: .cancel) { }
+                Button("Yes") {
+                    updatePassword()
+                }
+            } message: {
+                Text("Do you want to update your password?")
+            }
         }
     }
-
-    private func sendPasswordReset() {
-        guard !email.isEmpty else {
-            errorMessage = "Please enter your email address."
-            successMessage = nil
+    
+    private func validateAndShowConfirmation() {
+        // Reset messages
+        errorMessage = nil
+        
+        // Validate inputs
+        guard !oldPassword.isEmpty else {
+            errorMessage = "Please enter your current password."
             return
         }
+        
+        guard !newPassword.isEmpty else {
+            errorMessage = "Please enter a new password."
+            return
+        }
+        
+        guard newPassword == confirmPassword else {
+            errorMessage = "New passwords do not match."
+            return
+        }
+        
+        guard newPassword.count >= 6 else {
+            errorMessage = "Password must be at least 6 characters long."
+            return
+        }
+        
+        // If all validations pass, show confirmation alert
+        showConfirmationAlert = true
+    }
 
-        Auth.auth().sendPasswordReset(withEmail: email) { error in
+    private func updatePassword() {
+        // Reset messages
+        errorMessage = nil
+        successMessage = nil
+        
+        // Validate inputs
+        guard !oldPassword.isEmpty else {
+            errorMessage = "Please enter your current password."
+            return
+        }
+        
+        guard !newPassword.isEmpty else {
+            errorMessage = "Please enter a new password."
+            return
+        }
+        
+        guard newPassword == confirmPassword else {
+            errorMessage = "New passwords do not match."
+            return
+        }
+        
+        guard newPassword.count >= 6 else {
+            errorMessage = "Password must be at least 6 characters long."
+            return
+        }
+        
+        isLoading = true
+        
+        // Get the current user
+        guard let user = Auth.auth().currentUser else {
+            errorMessage = "No user is currently signed in."
+            isLoading = false
+            return
+        }
+        
+        // Get the user's email
+        guard let email = user.email else {
+            errorMessage = "User email not found."
+            isLoading = false
+            return
+        }
+        
+        // Re-authenticate the user
+        let credential = EmailAuthProvider.credential(withEmail: email, password: oldPassword)
+        
+        user.reauthenticate(with: credential) { authResult, error in
             if let error = error {
-                errorMessage = error.localizedDescription
-                successMessage = nil
-            } else {
-                successMessage = "Password reset email sent successfully. Check your inbox."
-                errorMessage = nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    dismiss()
+                // Handle re-authentication error
+                DispatchQueue.main.async {
+                    errorMessage = "Current password is incorrect: \(error.localizedDescription)"
+                    isLoading = false
+                }
+                return
+            }
+            
+            // Update the password
+            user.updatePassword(to: newPassword) { error in
+                DispatchQueue.main.async {
+                    isLoading = false
+                    
+                    if let error = error {
+                        // Handle password update error
+                        errorMessage = "Failed to update password: \(error.localizedDescription)"
+                    } else {
+                        // Password updated successfully - update local data if needed
+                        if var patient = AuthManager.shared.currentPatient {
+                            patient.userData.Password = newPassword
+                            AuthManager.shared.currentPatient = patient
+                            
+                            // Update in Firestore if needed
+                            let db = Firestore.firestore()
+                            do {
+                                try db.collection("patients").document(user.uid).updateData([
+                                    "userData.Password": newPassword
+                                ])
+                            } catch {
+                                print("Error updating password in Firestore: \(error.localizedDescription)")
+                            }
+                        }
+                        
+                        successMessage = "Password updated successfully!"
+                        
+                        // Clear password fields
+                        oldPassword = ""
+                        newPassword = ""
+                        confirmPassword = ""
+                        
+                        // Dismiss the view after a short delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            dismiss()
+                        }
+                    }
                 }
             }
         }
     }
 }
-
-// MARK: - ProfileRow (Reused)
 struct ProfileRow: View {
     let title: String
     let value: String
