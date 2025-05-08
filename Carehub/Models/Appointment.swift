@@ -2,7 +2,7 @@ import SwiftUI
 
 
 
-struct Appointment: Identifiable, Decodable {
+struct Appointment: Identifiable, Decodable, Equatable {
     var id: String
     let apptId: String
     let patientId: String

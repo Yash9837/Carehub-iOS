@@ -22,7 +22,6 @@ struct HomeView_patient: View {
     @State private var isLoading = true
     @State private var navigateToBooking = false
     @State private var navigateToNotifications = false
-    @State private var navigateToChat = false
     @State private var listener: ListenerRegistration?
     @State private var notificationCount: Int = 0
     @State private var hasViewedNotifications: Bool = UserDefaults.standard.bool(forKey: "hasViewedNotifications") ?? false
@@ -32,350 +31,905 @@ struct HomeView_patient: View {
     @AppStorage("isVoiceOverEnabled") private var isVoiceOverEnabled = false
     @State private var speechSynthesizer = AVSpeechSynthesizer()
     @State private var isInitialLoad = true
-
+    @State private var navigateToChat = false
+    
     var body: some View {
-        NavigationView {
-            ZStack {
-                backgroundColor
-                    .edgesIgnoringSafeArea(.all)
-                
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 24) {
-                        // Header
-                        HStack(alignment: .center) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Hello, \(patient.userData.Name)")
-                                    .font(FontSizeManager.font(for: 28, weight: .bold))
-                                    .foregroundColor(.black)
-                                
-                                Text("Welcome to CareHub")
-                                    .font(FontSizeManager.font(for: 16, weight: .medium))
-                                    .foregroundColor(.gray)
-                            }
-                            
-                            Spacer()
-                            
-                            Button(action: {
-                                navigateToNotifications = true
-                                hasViewedNotifications = true
-                                lastNotificationViewTime = Date()
-                                UserDefaults.standard.set(true, forKey: "hasViewedNotifications")
-                                UserDefaults.standard.set(lastNotificationViewTime, forKey: "lastNotificationViewTime")
-                            }) {
-                                ZStack {
-                                    Circle()
-                                        .fill(cardBackground)
-                                        .frame(width: 44, height: 44)
-                                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-                                    
-                                    Image(systemName: "bell.fill")
-                                        .foregroundColor(primaryColor)
-                                        .font(.system(size: FontSizeManager.fontSize(for: 18)))
-                                    
-                                    if notificationCount > 0 {
-                                        ZStack {
-                                            Circle()
-                                                .fill(Color.red)
-                                                .frame(width: 20, height: 20)
-                                            Text("\(notificationCount)")
-                                                .font(FontSizeManager.font(for: 12, weight: .bold))
-                                                .foregroundColor(.white)
-                                        }
-                                        .offset(x: 12, y: -12)
-                                    }
-                                }
-                            }
-                            .accessibilityLabel("Notifications, \(notificationCount) new")
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 16)
-                        
-                        // Book Appointment Card
-                        Button(action: {
-                            navigateToBooking = true
-                        }) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(LinearGradient(
-                                        gradient: Gradient(colors: [forNowColor, secondaryColor]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ))
-                                    .shadow(color: primaryColor.opacity(0.2), radius: 10, x: 0, y: 5)
-                                
-                                HStack(spacing: 16) {
-                                    Image(systemName: "calendar.badge.plus")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 50, height: 50)
-                                        .foregroundColor(.white)
-                                        .padding(.leading, 16)
-                                    
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("Book an Appointment")
-                                            .font(FontSizeManager.font(for: 18, weight: .bold))
-                                            .foregroundColor(.white)
-                                        
-                                        Text("Schedule with your preferred doctor")
-                                            .font(FontSizeManager.font(for: 14, weight: .medium))
-                                            .foregroundColor(.white.opacity(0.8))
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(.white)
-                                        .font(.system(size: FontSizeManager.fontSize(for: 18)))
-                                        .padding(.trailing, 16)
-                                }
-                                .padding(.vertical, 16)
-                            }
-                            .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 10)
-                        
-                        // Upcoming Appointments Section
-                        VStack(alignment: .leading, spacing: 16) {
-                            sectionHeader(
-                                title: "Upcoming Appointments",
-                                hasContent: !upcomingSchedules.isEmpty
-                            ) {
-                                NavigationLink(destination: AllAppointmentsView(
-                                    upcomingSchedules: $upcomingSchedules,
-                                    getDoctorName: getDoctorName,
-                                    getDoctorSpecialty: getDoctorSpecialty,
-                                    formatDate: formatDate
-                                )) {
-                                    Text("See All")
-                                        .font(FontSizeManager.font(for: 14, weight: .semibold))
-                                        .foregroundColor(primaryColor)
-                                }
-                            }
-                            
-                            if isLoading {
-                                HStack {
-                                    Spacer()
-                                    ProgressView()
-                                        .padding()
-                                    Spacer()
-                                }
-                            } else if upcomingSchedules.isEmpty {
-                                emptyStateView(
-                                    icon: "calendar",
-                                    title: "No Upcoming Appointments",
-                                    message: "You don't have any scheduled appointments"
-                                )
-                            } else {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 16) {
-                                        ForEach($upcomingSchedules) { $appointment in
-                                            ImprovedAppointmentCard(
-                                                doctorName: getDoctorName(for: appointment.docId),
-                                                specialty: getDoctorSpecialty(for: appointment.docId),
-                                                date: formatDateTime(appointment.date ?? Date()).date,
-                                                time: formatDateTime(appointment.date ?? Date()).time,
-                                                imageName: "doctor1",
-                                                appointment: $appointment
-                                            )
-                                        }
-                                    }
-                                    .padding(.vertical, 8)
-                                    .padding(.horizontal, 2)
-                                }
-                            }
-                        }
-                        
-                        // Recent Prescriptions Section
-                        VStack(alignment: .leading, spacing: 16) {
-                            sectionHeader(
-                                title: "Recent Prescriptions & Reports",
-                                hasContent: !viewModel.recentPrescriptions.isEmpty
-                            ) {
-                                NavigationLink(destination: AllPrescriptionsView(
-                                    prescriptions: viewModel.recentPrescriptions,
-                                    formatDate: formatDate,
-                                    viewModel: viewModel
-                                )) {
-                                    Text("See All")
-                                        .font(FontSizeManager.font(for: 14, weight: .semibold))
-                                        .foregroundColor(primaryColor)
-                                }
-                            }
-                            
-                            if viewModel.recentPrescriptions.isEmpty {
-                                emptyStateView(
-                                    icon: "doc.text",
-                                    title: "No Recent Prescriptions",
-                                    message: "Your prescriptions will appear here"
-                                )
-                            } else {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 16) {
-                                        ForEach(viewModel.recentPrescriptions) { appointment in
-                                            NavigationLink(
-                                                destination: {
-                                                    if let medicalTestId = appointment.prescriptionId,
-                                                       let pdfUrlStr = viewModel.medicalTestPdfUrls[medicalTestId],
-                                                       let pdfUrl = URL(string: pdfUrlStr) {
-                                                        PDFKitView(url: pdfUrl)
-                                                    } else {
-                                                        VStack {
-                                                            Text("Unable to Load Medical Test Report")
-                                                                .font(FontSizeManager.font(for: 18, weight: .bold))
-                                                                .foregroundColor(.primary)
-                                                            Text("The document is not available.")
-                                                                .font(FontSizeManager.font(for: 16, weight: .regular))
-                                                                .foregroundColor(.secondary)
-                                                        }
-                                                    }
-                                                },
-                                                label: {
-                                                    ImprovedMedicalRecordCard(
-                                                        type: appointment.status,
-                                                        doctorName: "\(getDoctorName(for: appointment.docId))",
-                                                        date: formatDate(appointment.date),
-                                                        title: appointment.description
-                                                    )
-                                                }
-                                            )
-                                        }
-                                    }
-                                    .padding(.vertical, 8)
-                                    .padding(.horizontal, 2)
-                                }
-                            }
-                        }
-                        .onAppear {
-                            viewModel.fetchRecentPrescriptions(forPatientId: patient.patientId)
-                        }
-                        
-                        // Previously Visited Doctors Section
-                        VStack(alignment: .leading, spacing: 16) {
-                            sectionHeader(
-                                title: "Previously Visited Doctors",
-                                hasContent: !viewModel.recentPrescriptions.isEmpty
-                            ) {
-                                NavigationLink(destination: AllVisitedDoctorsView(
-                                    recentPrescriptions: viewModel.recentPrescriptions,
-                                    formatDate: formatDate
-                                )) {
-                                    Text("See All")
-                                        .font(FontSizeManager.font(for: 14, weight: .semibold))
-                                        .foregroundColor(primaryColor)
-                                }
-                            }
-                            
-                            if viewModel.recentPrescriptions.isEmpty {
-                                emptyStateView(
-                                    icon: "person.2",
-                                    title: "No Doctor Visits",
-                                    message: "Your previously visited doctors will appear here"
-                                )
-                            } else {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 16) {
-                                        ForEach(viewModel.recentPrescriptions) { appointment in
-                                            ImprovedDoctorCard(
-                                                name: " \(getDoctorName(for: appointment.docId))",
-                                                specialty: "General Medicine",
-                                                lastVisit: formatDate(appointment.date),
-                                                imageName: "defaultDoctorImage"
-                                            )
-                                        }
-                                    }
-                                    .padding(.vertical, 8)
-                                    .padding(.horizontal, 2)
-                                }
-                            }
-                        }
-                    }
-                    .padding(.bottom, 24)
-                }
-                .padding(.leading, 16)
-                .padding(.trailing, 8)
-                
-                // Chatbot Icon Button
-                VStack {
+        NavigationStack {
+            mainContent
+        }
+    }
+
+    private var mainContent: some View {
+        ZStack {
+            backgroundColor
+                .edgesIgnoringSafeArea(.all)
+            
+            scrollContent
+            // Chatbot Icon Button (Floating Action Button)
+            VStack {
+                Spacer()
+                HStack {
                     Spacer()
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            navigateToChat = true
-                        }) {
-                            ZStack {
-                                Circle()
-                                    .fill(primaryColor)
-                                    .frame(width: 60, height: 60)
-                                    .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
-                                
-                                Image(systemName: "message.fill")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: FontSizeManager.fontSize(for: 24)))
-                            }
+                    Button(action: {
+                        navigateToChat = true
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(primaryColor)
+                                .frame(width: 60, height: 60)
+                                .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                            
+                            Image(systemName: "message.fill")
+                                .foregroundColor(.white)
+                                .font(.system(size: FontSizeManager.fontSize(for: 24)))
                         }
-                        .accessibilityLabel("Open Chatbot")
-                        .padding(.trailing, 16)
-                        .padding(.bottom, 16)
                     }
+                    .accessibilityLabel("Open Chatbot")
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 16)
                 }
             }
-            .navigationBarBackButtonHidden(true)
-            .onAppear {
-                if listener == nil {
-                    isLoading = true
-                    loadDoctorData {
-                        setupSnapshotListener()
-                    }
-                }
-                if isInitialLoad {
-                    isInitialLoad = false
-                } else if isVoiceOverEnabled {
-                    readHomeViewText()
-                }
-            }
-            .onDisappear {
-                listener?.remove()
-                listener = nil
+        }
+        .navigationDestination(isPresented: $navigateToChat) {
+            ChatView()
+        }
+        .navigationBarBackButtonHidden(true)
+        .onAppear(perform: handleOnAppear)
+        .onDisappear(perform: handleOnDisappear)
+//        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppointmentBooked")), perform: handleAppointmentBooked)
+//        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppointmentCancelled")), perform: handleAppointmentCancelled)
+        .navigationDestination(isPresented: $navigateToBooking) {
+            DoctorView(patientId: patient.patientId)
+        }
+        .navigationDestination(isPresented: $navigateToNotifications) {
+            NotificationsView(
+                upcomingSchedules: upcomingSchedules,
+                getDoctorName: getDoctorName,
+                getDoctorSpecialty: getDoctorSpecialty,
+                formatDate: formatDate
+            )
+        }
+        .onChange(of: isVoiceOverEnabled) { newValue in
+            if newValue {
+                readHomeViewText()
+            } else {
                 speechSynthesizer.stopSpeaking(at: .immediate)
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppointmentBooked"))) { _ in
-                listener?.remove()
-                listener = nil
-                isLoading = true
-                setupSnapshotListener()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppointmentCancelled"))) { _ in
-                listener?.remove()
-                listener = nil
-                isLoading = true
-                setupSnapshotListener()
-            }
-            .navigationDestination(isPresented: $navigateToBooking) {
-                DoctorView(patientId: patient.patientId)
-            }
-            .navigationDestination(isPresented: $navigateToNotifications) {
-                NotificationsView(
-                    upcomingSchedules: upcomingSchedules,
-                    getDoctorName: getDoctorName,
-                    getDoctorSpecialty: getDoctorSpecialty,
-                    formatDate: formatDate
-                )
-            }
-            .navigationDestination(isPresented: $navigateToChat) {
-                ChatView()
-            }
-            .onChange(of: isVoiceOverEnabled) { newValue in
-                if newValue {
-                    readHomeViewText()
-                } else {
-                    speechSynthesizer.stopSpeaking(at: .immediate)
-                }
             }
         }
     }
 
+    private var scrollContent: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 24) {
+                headerSection
+                bookAppointmentCard
+                upcomingAppointmentsSection
+                recentPrescriptionsSection
+                medicalTestsSection
+                visitedDoctorsSection
+            }
+            .padding(.bottom, 24)
+        }
+        .padding(.leading, 16)
+        .padding(.trailing, 8)
+    }
+
+    // MARK: - Header Section
+    private var headerSection: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Hello, \(patient.userData.Name)")
+                    .font(FontSizeManager.font(for: 28, weight: .bold))
+                    .foregroundColor(.black)
+                
+                Text("Welcome to CareHub")
+                    .font(FontSizeManager.font(for: 16, weight: .medium))
+                    .foregroundColor(.gray)
+            }
+            
+            Spacer()
+            
+            notificationButton
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+    }
+
+    private var notificationButton: some View {
+        Button(action: handleNotificationButton) {
+            ZStack {
+                Circle()
+                    .fill(cardBackground)
+                    .frame(width: 44, height: 44)
+                    .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                
+                Image(systemName: "bell.fill")
+                    .foregroundColor(primaryColor)
+                    .font(.system(size: FontSizeManager.fontSize(for: 18)))
+                
+                if notificationCount > 0 {
+                    notificationBadge
+                }
+            }
+        }
+        .accessibilityLabel("Notifications, \(notificationCount) new")
+    }
+
+    private var notificationBadge: some View {
+        ZStack {
+            Circle()
+                .fill(Color.red)
+                .frame(width: 20, height: 20)
+            Text("\(notificationCount)")
+                .font(FontSizeManager.font(for: 12, weight: .bold))
+                .foregroundColor(.white)
+        }
+        .offset(x: 12, y: -12)
+    }
+
+    // MARK: - Book Appointment Card
+    private var bookAppointmentCard: some View {
+        Button(action: { navigateToBooking = true }) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(LinearGradient(
+                        gradient: Gradient(colors: [forNowColor, secondaryColor]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .shadow(color: primaryColor.opacity(0.2), radius: 10, x: 0, y: 5)
+                
+                HStack(spacing: 16) {
+                    Image(systemName: "calendar.badge.plus")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 50, height: 50)
+                        .foregroundColor(.white)
+                        .padding(.leading, 16)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Book an Appointment")
+                            .font(FontSizeManager.font(for: 18, weight: .bold))
+                            .foregroundColor(.white)
+                        
+                        Text("Schedule with your preferred doctor")
+                            .font(FontSizeManager.font(for: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.white)
+                        .font(.system(size: FontSizeManager.fontSize(for: 18)))
+                        .padding(.trailing, 16)
+                }
+                .padding(.vertical, 16)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .padding(.horizontal, 16)
+        .padding(.bottom, 10)
+    }
+
+    // MARK: - Upcoming Appointments Section
+    private var upcomingAppointmentsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader(
+                title: "Upcoming Appointments",
+                hasContent: !upcomingSchedules.isEmpty
+            ) {
+                NavigationLink {
+                    AllAppointmentsView(
+                        upcomingSchedules: $upcomingSchedules,
+                        getDoctorName: getDoctorName,
+                        getDoctorSpecialty: getDoctorSpecialty,
+                        formatDate: formatDate
+                    )
+                } label: {
+                    Text("See All")
+                        .font(FontSizeManager.font(for: 14, weight: .semibold))
+                        .foregroundColor(primaryColor)
+                }
+            }
+            
+            if isLoading {
+                loadingView
+            } else if upcomingSchedules.isEmpty {
+                emptyStateView(
+                    icon: "calendar",
+                    title: "No Upcoming Appointments",
+                    message: "You don't have any scheduled appointments"
+                )
+            } else {
+                appointmentCards
+            }
+        }
+    }
+
+    private var loadingView: some View {
+        HStack {
+            Spacer()
+            ProgressView()
+                .padding()
+            Spacer()
+        }
+    }
+
+    private var appointmentCards: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 16) {
+                ForEach($upcomingSchedules) { $appointment in
+                    ImprovedAppointmentCard(
+                        doctorName: getDoctorName(for: appointment.docId),
+                        specialty: getDoctorSpecialty(for: appointment.docId),
+                        date: formatDateTime(appointment.date ?? Date()).date,
+                        time: formatDateTime(appointment.date ?? Date()).time,
+                        imageName: "doctor1",
+                        appointment: $appointment
+                    )
+                }
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 2)
+        }
+    }
+
+    // MARK: - Recent Prescriptions Section
+    private var recentPrescriptionsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader(
+                title: "Recent Prescriptions",
+                hasContent: !viewModel.recentPrescriptions.isEmpty
+            ) {
+                NavigationLink {
+                    AllPrescriptionsView(
+                        prescriptions: viewModel.recentPrescriptions,
+                        formatDate: formatDate,
+                        viewModel: viewModel
+                    )
+                } label: {
+                    Text("See All")
+                        .font(FontSizeManager.font(for: 14, weight: .semibold))
+                        .foregroundColor(primaryColor)
+                }
+            }
+            
+            if viewModel.recentPrescriptions.isEmpty {
+                emptyStateView(
+                    icon: "doc.text",
+                    title: "No Recent Prescriptions",
+                    message: "Your prescriptions will appear here"
+                )
+            } else {
+                prescriptionCards
+            }
+        }
+        .onAppear {
+            print("Fetching recent prescriptions for patientId: \(patient.patientId)")
+            viewModel.fetchRecentPrescriptions(forPatientId: patient.patientId)
+            print("Recent prescriptions count: \(viewModel.recentPrescriptions.count)")
+        }
+    }
+
+    private var prescriptionCards: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 16) {
+                ForEach(viewModel.recentPrescriptions) { appointment in
+                    NavigationLink {
+                        prescriptionDestination(for: appointment)
+                    } label: {
+                        ImprovedMedicalRecordCard(
+                            type: appointment.status,
+                            doctorName: getDoctorName(for: appointment.docId),
+                            date: formatDate(appointment.date),
+                            title: appointment.description
+                        )
+                    }
+                }
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 2)
+        }
+    }
+
+    // MARK: - Medical Tests Section
+    private var medicalTestsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader(
+                title: "Recent Medical Reports",
+                hasContent: !viewModel.medicalTests.isEmpty
+            ) {
+                NavigationLink {
+                    AllTestsView(
+                        prescriptions: viewModel.medicalTests,
+                        formatDate: formatDate,
+                        viewModel: viewModel
+                    )
+                } label: {
+                    Text("See All")
+                        .font(FontSizeManager.font(for: 14, weight: .semibold))
+                        .foregroundColor(primaryColor)
+                }
+            }
+            
+            if viewModel.medicalTests.isEmpty {
+                emptyStateView(
+                    icon: "doc.text",
+                    title: "No Recent Reports",
+                    message: "Your reports will appear here"
+                )
+            } else {
+                medicalTestCards
+            }
+        }
+        .onAppear {
+            Task {
+                print("Fetching recent reports for patientId: \(patient.patientId)")
+                await viewModel.fetchMedicalTests(forPatientId: patient.patientId)
+                print("Recent reports count: \(viewModel.medicalTests.count)")
+            }
+        }
+    }
+
+    private var medicalTestCards: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 16) {
+                ForEach(viewModel.medicalTests) { appointment in
+                    NavigationLink {
+                        medicalTestDestination(for: appointment)
+                    } label: {
+                        ImprovedMedicalRecordCard(
+                            type: appointment.status,
+                            doctorName: appointment.doc,
+                            date: appointment.date,
+                            title: appointment.testName
+                        )
+                    }
+                }
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 2)
+        }
+    }
+
+    // MARK: - Visited Doctors Section
+    private var visitedDoctorsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader(
+                title: "Previously Visited Doctors",
+                hasContent: !viewModel.recentPrescriptions.isEmpty
+            ) {
+                NavigationLink {
+                    AllVisitedDoctorsView(
+                        recentPrescriptions: viewModel.recentPrescriptions,
+                        formatDate: formatDate
+                    )
+                } label: {
+                    Text("See All")
+                        .font(FontSizeManager.font(for: 14, weight: .semibold))
+                        .foregroundColor(primaryColor)
+                }
+            }
+            
+            if viewModel.recentPrescriptions.isEmpty {
+                emptyStateView(
+                    icon: "person.2",
+                    title: "No Doctor Visits",
+                    message: "Your previously visited doctors will appear here"
+                )
+            } else {
+                visitedDoctorsCards
+            }
+        }
+    }
+
+    private var visitedDoctorsCards: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 16) {
+                ForEach(viewModel.recentPrescriptions) { appointment in
+                    ImprovedDoctorCard(
+                        name: getDoctorName(for: appointment.docId),
+                        specialty: "General Medicine",
+                        lastVisit: formatDate(appointment.date),
+                        imageName: "defaultDoctorImage"
+                    )
+                }
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 2)
+        }
+    }
+
+    // MARK: - Helper Functions
+    private func handleOnAppear() {
+        if listener == nil {
+            isLoading = true
+            loadDoctorData {
+                setupSnapshotListener()
+            }
+        }
+        if isInitialLoad {
+            isInitialLoad = false
+        } else if isVoiceOverEnabled {
+            readHomeViewText()
+        }
+        print("Recent prescriptions count on appear: \(viewModel.recentPrescriptions.count)")
+    }
+
+    private func handleOnDisappear() {
+        listener?.remove()
+        listener = nil
+        speechSynthesizer.stopSpeaking(at: .immediate)
+    }
+
+    private func handleAppointmentBooked(_ notification: Notification) {
+        listener?.remove()
+        listener = nil
+        isLoading = true
+        setupSnapshotListener()
+    }
+
+    private func handleAppointmentCancelled(_ notification: Notification) {
+        listener?.remove()
+        listener = nil
+        isLoading = true
+        setupSnapshotListener()
+    }
+
+    private func handleNotificationButton() {
+        navigateToNotifications = true
+        hasViewedNotifications = true
+        lastNotificationViewTime = Date()
+        UserDefaults.standard.set(true, forKey: "hasViewedNotifications")
+        UserDefaults.standard.set(lastNotificationViewTime, forKey: "lastNotificationViewTime")
+    }
+
+//    var body: some View {
+//        NavigationStack {
+//            ZStack {
+//                backgroundColor
+//                    .edgesIgnoringSafeArea(.all)
+//
+//                ScrollView(showsIndicators: false) {
+//                    VStack(spacing: 24) {
+//                        // Header
+//                        HStack(alignment: .center) {
+//                            VStack(alignment: .leading, spacing: 6) {
+//                                Text("Hello, \(patient.userData.Name)")
+//                                    .font(FontSizeManager.font(for: 28, weight: .bold))
+//                                    .foregroundColor(.black)
+//
+//                                Text("Welcome to CareHub")
+//                                    .font(FontSizeManager.font(for: 16, weight: .medium))
+//                                    .foregroundColor(.gray)
+//                            }
+//
+//                            Spacer()
+//
+//                            Button(action: {
+//                                navigateToNotifications = true
+//                                hasViewedNotifications = true
+//                                lastNotificationViewTime = Date()
+//                                UserDefaults.standard.set(true, forKey: "hasViewedNotifications")
+//                                UserDefaults.standard.set(lastNotificationViewTime, forKey: "lastNotificationViewTime")
+//                            }) {
+//                                ZStack {
+//                                    Circle()
+//                                        .fill(cardBackground)
+//                                        .frame(width: 44, height: 44)
+//                                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+//
+//                                    Image(systemName: "bell.fill")
+//                                        .foregroundColor(primaryColor)
+//                                        .font(.system(size: FontSizeManager.fontSize(for: 18)))
+//
+//                                    if notificationCount > 0 {
+//                                        ZStack {
+//                                            Circle()
+//                                                .fill(Color.red)
+//                                                .frame(width: 20, height: 20)
+//                                            Text("\(notificationCount)")
+//                                                .font(FontSizeManager.font(for: 12, weight: .bold))
+//                                                .foregroundColor(.white)
+//                                        }
+//                                        .offset(x: 12, y: -12)
+//                                    }
+//                                }
+//                            }
+//                            .accessibilityLabel("Notifications, \(notificationCount) new")
+//                        }
+//                        .padding(.horizontal, 16)
+//                        .padding(.top, 16)
+//
+//                        // Book Appointment Card
+//                        Button(action: {
+//                            navigateToBooking = true
+//                        }) {
+//                            ZStack {
+//                                RoundedRectangle(cornerRadius: 16)
+//                                    .fill(LinearGradient(
+//                                        gradient: Gradient(colors: [forNowColor, secondaryColor]),
+//                                        startPoint: .topLeading,
+//                                        endPoint: .bottomTrailing
+//                                    ))
+//                                    .shadow(color: primaryColor.opacity(0.2), radius: 10, x: 0, y: 5)
+//
+//                                HStack(spacing: 16) {
+//                                    Image(systemName: "calendar.badge.plus")
+//                                        .resizable()
+//                                        .scaledToFit()
+//                                        .frame(width: 50, height: 50)
+//                                        .foregroundColor(.white)
+//                                        .padding(.leading, 16)
+//
+//                                    VStack(alignment: .leading, spacing: 8) {
+//                                        Text("Book an Appointment")
+//                                            .font(FontSizeManager.font(for: 18, weight: .bold))
+//                                            .foregroundColor(.white)
+//
+//                                        Text("Schedule with your preferred doctor")
+//                                            .font(FontSizeManager.font(for: 14, weight: .medium))
+//                                            .foregroundColor(.white.opacity(0.8))
+//                                    }
+//
+//                                    Spacer()
+//
+//                                    Image(systemName: "chevron.right")
+//                                        .foregroundColor(.white)
+//                                        .font(.system(size: FontSizeManager.fontSize(for: 18)))
+//                                        .padding(.trailing, 16)
+//                                }
+//                                .padding(.vertical, 16)
+//                            }
+//                            .frame(maxWidth: .infinity)
+//                        }
+//                        .buttonStyle(PlainButtonStyle())
+//                        .padding(.horizontal, 16)
+//                        .padding(.bottom, 10)
+//
+//                        // Upcoming Appointments Section
+//                        VStack(alignment: .leading, spacing: 16) {
+//                            sectionHeader(
+//                                title: "Upcoming Appointments",
+//                                hasContent: !upcomingSchedules.isEmpty
+//                            ) {
+//                                NavigationLink {
+//                                    AllAppointmentsView(
+//                                        upcomingSchedules: $upcomingSchedules,
+//                                        getDoctorName: getDoctorName,
+//                                        getDoctorSpecialty: getDoctorSpecialty,
+//                                        formatDate: formatDate
+//                                    )
+//                                } label: {
+//                                    Text("See All")
+//                                        .font(FontSizeManager.font(for: 14, weight: .semibold))
+//                                        .foregroundColor(primaryColor)
+//                                }
+//                            }
+//
+//                            if isLoading {
+//                                HStack {
+//                                    Spacer()
+//                                    ProgressView()
+//                                        .padding()
+//                                    Spacer()
+//                                }
+//                            } else if upcomingSchedules.isEmpty {
+//                                emptyStateView(
+//                                    icon: "calendar",
+//                                    title: "No Upcoming Appointments",
+//                                    message: "You don't have any scheduled appointments"
+//                                )
+//                            } else {
+//                                ScrollView(.horizontal, showsIndicators: false) {
+//                                    HStack(spacing: 16) {
+//                                        ForEach($upcomingSchedules) { $appointment in
+//                                            ImprovedAppointmentCard(
+//                                                doctorName: getDoctorName(for: appointment.docId),
+//                                                specialty: getDoctorSpecialty(for: appointment.docId),
+//                                                date: formatDateTime(appointment.date ?? Date()).date,
+//                                                time: formatDateTime(appointment.date ?? Date()).time,
+//                                                imageName: "doctor1",
+//                                                appointment: $appointment
+//                                            )
+//                                        }
+//                                    }
+//                                    .padding(.vertical, 8)
+//                                    .padding(.horizontal, 2)
+//                                }
+//                            }
+//                        }
+//
+//                        // Recent Prescriptions Section
+//                        VStack(alignment: .leading, spacing: 16) {
+//                            sectionHeader(
+//                                title: "Recent Prescriptions",
+//                                hasContent: !viewModel.recentPrescriptions.isEmpty
+//                            ) {
+//                                NavigationLink {
+//                                     AllPrescriptionsView(
+//                                         prescriptions: viewModel.recentPrescriptions,
+//                                         formatDate: formatDate,
+//                                         viewModel: viewModel
+//                                     )
+//                                } label: {
+//                                    Text("See All")
+//                                        .font(FontSizeManager.font(for: 14, weight: .semibold))
+//                                        .foregroundColor(primaryColor)
+//                                }
+//                            }
+//
+//                            if viewModel.recentPrescriptions.isEmpty {
+//                                emptyStateView(
+//                                    icon: "doc.text",
+//                                    title: "No Recent Prescriptions",
+//                                    message: "Your prescriptions will appear here"
+//                                )
+//                            } else {
+//                                ScrollView(.horizontal, showsIndicators: false) {
+//                                    HStack(spacing: 16) {
+//                                        ForEach(viewModel.recentPrescriptions) { appointment in
+//                                            NavigationLink {
+//                                                prescriptionDestination(for: appointment)
+//                                            } label: {
+//                                                ImprovedMedicalRecordCard(
+//                                                    type: appointment.status,
+//                                                    doctorName: getDoctorName(for: appointment.docId),
+//                                                    date: formatDate(appointment.date),
+//                                                    title: appointment.description
+//                                                )
+//                                            }
+//                                        }
+//                                    }
+//                                    .padding(.vertical, 8)
+//                                    .padding(.horizontal, 2)
+//                                }
+//                            }
+//                        }
+//                        .onAppear {
+//                            print("Fetching recent prescriptions for patientId: \(patient.patientId)")
+//                            viewModel.fetchRecentPrescriptions(forPatientId: patient.patientId)
+//                            print("Recent prescriptions count: \(viewModel.recentPrescriptions.count)")
+//                        }
+//
+//                        //medical tests section
+//
+//                        VStack(alignment: .leading, spacing: 16) {
+//                            sectionHeader(
+//                                title: "Recent Medical Reports",
+//                                hasContent: !viewModel.medicalTests.isEmpty
+//                            ) {
+//                                NavigationLink {
+//                                     AllTestsView(
+//                                         prescriptions: viewModel.medicalTests,
+//                                         formatDate: formatDate,
+//                                         viewModel: viewModel
+//                                     )
+//                                } label: {
+//                                    Text("See All")
+//                                        .font(FontSizeManager.font(for: 14, weight: .semibold))
+//                                        .foregroundColor(primaryColor)
+//                                }
+//                            }
+//
+//                            if viewModel.medicalTests.isEmpty {
+//                                emptyStateView(
+//                                    icon: "doc.text",
+//                                    title: "No Recent Reports",
+//                                    message: "Your reports will appear here"
+//                                )
+//                            } else {
+//                                ScrollView(.horizontal, showsIndicators: false) {
+//                                    HStack(spacing: 16) {
+//                                        ForEach(viewModel.medicalTests) { appointment in
+//                                            NavigationLink {
+//                                                prescriptionDestination(for: appointment)
+//                                            } label: {
+//                                                ImprovedMedicalRecordCard(
+//                                                    type: appointment.status,
+//                                                    doctorName: appointment.doc,
+//                                                    date: formatDate(appointment.date),
+//                                                    title: appointment.testName
+//                                                )
+//                                            }
+//                                        }
+//                                    }
+//                                    .padding(.vertical, 8)
+//                                    .padding(.horizontal, 2)
+//                                }
+//                            }
+//                        }
+//                        .onAppear {
+//                            Task {
+//                                print("Fetching recent reports for patientId: \(patient.patientId)")
+//                                await viewModel.fetchMedicalTests(forPatientId: patient.patientId)
+//                                print("Recent reports count: \(viewModel.medicalTests.count)")
+//                                await viewModel.fetchRecentPrescriptions(forPatientId: patient.patientId)
+//                            }
+//                        }
+//
+//                        // Previously Visited Doctors Section
+//                        VStack(alignment: .leading, spacing: 16) {
+//                            sectionHeader(
+//                                title: "Previously Visited Doctors",
+//                                hasContent: !viewModel.recentPrescriptions.isEmpty
+//                            ) {
+//                                NavigationLink {
+//                                    AllVisitedDoctorsView(
+//                                        recentPrescriptions: viewModel.recentPrescriptions,
+//                                        formatDate: formatDate
+//                                    )
+//                                } label: {
+//                                    Text("See All")
+//                                        .font(FontSizeManager.font(for: 14, weight: .semibold))
+//                                        .foregroundColor(primaryColor)
+//                                }
+//                            }
+//
+//                            if viewModel.recentPrescriptions.isEmpty {
+//                                emptyStateView(
+//                                    icon: "person.2",
+//                                    title: "No Doctor Visits",
+//                                    message: "Your previously visited doctors will appear here"
+//                                )
+//                            } else {
+//                                ScrollView(.horizontal, showsIndicators: false) {
+//                                    HStack(spacing: 16) {
+//                                        ForEach(viewModel.recentPrescriptions) { appointment in
+//                                            ImprovedDoctorCard(
+//                                                name: getDoctorName(for: appointment.docId),
+//                                                specialty: "General Medicine",
+//                                                lastVisit: formatDate(appointment.date),
+//                                                imageName: "defaultDoctorImage"
+//                                            )
+//                                        }
+//                                    }
+//                                    .padding(.vertical, 8)
+//                                    .padding(.horizontal, 2)
+//                                }
+//                            }
+//                        }
+//                    }
+//                    .padding(.bottom, 24)
+//                }
+//                .padding(.leading, 16)
+//                .padding(.trailing, 8)
+//            }
+//            .navigationBarBackButtonHidden(true)
+//            .onAppear {
+//                if listener == nil {
+//                    isLoading = true
+//                    loadDoctorData {
+//                        setupSnapshotListener()
+//                    }
+//                }
+//                if isInitialLoad {
+//                    isInitialLoad = false
+//                } else if isVoiceOverEnabled {
+//                    readHomeViewText()
+//                }
+//                print("Recent prescriptions count on appear: \(viewModel.recentPrescriptions.count)")
+//            }
+//            .onDisappear {
+//                listener?.remove()
+//                listener = nil
+//                speechSynthesizer.stopSpeaking(at: .immediate)
+//            }
+//            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppointmentBooked"))) { _ in
+//                listener?.remove()
+//                listener = nil
+//                isLoading = true
+//                setupSnapshotListener()
+//            }
+//            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppointmentCancelled"))) { _ in
+//                listener?.remove()
+//                listener = nil
+//                isLoading = true
+//                setupSnapshotListener()
+//            }
+//            .navigationDestination(isPresented: $navigateToBooking) {
+//                DoctorView(patientId: patient.patientId)
+//            }
+//            .navigationDestination(isPresented: $navigateToNotifications) {
+//                NotificationsView(
+//                    upcomingSchedules: upcomingSchedules,
+//                    getDoctorName: getDoctorName,
+//                    getDoctorSpecialty: getDoctorSpecialty,
+//                    formatDate: formatDate
+//                )
+//            }
+//            .onChange(of: isVoiceOverEnabled) { newValue in
+//                if newValue {
+//                    readHomeViewText()
+//                } else {
+//                    speechSynthesizer.stopSpeaking(at: .immediate)
+//                }
+//            }
+//        }
+//    }
+    
+    private func prescriptionDestination(for appointment: Appointment) -> some View {
+        // Check if prescriptionId exists and create a URL
+        guard let prescriptionURL = appointment.prescriptionId,
+              let imageUrl = URL(string: prescriptionURL) else {
+            return AnyView(
+                VStack {
+                    Text("Invalid Prescription URL")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                    // Debugging: Show the prescriptionId
+                    Text("Prescription ID: \(appointment.prescriptionId ?? "nil")")
+                        .font(.subheadline)
+                        .foregroundColor(.red)
+                }
+            )
+        }
+
+        return AnyView(
+            VStack {
+                AsyncImage(url: imageUrl) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .padding()
+                    case .failure(let error):
+                        VStack {
+                            Text("Failed to Load Image")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            Text("Error: \(error.localizedDescription)")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            // Debugging: Show the URL
+                            Text("URL: \(imageUrl.absoluteString)")
+                                .font(.subheadline)
+                                .foregroundColor(.red)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+            }
+            .navigationTitle("Prescription Image")
+            .navigationBarTitleDisplayMode(.inline)
+        )
+    }
+    
+    private func medicalTestDestination(for appointment: TestResult) -> some View {
+        guard let pdfUrl = URL(string: appointment.pdfUrl) else {
+            return AnyView(
+                VStack {
+                    Text("Unable to Load Medical Test")
+                        .font(FontSizeManager.font(for: 18, weight: .bold))
+                        .foregroundColor(.primary)
+                    Text("The document is not available.")
+                        .font(FontSizeManager.font(for: 16, weight: .regular))
+                        .foregroundColor(.secondary)
+                }
+                .onAppear {
+                    print("Invalid or malformed test URL for appointment: \(appointment.testName)")
+                }
+            )
+        }
+
+        return AnyView(
+            PDFKitView(url: pdfUrl)
+                .navigationTitle("Medical Test")
+                .navigationBarTitleDisplayMode(.inline)
+                .onAppear {
+                    print("Navigating to PDF view with URL: \(pdfUrl)")
+                }
+        )
+    }
+    
     private func readHomeViewText() {
         var textToRead = " Welcome to CareHub. "
         if isLoading {
@@ -412,7 +966,6 @@ struct HomeView_patient: View {
         utterance.rate = 0.5
         speechSynthesizer.speak(utterance)
     }
-
     private func sectionHeader<T: View>(title: String, hasContent: Bool, @ViewBuilder action: @escaping () -> T) -> some View {
         HStack {
             Text(title)
@@ -878,7 +1431,7 @@ struct AppointmentListCard: View {
 struct AllPrescriptionsView: View {
     let prescriptions: [Appointment]
     let formatDate: (Date?) -> String
-    let viewModel: AppointmentViewModel
+    let viewModel: AppointmentViewModel // Add viewModel as a parameter
     
     private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     var body: some View {
@@ -935,20 +1488,290 @@ struct AllPrescriptionsView: View {
     
     private func prescriptionDestination(for appointment: Appointment) -> some View {
         Group {
-            if let medicalTestId = appointment.prescriptionId,
-               let pdfUrlStr = viewModel.medicalTestPdfUrls[medicalTestId],
-               let pdfUrl = URL(string: pdfUrlStr) {
-                PDFKitView(url: pdfUrl)
+            if let prescriptionURL = appointment.prescriptionId,
+               let imageUrl = URL(string: prescriptionURL) {
+                AnyView(
+                    VStack {
+                        AsyncImage(url: imageUrl) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                            case .failure:
+                                VStack {
+                                    Text("Failed to Load Image")
+                                        .font(FontSizeManager.font(for: 18, weight: .bold))
+                                        .foregroundColor(.primary)
+                                    Text("The image could not be retrieved.")
+                                        .font(FontSizeManager.font(for: 16, weight: .regular))
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                    }
+                    .navigationTitle("Prescription Image")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .onAppear {
+                        print("Navigating to image view with URL: \(imageUrl)")
+                    }
+                )
             } else {
-                VStack {
-                    Text("Unable to Load Medical Test Report")
-                        .font(FontSizeManager.font(for: 18, weight: .bold))
-                        .foregroundColor(.primary)
-                    Text("The document is not available.")
-                        .font(FontSizeManager.font(for: 16, weight: .regular))
-                        .foregroundColor(.secondary)
-                }
+                AnyView(
+                    VStack {
+                        Text("Unable to Load Medical Test Report")
+                            .font(FontSizeManager.font(for: 18, weight: .bold))
+                            .foregroundColor(.primary)
+                        Text("The document is not available.")
+                            .font(FontSizeManager.font(for: 16, weight: .regular))
+                            .foregroundColor(.secondary)
+                    }
+                    .onAppear {
+                        print("Invalid or missing prescription URL for appointment: \(appointment.description)")
+                    }
+                )
             }
+        }
+    }
+    
+    private func getDoctorName(for docId: String) -> String {
+        for specialty in DoctorData.doctors.keys {
+            if let doctor = DoctorData.doctors[specialty]?.first(where: { $0.id == docId }) {
+                return doctor.doctor_name
+            }
+        }
+        return "Unknown Doctor"
+    }
+}
+
+//struct AllTestsView: View {
+//    let prescriptions: [TestResult]
+//    let formatDate: (Date?) -> String
+//    let viewModel: AppointmentViewModel // Add viewModel as a parameter
+//
+//    private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+//    var body: some View {
+//        ZStack {
+//            Color(.systemBackground)
+//                .ignoresSafeArea()
+//            ScrollView {
+//                VStack(spacing: 16) {
+//                    if prescriptions.isEmpty {
+//                        VStack(spacing: 12) {
+//                            Image(systemName: "doc.text.fill")
+//                                .resizable()
+//                                .scaledToFit()
+//                                .frame(width: 60, height: 60)
+//                                .foregroundColor(.secondary)
+//                                .font(.system(size: 60))
+//                            Text("No Tests Available")
+//                                .font(.system(size: 20, weight: .bold))
+//                                .foregroundColor(.primary)
+//                            Text("Your reports will appear here once added.")
+//                                .font(.system(size: 16, weight: .regular))
+//                                .foregroundColor(.secondary)
+//                                .multilineTextAlignment(.center)
+//                                .padding(.horizontal)
+//                        }
+//                        .padding(.vertical, 20)
+//                        .accessibilityElement(children: .combine)
+//                    } else {
+//                        ForEach(prescriptions) { testResult in
+//                            NavigationLink(
+//                                destination: prescriptionDestination(for: testResult),
+//                                label: {
+//                                    ImprovedMedicalRecordCard(
+//                                        type: testResult.status,
+//                                        doctorName: testResult.doc,
+//                                        date: formatDate(testResult.date),
+//                                        title: testResult.testName
+//                                    )
+//                                    .padding(.horizontal, 20)
+//                                    .accessibilityLabel("Test Name: \(testResult.testName) by \(testResult.doc), dated \(formatDate(testResult.date))")
+//                                }
+//                            )
+//                            .buttonStyle(.plain)
+//                        }
+//                    }
+//                }
+//                .padding(.top, 20)
+//                .padding(.bottom, 20)
+//            }
+//        }
+//        .navigationTitle("All Medical Reports")
+//        .navigationBarTitleDisplayMode(.inline)
+//    }
+//
+//    private func prescriptionDestination(for testResult: TestResult) -> some View {
+//        if let url = URL(string: testResult.pdfUrl), !testResult.pdfUrl.isEmpty {
+//            return AnyView(
+//                PDFViewer(pdfUrl: url)
+//                    .navigationTitle("Medical Test Report")
+//                    .navigationBarTitleDisplayMode(.inline)
+//                    .overlay {
+//                        ProgressView()
+//                            .opacity(url.isFileURL || url.absoluteString.isEmpty ? 0 : 1)
+//                    }
+//                    .onAppear {
+//                        print("Navigating to PDF view with URL: \(url)")
+//                    }
+//            )
+//        } else {
+//            return AnyView(
+//                VStack {
+//                    Text("Unable to Load Medical Test Report")
+//                        .font(.system(size: 18, weight: .bold))
+//                        .foregroundColor(.primary)
+//                    Text("The document is not available.")
+//                        .font(.system(size: 16, weight: .regular))
+//                        .foregroundColor(.secondary)
+//                }
+//                .onAppear {
+//                    print("Invalid or missing PDF URL for test result: \(testResult.testName)")
+//                }
+//            )
+//        }
+//    }
+//
+//    private func getDoctorName(for docId: String) -> String {
+//        for specialty in DoctorData.doctors.keys {
+//            if let doctor = DoctorData.doctors[specialty]?.first(where: { $0.id == docId }) {
+//                return doctor.doctor_name
+//            }
+//        }
+//        return "Unknown Doctor"
+//    }
+//}
+
+struct EmptyTestsView: View {
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "doc.text.fill")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 60, height: 60)
+                .foregroundColor(.secondary)
+                .font(.system(size: 60))
+            Text("No Tests Available")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.primary)
+            Text("Your reports will appear here once added.")
+                .font(.system(size: 16, weight: .regular))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+        }
+        .padding(.vertical, 20)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct ErrorViewTest: View {
+    let testName: String
+    
+    var body: some View {
+        VStack {
+            Text("Unable to Load Medical Test Report")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.primary)
+            Text("The document for \(testName) is not available.")
+                .font(.system(size: 16, weight: .regular))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding()
+        .onAppear {
+            print("Invalid or missing PDF URL for test result: \(testName)")
+        }
+    }
+}
+
+struct PDFViewerView: View {
+    let pdfUrl: URL
+    
+    var body: some View {
+        PDFViewer(pdfUrl: pdfUrl)
+            .navigationTitle("Medical Test Report")
+            .navigationBarTitleDisplayMode(.inline)
+            .overlay {
+                ProgressView()
+                    .opacity(pdfUrl.isFileURL || pdfUrl.absoluteString.isEmpty ? 0 : 1)
+            }
+            .onAppear {
+                print("Navigating to PDF view with URL: \(pdfUrl)")
+            }
+    }
+}
+
+struct TestResultCardPatient: View {
+    let testResult: TestResult
+    let formatDate: (Date?) -> String
+    let destination: AnyView
+    
+    var body: some View {
+        NavigationLink(
+            destination: destination,
+            label: {
+                ImprovedMedicalRecordCard(
+                    type: testResult.status,
+                    doctorName: testResult.doc,
+                    date: testResult.date,
+                    title: testResult.testName
+                )
+                .padding(.horizontal, 20)
+                .accessibilityLabel("Test Name: \(testResult.testName) by \(testResult.doc)")
+            }
+        )
+        .buttonStyle(.plain)
+    }
+}
+
+struct AllTestsView: View {
+    let prescriptions: [TestResult]
+    let formatDate: (Date?) -> String
+    let viewModel: AppointmentViewModel
+    
+    private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    
+    var body: some View {
+        ZStack {
+            Color(.systemBackground)
+                .ignoresSafeArea()
+            ScrollView {
+                VStack(spacing: 16) {
+                    if prescriptions.isEmpty {
+                        EmptyTestsView()
+                    } else {
+                        ForEach(prescriptions) { testResult in
+                            TestResultCardPatient(
+                                testResult: testResult,
+                                formatDate: formatDate,
+                                destination: prescriptionDestination(for: testResult)
+                            )
+                        }
+                    }
+                }
+                .padding(.top, 20)
+                .padding(.bottom, 20)
+            }
+        }
+        .navigationTitle("All Medical Reports")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    private func prescriptionDestination(for testResult: TestResult) -> AnyView {
+        if let url = URL(string: testResult.pdfUrl), !testResult.pdfUrl.isEmpty {
+            return AnyView(PDFViewerView(pdfUrl: url))
+        } else {
+            return AnyView(ErrorViewTest(testName: testResult.testName))
         }
     }
     
@@ -1072,6 +1895,7 @@ struct ImprovedAppointmentCard: View {
     }
 }
 
+
 struct ImprovedMedicalRecordCard: View {
     let type: String
     let doctorName: String
@@ -1156,7 +1980,7 @@ struct ImprovedDoctorCard: View {
                         .overlay(Circle().stroke(primaryColor, lineWidth: 2))
                     
                     Image(systemName: "person.fill")
-                        .font(.system(size: 40))
+                        .font(.system(size: 40)) // Reduced size of the icon
                         .foregroundColor(primaryColor)
                 }
                 
@@ -1175,8 +1999,8 @@ struct ImprovedDoctorCard: View {
                 }
                 
                 Spacer()
-                
-               
+            
+                .accessibilityLabel("Call \(name)")
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -1184,7 +2008,6 @@ struct ImprovedDoctorCard: View {
         .frame(maxWidth: .infinity)
     }
 }
-
 // MARK: - AllVisitedDoctorsView
 struct AllVisitedDoctorsView: View {
     let recentPrescriptions: [Appointment]

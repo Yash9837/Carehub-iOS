@@ -1,11 +1,3 @@
-//
-//  SymptomToSpecialtyData.swift
-//  Carehub
-//
-//  Created by Yash Gupta on 08/05/25.
-//
-
-
 import Foundation
 
 struct SymptomToSpecialtyData {
@@ -102,3 +94,4 @@ struct SymptomToSpecialtyData {
         "dark urine": ["Nephrology", "Hepatology"]
     ]
 }
+
