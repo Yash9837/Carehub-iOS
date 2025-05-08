@@ -1,11 +1,16 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import AVFoundation // For text-to-speech
+
 struct ProfileView_patient: View {
     let patient: PatientF
     @Environment(\.dismiss) private var dismiss
     @State private var navigateToLogin = false
     @AppStorage("isLargeFontEnabled") private var isLargeFontEnabled = false
+    @AppStorage("isVoiceOverEnabled") private var isVoiceOverEnabled = false // New toggle for VoiceOver
+    @State private var speechSynthesizer = AVSpeechSynthesizer() // Speech synthesizer instance
+    @State private var isInitialLoad = true
     var body: some View {
         NavigationStack {
             ZStack {
@@ -13,7 +18,13 @@ struct ProfileView_patient: View {
                     .edgesIgnoringSafeArea(.all)
                 ScrollView {
                     VStack(spacing: 16) {
-                        VStack {
+                        // Accessibility Section with Toggles
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Accessibility")
+                                .font(FontSizeManager.font(for: 18, weight: .bold))
+                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                .padding(.horizontal, 16)
+
                             Toggle(isOn: $isLargeFontEnabled) {
                                 Label("Large Font Size", systemImage: "textformat.size")
                                     .font(FontSizeManager.font(for: 16, weight: .medium))
@@ -26,12 +37,37 @@ struct ProfileView_patient: View {
                                     .fill(Color.white)
                                     .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
                             )
+
+                            Toggle(isOn: $isVoiceOverEnabled) {
+                                Label("VoiceOver (Read Aloud)", systemImage: "speaker.wave.2.fill")
+                                    .font(FontSizeManager.font(for: 16, weight: .medium))
+                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                            }
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(Color.white)
+                                    .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                            )
+                            .onChange(of: isVoiceOverEnabled) { newValue in
+                                if newValue {
+                                    readProfileText()
+                                } else {
+                                    speechSynthesizer.stopSpeaking(at: .immediate)
+                                }
+                            }
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
 
                         // Profile Header
-                        VStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Profile")
+                                .font(FontSizeManager.font(for: 24, weight: .bold))
+                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                .padding(.horizontal, 16)
+
                             HStack(spacing: 16) {
                                 Image(systemName: "person.circle.fill")
                                     .resizable()
@@ -58,14 +94,14 @@ struct ProfileView_patient: View {
                                 }
                                 Spacer()
                             }
+                            .padding(.vertical, 14)
+                            .padding(.horizontal, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(Color.white)
+                                    .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                            )
                         }
-                        .padding(.vertical, 14)
-                        .padding(.horizontal, 16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(Color.white)
-                                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
-                        )
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
 
@@ -199,11 +235,53 @@ struct ProfileView_patient: View {
                 }
                 .navigationTitle("Profile")
                 .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        NavigationLink(destination: EditProfileView(patient: patient)) {
+                            Text("Edit")
+                                .font(FontSizeManager.font(for: 16, weight: .medium))
+                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                        }
+                    }
+                }
                 .fullScreenCover(isPresented: $navigateToLogin) {
                     LoginView()
                 }
             }
+            .navigationTitle("Profile")
         }
+        .onAppear {
+            if isVoiceOverEnabled {
+                readProfileText()
+            }
+        }
+        .onAppear {
+                    if isInitialLoad {
+                        isInitialLoad = false // Mark initial load as complete
+                    } else if isVoiceOverEnabled {
+                        readProfileText() // Only read if not initial load and VoiceOver is enabled
+                    }
+                }
+        .onDisappear {
+                    speechSynthesizer.stopSpeaking(at: .immediate) // Stop speech when leaving the view
+                }
+    }
+
+    private func readProfileText() {
+        let textToRead = """
+        Profile. \(patient.userData.Name).
+        Personal Information. Patient ID \(patient.patientId). Date of Birth \(patient.userData.Dob). Email \(patient.userData.Email).
+        Contact Information. Phone Number \(patient.userData.phoneNo). Address \(patient.userData.Address). Aadhar Number \(patient.userData.aadharNo.isEmpty ? "Not Provided" : patient.userData.aadharNo). Emergency Contacts \(patient.emergencyContact.map { "\($0.name) \($0.Number)" }.joined(separator: ", ")).
+        Medical Information. Allergies \(patient.vitals.allergies.joined(separator: ", ")). Latest Blood Pressure \(patient.vitals.bp.last?.value ?? "Not Recorded"). Latest Heart Rate \(patient.vitals.heartRate.last?.value ?? "Not Recorded"). Latest Height \(patient.vitals.height.last?.value ?? "Not Recorded"). Latest Temperature \(patient.vitals.temperature.last?.value ?? "Not Recorded"). Latest Weight \(patient.vitals.weight.last?.value ?? "Not Recorded").
+        """
+        speak(text: textToRead)
+    }
+
+    private func speak(text: String) {
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        utterance.rate = 0.5
+        speechSynthesizer.speak(utterance)
     }
 }
 

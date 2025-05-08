@@ -661,9 +661,8 @@ struct RegisterView: View {
     private func validatePhone(_ phone: String) -> Bool {
         let phoneRegex = "^[0-9]{10}$"
         let phonePredicate = NSPredicate(format: "SELF MATCHES %@", phoneRegex)
-        return phonePredicate.evaluate(with: phone.trimmingCharacters(in: .whitespaces))
+        return phonePredicate.evaluate(with: phone)
     }
-    
     private func validatePassword(_ password: String) -> Bool {
         let trimmedPassword = password.trimmingCharacters(in: .whitespaces)
         return !trimmedPassword.isEmpty && trimmedPassword.count >= 6 && !trimmedPassword.contains(" ")

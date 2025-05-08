@@ -1,6 +1,6 @@
 import SwiftUI
 import FirebaseFirestore
-
+import AVFoundation
 struct AppointmentDetailsModal: View {
     let appointment: Appointment
     let doctorName: String
@@ -13,13 +13,14 @@ struct AppointmentDetailsModal: View {
     @State private var selectedDate = Date()
     @State private var selectedTime = ""
     @State private var isDatePickerExpanded = false
-    
+    @AppStorage("isVoiceOverEnabled") private var isVoiceOverEnabled = false
+    @State private var speechSynthesizer = AVSpeechSynthesizer()
+    @State private var isInitialLoad = true
     private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     private let gradientColors = [
         Color(red: 0.43, green: 0.34, blue: 0.99),
         Color(red: 0.55, green: 0.48, blue: 0.99)
     ]
-    
     var body: some View {
         ZStack {
             Color(red: 0.94, green: 0.94, blue: 1.0)
@@ -69,6 +70,23 @@ struct AppointmentDetailsModal: View {
             Text("Are you sure you want to cancel this appointment? This action cannot be undone.")
                 .font(FontSizeManager.font(for: 16))
         }
+        .onAppear {
+            if isInitialLoad {
+                            isInitialLoad = false // Mark initial load as complete
+                        } else if isVoiceOverEnabled {
+                            readAppointmentDetailsText() // Only read if not initial load and VoiceOver is enabled
+                        }
+        }
+        .onChange(of: isVoiceOverEnabled) { newValue in
+            if newValue {
+                readAppointmentDetailsText()
+            } else {
+                speechSynthesizer.stopSpeaking(at: .immediate)
+            }
+        }
+        .onDisappear {
+                    speechSynthesizer.stopSpeaking(at: .immediate) // Stop speech when the modal is dismissed
+                }
     }
     
     private var headerView: some View {
@@ -214,7 +232,21 @@ struct AppointmentDetailsModal: View {
         }
         .padding(.horizontal, 20)
     }
-    
+    private func readAppointmentDetailsText() {
+            var textToRead = "Appointment Details. View and manage your appointment. Doctor. \(doctorName). \(specialty). Details. Date and Time \(formatDate(appointment.date ?? Date())). Description \(appointment.description). Status \(appointment.status.capitalized). Billing Status \(appointment.billingStatus.capitalized). Amount \(String(format: "%.2f Rs", appointment.amount ?? 0.0)). "
+            if appointment.followUpRequired ?? false {
+                textToRead += "Follow-Up \(formatDate(appointment.followUpDate ?? Date())). "
+            }
+            textToRead += "Reschedule. Cancel."
+            speak(text: textToRead)
+        }
+
+        private func speak(text: String) {
+            let utterance = AVSpeechUtterance(string: text)
+            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+            utterance.rate = 0.5
+            speechSynthesizer.speak(utterance)
+        }
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
