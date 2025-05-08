@@ -99,7 +99,7 @@ struct RegisterView: View {
     @State private var generatedID = ""
     @State private var showAlert = false
     @State private var navigateToLogin = false
-    @State private var navigateToDashboard = false
+    @State private var navigateToHome = false
     @State private var registeredPatient: PatientF?
     @State private var errorMessage: String?
     @Environment(\.dismiss) private var dismiss
@@ -220,7 +220,11 @@ struct RegisterView: View {
             .navigationDestination(isPresented: $navigateToLogin) {
                 LoginView()
             }
-            .navigationDestination(isPresented: $navigateToDashboard) {
+            .navigationDestination(isPresented: $navigateToHome) {
+                if let patient = registeredPatient {
+                    HomeView_patient(patient: patient)
+                        .navigationBarBackButtonHidden(true)
+                }
             }
             .sheet(isPresented: $showDatePicker) {
                 VStack {
@@ -284,9 +288,7 @@ struct RegisterView: View {
                 CareHubTextField(text: $password, placeholder: "Password", isSecure: true, isValid: isPasswordValid, icon: "lock.fill")
                     .accessibilityLabel("Password")
                     .onChange(of: password) { newValue in
-                        let isValid = validatePassword(newValue)
-                        isPasswordValid = isValid
-                        print("Password: \(newValue), isPasswordValid: \(isPasswordValid)")
+                        isPasswordValid = validatePassword(newValue)
                     }
             }
             
@@ -663,6 +665,7 @@ struct RegisterView: View {
         let phonePredicate = NSPredicate(format: "SELF MATCHES %@", phoneRegex)
         return phonePredicate.evaluate(with: phone)
     }
+    
     private func validatePassword(_ password: String) -> Bool {
         let trimmedPassword = password.trimmingCharacters(in: .whitespaces)
         return !trimmedPassword.isEmpty && trimmedPassword.count >= 6 && !trimmedPassword.contains(" ")
@@ -733,7 +736,7 @@ struct RegisterView: View {
             AuthManager.shared.checkEmailVerification { isVerified, errorMessage in
                 DispatchQueue.main.async {
                     if isVerified {
-                        navigateToDashboard = true
+                        navigateToHome = true
                     } else {
                         showAlert = true
                         self.errorMessage = errorMessage ?? "Email not yet verified. Please check your inbox or spam folder."
@@ -771,6 +774,7 @@ struct RegisterView: View {
         return formatter.string(from: date)
     }
 }
+
 struct RegisterView_Previews: PreviewProvider {
     static var previews: some View {
         RegisterView()
