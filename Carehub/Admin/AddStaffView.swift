@@ -14,8 +14,8 @@ struct AddStaffView: View {
     @State private var shiftEndTime = Date()
     @State private var showingAlert = false
     @State private var alertMessage = ""
-//    @State private var profileImage: UIImage?
-//    @State private var showImagePicker = false
+    @State private var profileImage: UIImage?
+    @State private var showImagePicker = false
     @State private var showingSuccessAlert = false
     
     // Doctor-specific fields
@@ -40,8 +40,6 @@ struct AddStaffView: View {
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        // Profile image at the top
-//                        profileImageSection
                         
                         // Personal Information Section
                         formSection(title: "Personal Information") {
@@ -96,23 +94,21 @@ struct AddStaffView: View {
             .navigationTitle("Add New Staff")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
                     }
                     .foregroundColor(accentColor)
-                    
                 }
-                
             }
             .alert("Validation Error", isPresented: $showingAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(alertMessage)
             }
-//            .sheet(isPresented: $showImagePicker) {
-//                ImagePicker(image: $profileImage)
-//            }
+            .sheet(isPresented: $showImagePicker) {
+                ImagePicker(image: $profileImage)
+            }
         }
         .alert("Saved Successfully", isPresented: $showingSuccessAlert) {
             Button("OK") {
@@ -120,6 +116,9 @@ struct AddStaffView: View {
             }
         }
     }
+
+    
+    // MARK: - UI Components
     
     private func formSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 16) {
