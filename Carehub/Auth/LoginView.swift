@@ -24,137 +24,138 @@ struct LoginView: View {
     }
     
     private var loginContent: some View {
-        ZStack {
-            // Background gradient
-            LinearGradient(
-                colors: [
-                    Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4),
-                    Color(red: 0.94, green: 0.94, blue: 1.0),
-                    Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .edgesIgnoringSafeArea(.all)
-            
-            // Main content - removed ScrollView
-            VStack(spacing: 25) {
-                // Header
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("CareHub")
-                        .font(.system(size: 48, weight: .bold))
-                        .foregroundColor(.black)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 50)
-                
-                // Role Picker
-                Picker("Login As", selection: $selectedRole) {
-                    Text("Patient").tag(Role.patient)
-                    Text("Staff").tag(Role.staff)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 20)
-                
-                // Form fields
-                VStack(spacing: 20) {
-                    CareHubTextField(
-                        text: $email,
-                        placeholder: selectedRole == .patient ? "Enter your Email ID" : "Enter your Staff ID",
-                        isSecure: false,
-                        isValid: true,
-                        icon: "envelope.fill"
-                    )
-                    .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
-                    .textContentType(.emailAddress)
-                    
-                    CareHubTextField(
-                        text: $password,
-                        placeholder: "Enter Password",
-                        isSecure: true,
-                        isValid: true,
-                        icon: "lock.fill"
-                    )
-                    .textContentType(.password)
-                }
-                .padding(.horizontal, 20)
-                
-                // Login button
-                Button(action: login) {
-                    ZStack {
-                        Rectangle()
-                            .fill(Color.clear)
-                            .frame(height: 24)
-                        
-                        if isLoading {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Text("Login")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .padding(.vertical, 16)
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color(red: 0.43, green: 0.34, blue: 0.99),
-                            Color(red: 0.55, green: 0.48, blue: 0.99)
-                        ]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .cornerRadius(12)
-                    .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.3), radius: 8, x: 0, y: 4)
+        NavigationStack {
+            ZStack {
+                // Background gradient
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4),
+                        Color(red: 0.94, green: 0.94, blue: 1.0),
+                        Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
-                .disabled(isLoading || email.isEmpty || password.isEmpty)
-                .padding(.horizontal, 20)
+                .edgesIgnoringSafeArea(.all)
                 
-                // Register link (only for patient role)
-                if selectedRole == .patient {
-                    HStack {
-                        Text("Don't have an account?")
+                // Main content
+                VStack(spacing: 25) {
+                    // Header
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("CareHub")
+                            .font(.system(size: 48, weight: .bold))
                             .foregroundColor(.black)
-                        Button(action: {
-                            RegisterView()
-                        }) {
-                            Text("Register")
-                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                .underline()
-                                .fontWeight(.semibold)
-                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 50)
+                    
+                    // Role Picker
+                    Picker("Login As", selection: $selectedRole) {
+                        Text("Patient").tag(Role.patient)
+                        Text("Staff").tag(Role.staff)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 20)
+                    
+                    // Form fields
+                    VStack(spacing: 20) {
+                        CareHubTextField(
+                            text: $email,
+                            placeholder: selectedRole == .patient ? "Enter your Email ID" : "Enter your Staff ID",
+                            isSecure: false,
+                            isValid: true,
+                            icon: "envelope.fill"
+                        )
+                        .keyboardType(.emailAddress)
+                        .autocapitalization(.none)
+                        .textContentType(.emailAddress)
+                        
+                        CareHubTextField(
+                            text: $password,
+                            placeholder: "Enter Password",
+                            isSecure: true,
+                            isValid: true,
+                            icon: "lock.fill"
+                        )
+                        .textContentType(.password)
                     }
                     .padding(.horizontal, 20)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 10)
+                    
+                    // Login button
+                    Button(action: login) {
+                        ZStack {
+                            Rectangle()
+                                .fill(Color.clear)
+                                .frame(height: 24)
+                            
+                            if isLoading {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Text("Login")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .padding(.vertical, 16)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color(red: 0.43, green: 0.34, blue: 0.99),
+                                Color(red: 0.55, green: 0.48, blue: 0.99)
+                            ]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                        .cornerRadius(12)
+                        .shadow(color: Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.3), radius: 8, x: 0, y: 4)
+                    )
+                    .disabled(isLoading || email.isEmpty || password.isEmpty)
+                    .padding(.horizontal, 20)
+                    
+                    // Register link (only for patient role)
+                    if selectedRole == .patient {
+                        HStack {
+                            Text("Don't have an account?")
+                                .foregroundColor(.black)
+                            NavigationLink(destination: RegisterView()) {
+                                Text("Register")
+                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                    .underline()
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 10)
+                    }
+                    
+                    Spacer()
                 }
-                
-                Spacer()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        }
-        .alert("Login Error", isPresented: $showAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(errorMessage ?? "Unknown error occurred")
-        }
-        .onChange(of: authManager.errorMessage) { newValue in
-            if let newValue = newValue {
-                errorMessage = newValue
-                showAlert = true
+            .navigationBarBackButtonHidden(true)
+            .alert("Login Error", isPresented: $showAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage ?? "Unknown error occurred")
             }
-        }
-        .sheet(isPresented: Binding(
-            get: { !appState.hasCompletedOnboarding && !appState.isSplashActive },
-            set: { _ in }
-        )) {
-            OnboardingView()
-                .environmentObject(appState)
+            .onChange(of: authManager.errorMessage) { newValue in
+                if let newValue = newValue {
+                    errorMessage = newValue
+                    showAlert = true
+                }
+            }
+            .sheet(isPresented: Binding(
+                get: { !appState.hasCompletedOnboarding && !appState.isSplashActive },
+                set: { _ in }
+            )) {
+                OnboardingView()
+                    .environmentObject(appState)
+            }
         }
     }
     
