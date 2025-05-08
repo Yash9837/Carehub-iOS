@@ -16,6 +16,7 @@ struct ScheduleAppointmentView: View {
     @State private var isLoading = false
     @State private var isDataLoaded = false
     @State private var isDataLoadFailed = false
+    @State private var consultationFee: Double = 0.0
     
     private var timeSlots: [String] {
         var slots = [String]()
@@ -151,6 +152,10 @@ struct ScheduleAppointmentView: View {
             isDataLoaded = true
             if DoctorData.specialties.isEmpty {
                 isDataLoadFailed = true
+            } else {
+                // Fetch consultation fee
+                let doctor = DoctorData.doctors[selectedSpecialty]?.first { $0.doctor_name == selectedDoctor }
+                consultationFee = Double(doctor?.consultationFee ?? Int(0.0))
             }
         }
     }
@@ -272,40 +277,24 @@ struct ScheduleAppointmentView: View {
                         )
                     }
                 } else {
-                    VStack {
-                        DatePicker(
-                            "Select Date",
-                            selection: $selectedDate,
-                            in: Date()...Calendar.current.date(byAdding: .month, value: 3, to: Date())!,
-                            displayedComponents: .date
-                        )
-                        .datePickerStyle(GraphicalDatePickerStyle())
-                        .accentColor(purpleColor)
-                        .padding(.top, 8)
-                        .font(FontSizeManager.font(for: 16))
-                        
-                        Button(action: {
-                            withAnimation {
-                                isDatePickerExpanded.toggle()
+                    DatePicker(
+                        "Select Date",
+                        selection: Binding(
+                            get: { selectedDate },
+                            set: { newDate in
+                                selectedDate = newDate
+                                withAnimation {
+                                    isDatePickerExpanded = false
+                                }
                             }
-                        }) {
-                            Text("Done")
-                                .font(FontSizeManager.font(for: 16, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: gradientColors),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .cornerRadius(10)
-                                .shadow(color: purpleColor.opacity(0.3), radius: 4, x: 0, y: 2)
-                        }
-                        .padding(.top, 12)
-                    }
+                        ),
+                        in: Date()...Calendar.current.date(byAdding: .month, value: 3, to: Date())!,
+                        displayedComponents: .date
+                    )
+                    .datePickerStyle(GraphicalDatePickerStyle())
+                    .accentColor(purpleColor)
+                    .padding(.top, 8)
+                    .font(FontSizeManager.font(for: 16))
                     .padding(16)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
@@ -446,6 +435,7 @@ struct ScheduleAppointmentView: View {
                     summaryRow(icon: "person.fill", title: "Doctor", value: selectedDoctor)
                     summaryRow(icon: "calendar", title: "Date", value: formattedDate(selectedDate))
                     summaryRow(icon: "clock.fill", title: "Time", value: selectedTimeSlot)
+                    summaryRow(icon: "dollarsign.circle", title: "Fees", value: String(format: "%.2f Rs", consultationFee))
                     if !description.isEmpty {
                         summaryRow(icon: "text.bubble", title: "Description", value: description)
                     }
@@ -581,7 +571,6 @@ struct ScheduleAppointmentView: View {
                 createNewAppointment(appointmentDateTime: appointmentDateTime, doctorId: doctorId)
             }
     }
-    
     private func createNewAppointment(appointmentDateTime: Date, doctorId: String) {
         let randomNumber = Int.random(in: 0..<10000)
         let randomLetters = String(format: "%02X", Int.random(in: 0..<256))
