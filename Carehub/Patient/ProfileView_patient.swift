@@ -234,7 +234,6 @@ struct ProfileView_patient: View {
                     .padding(.top, 16)
                     .padding(.bottom, 24)
                 }
-                .navigationTitle("Profile")
                 .navigationBarTitleDisplayMode(.large)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
