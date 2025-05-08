@@ -195,17 +195,11 @@ struct HomeView_patient: View {
                                 hasContent: !viewModel.recentPrescriptions.isEmpty
                             ) {
                                 NavigationLink {
-                                    AllPrescriptionsView(
-                                        patientId: patient.patientId,
-                                        viewModel: viewModel,
-                                        billViewModel: GenerateBillViewModel()
-                                    )
-                                    // Alternative initializer if preferred:
-                                    // AllPrescriptionsView(
-                                    //     prescriptions: viewModel.recentPrescriptions,
-                                    //     formatDate: formatDate,
-                                    //     viewModel: viewModel
-                                    // )
+                                     AllPrescriptionsView(
+                                         prescriptions: viewModel.recentPrescriptions,
+                                         formatDate: formatDate,
+                                         viewModel: viewModel
+                                     )
                                 } label: {
                                     Text("See All")
                                         .font(FontSizeManager.font(for: 14, weight: .semibold))
@@ -350,44 +344,54 @@ struct HomeView_patient: View {
         Group {
             if let prescriptionURL = appointment.prescriptionId,
                let imageUrl = URL(string: prescriptionURL) {
-                print("Navigating to image view with URL: \(imageUrl)")
-                AsyncImage(url: imageUrl) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                    case .failure:
-                        VStack {
-                            Text("Failed to Load Image")
-                                .font(FontSizeManager.font(for: 18, weight: .bold))
-                                .foregroundColor(.primary)
-                            Text("The image could not be retrieved.")
-                                .font(FontSizeManager.font(for: 16, weight: .regular))
-                                .foregroundColor(.secondary)
+                AnyView(
+                    VStack {
+                        AsyncImage(url: imageUrl) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                            case .failure:
+                                VStack {
+                                    Text("Failed to Load Image")
+                                        .font(FontSizeManager.font(for: 18, weight: .bold))
+                                        .foregroundColor(.primary)
+                                    Text("The image could not be retrieved.")
+                                        .font(FontSizeManager.font(for: 16, weight: .regular))
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            @unknown default:
+                                EmptyView()
+                            }
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    @unknown default:
-                        EmptyView()
                     }
-                }
-                .navigationTitle("Prescription Image")
-                .navigationBarTitleDisplayMode(.inline)
+                    .navigationTitle("Prescription Image")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .onAppear {
+                        print("Navigating to image view with URL: \(imageUrl)")
+                    }
+                )
             } else {
-                print("Invalid or missing prescription URL for appointment: \(appointment.description)")
-                VStack {
-                    Text("Unable to Load Medical Test Report")
-                        .font(FontSizeManager.font(for: 18, weight: .bold))
-                        .foregroundColor(.primary)
-                    Text("The document is not available.")
-                        .font(FontSizeManager.font(for: 16, weight: .regular))
-                        .foregroundColor(.secondary)
-                }
+                AnyView(
+                    VStack {
+                        Text("Unable to Load Medical Test Report")
+                            .font(FontSizeManager.font(for: 18, weight: .bold))
+                            .foregroundColor(.primary)
+                        Text("The document is not available.")
+                            .font(FontSizeManager.font(for: 16, weight: .regular))
+                            .foregroundColor(.secondary)
+                    }
+                    .onAppear {
+                        print("Invalid or missing prescription URL for appointment: \(appointment.description)")
+                    }
+                )
             }
         }
     }
@@ -949,19 +953,56 @@ struct AllPrescriptionsView: View {
     
     private func prescriptionDestination(for appointment: Appointment) -> some View {
         Group {
-            // Use prescriptionId to look up the pdfUrl from medicalTestPdfUrls
             if let prescriptionURL = appointment.prescriptionId,
-               let pdfUrl = URL(string: prescriptionURL) {
-                PDFKitViewPatient(url: pdfUrl)
+               let imageUrl = URL(string: prescriptionURL) {
+                AnyView(
+                    VStack {
+                        AsyncImage(url: imageUrl) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                            case .failure:
+                                VStack {
+                                    Text("Failed to Load Image")
+                                        .font(FontSizeManager.font(for: 18, weight: .bold))
+                                        .foregroundColor(.primary)
+                                    Text("The image could not be retrieved.")
+                                        .font(FontSizeManager.font(for: 16, weight: .regular))
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                    }
+                    .navigationTitle("Prescription Image")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .onAppear {
+                        print("Navigating to image view with URL: \(imageUrl)")
+                    }
+                )
             } else {
-                VStack {
-                    Text("Unable to Load Medical Test Report")
-                        .font(FontSizeManager.font(for: 18, weight: .bold))
-                        .foregroundColor(.primary)
-                    Text("The document is not available.")
-                        .font(FontSizeManager.font(for: 16, weight: .regular))
-                        .foregroundColor(.secondary)
-                }
+                AnyView(
+                    VStack {
+                        Text("Unable to Load Medical Test Report")
+                            .font(FontSizeManager.font(for: 18, weight: .bold))
+                            .foregroundColor(.primary)
+                        Text("The document is not available.")
+                            .font(FontSizeManager.font(for: 16, weight: .regular))
+                            .foregroundColor(.secondary)
+                    }
+                    .onAppear {
+                        print("Invalid or missing prescription URL for appointment: \(appointment.description)")
+                    }
+                )
             }
         }
     }
