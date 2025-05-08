@@ -1,7 +1,7 @@
 import SwiftUI
 import FirebaseFirestore
 
-// PatientCard View (updated with navigation)
+// PatientCard View (unchanged)
 struct PatientCard: View {
     let patientWithTest: PatientWithTest
     @Environment(\.presentationMode) var presentationMode
@@ -74,20 +74,16 @@ struct PatientCard: View {
     }
 }
 
-// HomeView_LT View
+// HomeView_LT View (modified)
 struct HomeView_LT: View {
     @State private var searchText = ""
-    @State private var selectedCategory = "All"
     @State private var patientsWithTests: [PatientWithTest] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     
-    let categories = ["All", "Blood Count", "Lipid Panel", "Thyroid Function", "Glucose Test", "Cholesterol Test", "Allergy Test", "Joint Fluid Analysis", "Blood Test"]
-    
     var filteredPatients: [PatientWithTest] {
         patientsWithTests.filter { patientWithTest in
-            (searchText.isEmpty || patientWithTest.patient.name.lowercased().contains(searchText.lowercased())) &&
-            (selectedCategory == "All" || patientWithTest.medicalTest.testName == selectedCategory)
+            searchText.isEmpty || patientWithTest.patient.name.lowercased().contains(searchText.lowercased())
         }
     }
     
@@ -97,89 +93,80 @@ struct HomeView_LT: View {
                 Color(red: 0.94, green: 0.94, blue: 1.0)
                     .edgesIgnoringSafeArea(.all)
                 
-                ScrollView {
+                GeometryReader { geometry in
                     VStack(spacing: 0) {
-                        HStack {
+                        // Fixed Header Section
+                        VStack(spacing: 16) {
+                            // Search Bar
                             HStack {
-                                Image(systemName: "magnifyingglass")
+                                HStack {
+                                    Image(systemName: "magnifyingglass")
+                                        .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
+                                        .font(.system(size: 18))
+                                        .padding(.leading, 12)
+                                    
+                                    TextField("Search by patient name...", text: $searchText)
+                                        .font(.system(size: 16))
+                                        .padding(.vertical, 12)
+                                }
+                                .background(Color.white)
+                                .cornerRadius(12)
+                                .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+                                .padding(.horizontal, 16)
+                            }
+                            .padding(.top, 16)
+                            
+                            // Pending Tests Header
+                            HStack {
+                                Text("Pending Tests")
+                                    .font(.system(size: 18, weight: .bold))
                                     .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                    .font(.system(size: 18))
-                                    .padding(.leading, 12)
                                 
-                                TextField("Search by patient name...", text: $searchText)
-                                    .font(.system(size: 16))
-                                    .padding(.vertical, 12)
+                                Text("(\(filteredPatients.count))")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(Color.gray)
+                                
+                                Spacer()
                             }
-                            .background(Color.white)
-                            .cornerRadius(12)
-                            .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
-                            .padding(.leading, 16)
-                            
-                            Menu {
-                                Picker("Filter by Test", selection: $selectedCategory) {
-                                    ForEach(categories, id: \.self) { category in
-                                        Text(category)
-                                            .foregroundColor(.black)
-                                    }
-                                }
-                            } label: {
-                                Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                                    .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                                    .font(.system(size: 28))
-                                    .frame(width: 45, height: 45)
-                                    .background(Color.white)
-                                    .clipShape(Circle())
-                                    .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
-                            }
-                            .padding(.trailing, 16)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 14)
                         }
-                        .padding(.top, 16)
-                        .padding(.bottom, 16)
                         
-                        HStack {
-                            Text(selectedCategory == "All" ? "Pending Tests" : selectedCategory)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(Color(red: 0.43, green: 0.34, blue: 0.99))
-                            
-                            Text("(\(filteredPatients.count))")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(Color.gray)
-                            
-                            Spacer()
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 14)
-                        
-                        if isLoading {
-                            ProgressView()
-                                .padding(.vertical, 20)
-                        } else if let error = errorMessage {
-                            VStack {
-                                Text("Error: \(error)")
-                                    .foregroundColor(.red)
-                                Button("Retry") {
-                                    fetchPendingTests()
-                                }
-                                .padding()
-                                .background(Color.blue)
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
-                            }
-                        } else if filteredPatients.isEmpty {
-                            Text("No patients found")
-                                .font(.system(size: 16))
-                                .foregroundColor(.gray)
-                                .padding(.vertical, 20)
-                        } else {
+                        // Scrollable Patient Cards
+                        ScrollView {
                             LazyVStack(spacing: 0) {
-                                ForEach(filteredPatients, id: \.id) { patientWithTest in
-                                    NavigationLink(destination: UpdateTestView(medicalTestId: patientWithTest.medicalTest.id)) {
-                                        PatientCard(patientWithTest: patientWithTest)
+                                if isLoading {
+                                    ProgressView()
+                                        .padding(.vertical, 20)
+                                } else if let error = errorMessage {
+                                    VStack {
+                                        Text("Error: \(error)")
+                                            .foregroundColor(.red)
+                                        Button("Retry") {
+                                            fetchPendingTests()
+                                        }
+                                        .padding()
+                                        .background(Color.blue)
+                                        .foregroundColor(.white)
+                                        .cornerRadius(8)
+                                    }
+                                    .padding(.vertical, 20)
+                                } else if filteredPatients.isEmpty {
+                                    Text("No patients found")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(.gray)
+                                        .padding(.vertical, 20)
+                                } else {
+                                    ForEach(filteredPatients, id: \.id) { patientWithTest in
+                                        NavigationLink(destination: UpdateTestView(medicalTestId: patientWithTest.medicalTest.id)) {
+                                            PatientCard(patientWithTest: patientWithTest)
+                                        }
                                     }
                                 }
                             }
                             .padding(.bottom, 24)
                         }
+                        .frame(height: geometry.size.height - 150) // Adjust height based on header size
                     }
                 }
             }
@@ -189,7 +176,6 @@ struct HomeView_LT: View {
                 fetchPendingTests()
             }
             .onDisappear {
-                // Refresh data when returning to this view
                 fetchPendingTests()
             }
         }
