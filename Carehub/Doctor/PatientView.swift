@@ -17,6 +17,8 @@ struct MyPatientsView: View {
     
     private let db = Firestore.firestore()
     @State private var listener: ListenerRegistration?
+    private let backgroundColor = Color(red: 0.97, green: 0.97, blue: 1.0)
+    private let accentColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     
     var filteredPatients: [Patient] {
         if searchText.isEmpty {
@@ -27,44 +29,72 @@ struct MyPatientsView: View {
     }
     
     var body: some View {
-        VStack {
-            // Search Bar
-            PatientSearchBar(text: $searchText, placeholder: "Search patients")
-                .padding(.horizontal)
-            
-            // Patient List
-            List(filteredPatients) { patient in
-                NavigationLink {
-                    DetailsPresriptionView(patientId: patient.patientId)
-                } label: {
-                    PatientInfoCard(patient: patient)
+        NavigationStack {
+            ZStack {
+                backgroundColor.edgesIgnoringSafeArea(.all)
+                
+                VStack(spacing: 16) {
+                    // Header with title and search bar
+                    VStack(spacing: 16) {
+                        PatientSearchBar(text: $searchText, placeholder: "Search patients")
+                            .padding(.horizontal)
+                    }
+                    
+                    if filteredPatients.isEmpty {
+                        Spacer()
+                        VStack(spacing: 12) {
+                            Image(systemName: "person.3.fill")
+                                .font(.system(size: 60))
+                                .foregroundColor(accentColor.opacity(0.3))
+                            
+                            Text("No patients found")
+                                .font(.title3)
+                                .fontWeight(.medium)
+                                .foregroundColor(.gray)
+                            
+                            if !searchText.isEmpty {
+                                Text("Try a different search term")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray.opacity(0.8))
+                            }
+                        }
+                        Spacer()
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 12) {
+                                ForEach(filteredPatients) { patient in
+                                    NavigationLink {
+                                        DetailsPresriptionView(patientId: patient.patientId)
+                                    } label: {
+                                        PatientInfoCard(patient: patient)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                            .padding(.horizontal)
+                            .padding(.bottom, 16)
+                        }
+                        .scrollIndicators(.hidden)
+                    }
                 }
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 5, leading: 0, bottom: 5, trailing: 0))
-                .listRowBackground(Color.clear)
             }
-            .listStyle(.plain)
-        }
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4),
-                    Color.white.opacity(0.9),
-                    Color(red: 0.43, green: 0.34, blue: 0.99).opacity(0.4)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .navigationTitle("My Patients")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            fetchDoctorIdAndPatients()
-        }
-        .onDisappear {
-            // Clean up listener to prevent memory leaks
-            listener?.remove()
-            listener = nil
+            .navigationTitle("My Patients")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("My Patients")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.black)
+                }
+            }
+            .onAppear {
+                fetchDoctorIdAndPatients()
+            }
+            .onDisappear {
+                listener?.remove()
+                listener = nil
+            }
         }
     }
     
@@ -75,7 +105,6 @@ struct MyPatientsView: View {
             return
         }
         
-        // Fetch doctorId from the doctors collection
         db.collection("doctors").document(uid).getDocument { snapshot, error in
             if let error = error {
                 print("Error fetching doctor: \(error.localizedDescription)")
@@ -101,10 +130,8 @@ struct MyPatientsView: View {
             return
         }
         
-        // Remove any existing listener to avoid duplicates
         listener?.remove()
         
-        // Fetch appointments for the doctor and extract unique patients
         listener = db.collection("appointments")
             .whereField("docId", isEqualTo: doctorId)
             .addSnapshotListener { snapshot, error in
@@ -120,10 +147,8 @@ struct MyPatientsView: View {
                     return
                 }
                 
-                // Extract unique patient IDs
                 let patientIds = Set(documents.compactMap { $0.data()["patientId"] as? String })
                 
-                // Fetch patient details
                 var fetchedPatients: [Patient] = []
                 let group = DispatchGroup()
                 
@@ -139,25 +164,20 @@ struct MyPatientsView: View {
                                 return
                             }
                             
-                            // Check for valid patient document
                             guard let patientDoc = patientSnapshot?.documents.first else {
                                 print("No patient document found for patientId: \(patientId)")
                                 return
                             }
                             
-                            // Get document data
                             let data = patientDoc.data()
                             
-                            // Check and cast userData
                             guard let userData = data["userData"] as? [String: Any] else {
                                 print("Invalid or missing userData for patientId: \(patientId)")
                                 return
                             }
                             
-                            // Extract name with fallback value
                             let name = userData["Name"] as? String ?? "Unknown"
                             
-                            // Get the most recent appointment date for this patient
                             let patientAppointments = documents.filter { $0.data()["patientId"] as? String == patientId }
                             let mostRecentDate = patientAppointments
                                 .compactMap { ($0.data()["date"] as? Timestamp)?.dateValue() }
@@ -167,7 +187,7 @@ struct MyPatientsView: View {
                             
                             let patient = Patient(
                                 name: name,
-                                visitDate: "Visited: \(visitDateString)",
+                                visitDate: "Last visit: \(visitDateString)",
                                 patientId: patientId
                             )
                             fetchedPatients.append(patient)
@@ -175,7 +195,6 @@ struct MyPatientsView: View {
                 }
                 
                 group.notify(queue: .main) {
-                    // Sort patients by name for consistent display
                     patients = fetchedPatients.sorted { $0.name < $1.name }
                     print("Total patients fetched: \(patients.count)")
                 }
@@ -186,70 +205,94 @@ struct MyPatientsView: View {
 struct PatientSearchBar: View {
     @Binding var text: String
     let placeholder: String
+    private let accentColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     
     var body: some View {
         HStack {
             Image(systemName: "magnifyingglass")
-                .foregroundColor(.gray)
+                .foregroundColor(accentColor.opacity(0.7))
+                .font(.system(size: 16))
+            
             TextField(placeholder, text: $text)
                 .foregroundColor(.primary)
+                .font(.system(size: 16))
+            
             if !text.isEmpty {
                 Button(action: {
                     text = ""
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.gray)
+                        .font(.system(size: 16))
                 }
             }
         }
-        .padding(10)
-        .background(Color(.systemGray6))
-        .cornerRadius(10)
+        .padding(12)
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.06), radius: 5, x: 0, y: 2)
     }
 }
 
 struct PatientInfoCard: View {
     let patient: Patient
+    private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     
     var body: some View {
-        HStack {
-            // Patient Image Placeholder
-            Circle()
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 50, height: 50)
-                .overlay(
-                    Image(systemName: "person.fill")
+        ZStack {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
+            
+            HStack(spacing: 16) {
+                // Avatar with gradient border
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    primaryColor.opacity(0.7),
+                                    primaryColor.opacity(0.5)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 56, height: 56)
+                    
+                    Text(String(patient.name.prefix(1)))
+                        .font(.system(size: 22, weight: .semibold))
                         .foregroundColor(.white)
-                        .font(.system(size: 30))
-                )
-                .padding(.leading, 10)
-            
-            // Patient Info
-            VStack(alignment: .leading, spacing: 5) {
-                Text(patient.name)
-                    .font(.headline)
-                    .foregroundColor(.white)
-                Text(patient.visitDate)
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.7))
+                }
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(patient.name)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.black)
+                    
+                    Text(patient.visitDate)
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                }
+                
+                Spacer()
+                
+                // Chevron inside the card
+                Image(systemName: "chevron.right")
+                    .foregroundColor(primaryColor.opacity(0.6))
+                    .font(.system(size: 16, weight: .semibold))
             }
-            .padding(.vertical, 10)
-            
-            Spacer()
-            
-            // Chevron
-            Image(systemName: "chevron.right")
-                .foregroundColor(.white.opacity(0.7))
-                .padding(.trailing, 10)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
         }
-        .background(Color(red: 0.45, green: 0.44, blue: 0.99))
-        .cornerRadius(10)
-        .padding(.horizontal)
+        .frame(maxWidth: .infinity)
     }
 }
 
 struct MyPatientsView_Previews: PreviewProvider {
     static var previews: some View {
-        MyPatientsView()
+        NavigationStack {
+            MyPatientsView()
+        }
     }
 }

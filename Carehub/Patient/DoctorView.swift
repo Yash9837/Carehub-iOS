@@ -259,10 +259,14 @@ struct DoctorView: View {
         if let doctor = doctor {
             return AnyView(DoctorDetailView(doctor: doctor, specialty: specialty, patientId: patientId))
         } else {
+            // Fallback in case doctor is not found (shouldn't happen with proper data)
             return AnyView(Text("Doctor not found").foregroundColor(.red))
         }
     }
 }
+
+// The rest of the code (SpecialtyCard, SpecialtyDoctorsView, DoctorCardView, DoctorDetailView) remains unchanged
+
 struct SpecialtyCard: View {
     let specialty: String
     var iconName: String {

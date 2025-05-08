@@ -2104,3 +2104,4 @@ struct AllVisitedDoctorsView: View {
         return doctorMap.values.sorted { $0.lastVisit > $1.lastVisit }
     }
 }
+

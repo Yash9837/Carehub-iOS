@@ -2,13 +2,6 @@ import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
 
-struct DoctorsNote: Identifiable {
-    let id = UUID()
-    let appointmentID: String
-    let note: String
-    let patientID: String
-}
-
 struct Qualification {
     let degree: String
     let institution: String
@@ -16,27 +9,29 @@ struct Qualification {
     let description: String
 }
 
-// MARK: - ProfileView_doc
 struct ProfileView_doc: View {
     @StateObject private var authManager = AuthManager.shared
     @State private var doctor: Doctor? = nil
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var doctorId: String = ""
-    @State private var showLogoutAlert = false
-    @State private var logoutErrorMessage: String?
-    @State private var isLoggedOut = false
     @State private var patientCount: Int = 0
-    @State private var appointments: [Appointment] = [] // New state for appointments
+    @State private var appointments: [Appointment] = []
+    @Binding var showChangePasswordCard: Bool
+    @Binding var oldPassword: String
+    @Binding var newPassword: String
+    @Binding var reEnterNewPassword: String
+    @Binding var passwordErrorMessage: String?
+    @Binding var showConfirmPasswordChangeAlert: Bool
+    @Binding var showLogoutAlert: Bool
+    @Binding var logoutErrorMessage: String?
+    @Binding var isLoggedOut: Bool
     private let purpleColor = Color(hex: "6D57FC")
-    private let lightPurple = Color(hex: "6D57FC").opacity(0.05)
-    private let mediumPurple = Color(hex: "6D57FC").opacity(0.7)
+    private let lightPurple = Color(hex: "6D57FC").opacity(0.1)
     private let darkPurple = Color(hex: "4A3FC7")
     private let backgroundColor = Color(hex: "F6F7FF")
-
     private let db = Firestore.firestore()
 
-    // Computed properties for monthly summary
     private var currentMonthAppointments: [Appointment] {
         let calendar = Calendar.current
         let currentMonth = calendar.component(.month, from: Date())
@@ -49,135 +44,177 @@ struct ProfileView_doc: View {
         }
     }
 
-    private var totalAppointments: Int {
-        currentMonthAppointments.count
-    }
-
+    private var totalAppointments: Int { currentMonthAppointments.count }
     private var completedAppointments: Int {
         currentMonthAppointments.filter { $0.status.lowercased() == "completed" }.count
     }
 
-    private var upcomingAppointments: Int {
-        currentMonthAppointments.filter { appointment in
-            guard let date = appointment.date else { return false }
-            return appointment.status.lowercased() == "scheduled" && date > Date()
-        }.count
-    }
-
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    if let doctor = doctor {
-                        ProfileHeaderView(doctor: doctor, purpleColor: purpleColor, darkPurple: darkPurple)
-                            .padding(.bottom, -5)
-                        
-                        DoctorIDCardView(doctor: doctor, purpleColor: purpleColor)
-                            .padding(.bottom, 5)
-                            
-                        StatsView(doctor: doctor, purpleColor: purpleColor, patientCount: patientCount)
-                            .padding(.bottom, 5)
-                            
-                        MonthlySummaryView(
-                            totalAppointments: totalAppointments,
-                            completedAppointments: completedAppointments,
-                            upcomingAppointments: upcomingAppointments,
-                            purpleColor: purpleColor,
-                            lightPurple: lightPurple
-                        ) // Pass dynamic values
-                            .padding(.bottom, 5)
-                        
-                        // Doctor's Notes section
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Doctor's Notes")
-                                .font(.system(size: 20, weight: .bold, design: .rounded))
-                                .foregroundColor(.black)
-                                .padding(.top, 5)
-
-                            if doctor.doctorsNotes?.isEmpty ?? true {
-                                Text("No notes available.")
-                                    .font(.system(size: 15, weight: .regular, design: .rounded))
-                                    .foregroundColor(.gray)
-                                    .padding(.bottom, 5)
-                            } else {
-                                ForEach(doctor.doctorsNotes ?? [], id: \.id) { note in
-                                    NavigationLink(
-                                        destination: NotesView(appointment: Appointment(
-                                            id: note.appointmentID,
-                                            apptId: note.appointmentID,
-                                            patientId: note.patientID,
-                                            description: "",
-                                            docId: doctor.id,
-                                            status: "scheduled",
-                                            billingStatus: "unpaid",
-                                            amount: 0.0,
-                                            date: Date(),
-                                            doctorsNotes: note.note,
-                                            prescriptionId: nil,
-                                            followUpRequired: false,
-                                            followUpDate: nil
-                                        ))
-                                    ) {
-                                        NoteCard(note: note, color: purpleColor)
-                                    }
-                                }
+        ZStack {
+            backgroundColor.edgesIgnoringSafeArea(.all)
+            
+            // Main content
+            if isLoading {
+                ProgressView()
+                    .scaleEffect(1.5)
+            } else if let doctor = doctor {
+                VStack(spacing: 16) {
+                    ProfileHeaderView(doctor: doctor, purpleColor: purpleColor, darkPurple: darkPurple)
+                    DoctorIDCardView(doctor: doctor, purpleColor: purpleColor)
+                    StatsView(doctor: doctor, purpleColor: purpleColor, patientCount: patientCount)
+                    MonthlySummaryView(
+                        totalAppointments: totalAppointments,
+                        completedAppointments: completedAppointments,
+                        purpleColor: purpleColor,
+                        lightPurple: lightPurple
+                    )
+                    Spacer() // Push content up and fill remaining space
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+            } else if let errorMessage = errorMessage {
+                Text("Error: \(errorMessage)")
+                    .foregroundColor(.red)
+                    .font(.system(size: 18, weight: .medium))
+            }
+            
+            // Three-dot menu button in top-right corner
+            if !isLoading && doctor != nil {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Menu {
+                            Button(action: {
+                                showChangePasswordCard = true
+                                oldPassword = ""
+                                newPassword = ""
+                                reEnterNewPassword = ""
+                                passwordErrorMessage = nil
+                            }) {
+                                Text("Change Password")
+                                    .font(.system(size: 16, weight: .medium))
                             }
-                            
-                            Spacer(minLength: 20)
-                            
                             Button(action: {
                                 authManager.logout()
                                 isLoggedOut = true
                             }) {
-                                Text("Logout")
+                                Text("Log Out")
                                     .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.red)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(Color.red.opacity(0.1))
-                                    .cornerRadius(8)
                             }
-                            .padding(.top, 5)
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .foregroundColor(purpleColor)
+                                .font(.system(size: 20, weight: .bold))
+                                .padding(8)
+                                .background(Circle().fill(purpleColor.opacity(0.1)))
                         }
-                        .padding(.vertical, 5)
-
-                        Spacer()
-                            .frame(height: 80)
-                    } else if let errorMessage = errorMessage {
-                        Text("Error: \(errorMessage)")
+                        .padding(.top, 12)
+                        .padding(.trailing, 20)
+                    }
+                    Spacer()
+                }
+            }
+            
+            // Change Password Card
+            if showChangePasswordCard {
+                Color.black.opacity(0.4)
+                    .edgesIgnoringSafeArea(.all)
+                    .onTapGesture {
+                        showChangePasswordCard = false
+                    }
+                
+                VStack(spacing: 20) {
+                    Text("Change Password")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundColor(.black)
+                    
+                    if let errorMessage = passwordErrorMessage {
+                        Text(errorMessage)
                             .foregroundColor(.red)
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    
+                    VStack(spacing: 16) {
+                        SecureField("Old Password", text: $oldPassword)
                             .padding()
+                            .background(Color.white)
+                            .cornerRadius(10)
+                            .shadow(color: Color.black.opacity(0.1), radius: 4)
+                            .font(.system(size: 16))
+                        
+                        SecureField("New Password", text: $newPassword)
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(10)
+                            .shadow(color: Color.black.opacity(0.1), radius: 4)
+                            .font(.system(size: 16))
+                        
+                        SecureField("Re-enter New Password", text: $reEnterNewPassword)
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(10)
+                            .shadow(color: Color.black.opacity(0.1), radius: 4)
+                            .font(.system(size: 16))
+                    }
+                    
+                    Button(action: {
+                        passwordErrorMessage = nil
+                        if oldPassword.isEmpty || newPassword.isEmpty || reEnterNewPassword.isEmpty {
+                            passwordErrorMessage = "All fields are required."
+                            return
+                        }
+                        if newPassword != reEnterNewPassword {
+                            passwordErrorMessage = "New passwords do not match."
+                            return
+                        }
+                        if newPassword == oldPassword {
+                            passwordErrorMessage = "New password must be different from the old password."
+                            return
+                        }
+                        showConfirmPasswordChangeAlert = true
+                    }) {
+                        Text("Save")
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(purpleColor)
+                            .cornerRadius(10)
+                            .shadow(color: purpleColor.opacity(0.4), radius: 6)
                     }
                 }
-                .padding(.horizontal, 20)
-            }
-            .background(backgroundColor)
-            .edgesIgnoringSafeArea(.bottom)
-            .navigationTitle("Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                fetchDoctorData()
-            }
-            .onReceive(authManager.$currentStaffMember) { newStaff in
-                fetchDoctorData()
-            }
-            .alert(isPresented: $showLogoutAlert) {
-                Alert(
-                    title: Text("Logout Failed"),
-                    message: Text(logoutErrorMessage ?? "An error occurred"),
-                    dismissButton: .default(Text("OK"))
-                )
+                .padding(20)
+                .background(Color(hex: "F6F7FF"))
+                .cornerRadius(16)
+                .shadow(color: Color.black.opacity(0.2), radius: 10)
+                .padding(.horizontal, 30)
             }
         }
-        .fullScreenCover(isPresented: $isLoggedOut) {
-            LoginView() // Replace with your actual login view
+        .onAppear { fetchDoctorData() }
+        .onReceive(authManager.$currentStaffMember) { _ in fetchDoctorData() }
+        .alert(isPresented: $showLogoutAlert) {
+            Alert(
+                title: Text("Logout Failed"),
+                message: Text(logoutErrorMessage ?? "An error occurred"),
+                dismissButton: .default(Text("OK"))
+            )
         }
+        .alert(isPresented: $showConfirmPasswordChangeAlert) {
+            Alert(
+                title: Text("Confirm"),
+                message: Text("Are you sure you want to change your password?"),
+                primaryButton: .default(Text("Yes")) {
+                    proceedWithPasswordUpdate()
+                },
+                secondaryButton: .cancel(Text("No"))
+            )
+        }
+        .fullScreenCover(isPresented: $isLoggedOut) { LoginView() }
     }
 
     private func fetchDoctorData() {
         isLoading = true
         guard let uid = Auth.auth().currentUser?.uid else {
-            print("No UID available to fetch doctor data - user might not be logged in")
             doctorId = ""
             doctor = nil
             isLoading = false
@@ -186,126 +223,74 @@ struct ProfileView_doc: View {
             return
         }
 
-        print("Fetching doctor data for UID: \(uid)")
         db.collection("doctors").document(uid).getDocument { snapshot, error in
             defer { isLoading = false }
             if let error = error {
-                print("Error fetching doctor from UID: \(error.localizedDescription)")
                 doctorId = ""
                 doctor = nil
                 errorMessage = error.localizedDescription
                 return
             }
 
-            guard let document = snapshot, document.exists, let data = document.data() else {
-                print("No document found for UID: \(uid) in doctors collection")
+            guard let document = snapshot, document.exists, let data = document.data(),
+                  let docId = data["Doctorid"] as? String else {
                 doctorId = ""
                 doctor = nil
                 errorMessage = "Doctor data not found"
                 return
             }
 
-            guard let docId = data["Doctorid"] as? String else {
-                print("Missing Doctorid in document data: \(data)")
-                doctorId = ""
-                doctor = nil
-                errorMessage = "Doctor ID not found"
-                return
-            }
-
             doctorId = docId
-
             let experience = data["Doctor_experience"] as? Double ?? Double(data["Doctor_experience"] as? Int ?? 0)
-            let doctorData = Doctor(
-                id: data["Doctorid"] as? String ?? "",
-                department: data["Filed_name"] as? String ?? "",
+            doctor = Doctor(
+                id: docId,
+                department: data["department"] as? String ?? (data["Filed_name"] as? String ?? ""),
                 doctor_name: data["Doctor_name"] as? String ?? "",
                 doctor_experience: Int(experience),
                 email: data["Email"] as? String,
                 imageURL: data["ImageURL"] as? String,
-                password: data["Password"] as? String,
                 consultationFee: Int(data["consultationFee"] as? Double ?? 0.0),
                 license_number: data["license_number"] as? String,
                 phoneNo: data["phoneNo"] as? String,
                 doctorsNotes: nil
             )
-            self.doctor = doctorData
-
-            // Fetch doctor's notes dynamically
-            DoctorData.fetchDoctorNotes(forDoctorId: doctorId) { notes in
-                if var updatedDoctor = self.doctor {
-                    updatedDoctor.doctorsNotes = notes.isEmpty ? nil : notes
-                    self.doctor = updatedDoctor
-                }
-            }
-
-            // Fetch patient count
             fetchPatientCount()
-
-            // Fetch appointments for monthly summary
             fetchAppointments()
         }
     }
 
     private func fetchPatientCount() {
-        guard !doctorId.isEmpty else {
-            patientCount = 0
-            return
-        }
-
+        guard !doctorId.isEmpty else { patientCount = 0; return }
         db.collection("appointments")
             .whereField("docId", isEqualTo: doctorId)
             .getDocuments { snapshot, error in
                 if let error = error {
-                    print("Error fetching appointments for patient count: \(error)")
-                    self.patientCount = 0
+                    patientCount = 0
                     return
                 }
-
-                guard let documents = snapshot?.documents else {
-                    print("No appointment documents found for docId: \(self.doctorId)")
-                    self.patientCount = 0
-                    return
-                }
-
-                let patientIds = Set(documents.compactMap { $0.data()["patientId"] as? String })
-                self.patientCount = patientIds.count
-                print("Fetched patient count: \(self.patientCount)")
+                let patientIds = Set(snapshot?.documents.compactMap { $0.data()["patientId"] as? String } ?? [])
+                patientCount = patientIds.count
             }
     }
 
     private func fetchAppointments() {
-        guard !doctorId.isEmpty else {
-            appointments = []
-            return
-        }
-
+        guard !doctorId.isEmpty else { appointments = []; return }
         db.collection("appointments")
             .whereField("docId", isEqualTo: doctorId)
             .getDocuments { snapshot, error in
                 if let error = error {
-                    print("Error fetching appointments: \(error)")
-                    self.appointments = []
+                    appointments = []
                     return
                 }
-
-                guard let documents = snapshot?.documents else {
-                    print("No appointment documents found for docId: \(self.doctorId)")
-                    self.appointments = []
-                    return
-                }
-
-                self.appointments = documents.compactMap { doc -> Appointment? in
+                appointments = snapshot?.documents.compactMap { doc -> Appointment? in
                     let data = doc.data()
                     guard let apptId = data["apptId"] as? String,
                           let patientId = data["patientId"] as? String,
                           let docId = data["docId"] as? String,
                           let description = (data["description"] as? String) ?? (data["Description"] as? String),
                           let status = (data["status"] as? String) ?? (data["Status"] as? String) else {
-                        print("Failed to map document: \(doc.documentID), missing required fields")
                         return nil
                     }
-
                     return Appointment(
                         id: doc.documentID,
                         apptId: apptId,
@@ -321,113 +306,116 @@ struct ProfileView_doc: View {
                         followUpRequired: data["followUpRequired"] as? Bool,
                         followUpDate: (data["followUpDate"] as? Timestamp)?.dateValue()
                     )
-                }
-                print("Fetched appointments for monthly summary: \(self.appointments.count)")
+                } ?? []
             }
     }
+
+    private func updatePassword() {
+        guard let user = Auth.auth().currentUser,
+              let email = user.email else {
+            passwordErrorMessage = "User not logged in or email not found."
+            return
+        }
+
+        let credential = EmailAuthProvider.credential(withEmail: email, password: oldPassword)
+        user.reauthenticate(with: credential) { _, error in
+            if let error = error {
+                passwordErrorMessage = "Old password is incorrect: \(error.localizedDescription)"
+                return
+            }
+
+            user.updatePassword(to: newPassword) { error in
+                if let error = error {
+                    passwordErrorMessage = "Failed to update password: \(error.localizedDescription)"
+                    return
+                }
+
+                showChangePasswordCard = false
+            }
+        }
+    }
+
+    private func proceedWithPasswordUpdate() {
+        updatePassword()
+    }
 }
+
 struct ProfileHeaderView: View {
     let doctor: Doctor
     let purpleColor: Color
     let darkPurple: Color
 
     var body: some View {
-       
-
-            VStack(spacing: 15) {
-                ZStack {
-                    
-                        Image(systemName: "person.circle")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 100, height: 100)
-                            .foregroundColor(purpleColor.opacity(0.7))
-                }
-                
-
-                VStack(spacing: 5) {
-                    Text(doctor.doctor_name)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(.black)
-
-                    Text(doctor.department)
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .foregroundColor(darkPurple)
-                }
-            }
-            .frame(maxWidth: .infinity)
+        VStack(spacing: 10) {
+            Image(systemName: "person.circle.fill")
+                .resizable()
+                .frame(width: 80, height: 80)
+                .foregroundColor(purpleColor)
+            Text(doctor.doctor_name)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundColor(.black)
+            Text(doctor.department)
+                .font(.system(size: 16, weight: .medium, design: .rounded))
+                .foregroundColor(darkPurple)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
     }
-
+}
 
 struct DoctorIDCardView: View {
     let doctor: Doctor
     let purpleColor: Color
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 18)
-                .fill(
-                    LinearGradient(
-                        gradient: Gradient(colors: [purpleColor, purpleColor.opacity(0.85)]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .shadow(color: purpleColor.opacity(0.2), radius: 10, x: 0, y: 5)
-
+        ZStack(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(LinearGradient(
+                    gradient: Gradient(colors: [purpleColor, purpleColor.opacity(0.7)]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+                .shadow(color: purpleColor.opacity(0.2), radius: 8)
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("DOCTOR ID")
                         .font(.system(size: 12, weight: .bold, design: .rounded))
                         .foregroundColor(.white.opacity(0.8))
-
                     Text(doctor.id)
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 }
-
-                Divider()
-                    .background(.white.opacity(0.4))
-                    .padding(.vertical, 2)
-
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("LICENSE NUMBER")
+                    Text("LICENSE NO")
                         .font(.system(size: 12, weight: .bold, design: .rounded))
                         .foregroundColor(.white.opacity(0.8))
-                        
                     Text(doctor.license_number ?? "N/A")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 }
-
-                HStack {
-                    Spacer()
-                    Text("Medical Council of India")
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.8))
-                }
             }
-            .padding(20)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
-        .frame(height: 180)
+        .frame(height: 150)
     }
 }
 
 struct StatsView: View {
     let doctor: Doctor
     let purpleColor: Color
-    let patientCount: Int // New parameter for dynamic patient count
+    let patientCount: Int
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 12) {
             StatView(icon: "person.2.fill", value: "\(patientCount)", label: "Patients", color: purpleColor)
             StatView(icon: "clock.fill", value: "\(doctor.doctor_experience ?? 0) Yrs", label: "Experience", color: purpleColor)
         }
+        .padding(.vertical, 12)
         .background(
-            RoundedRectangle(cornerRadius: 18)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(.white)
-                .shadow(color: purpleColor.opacity(0.08), radius: 10, x: 0, y: 5)
+                .shadow(color: purpleColor.opacity(0.1), radius: 8)
         )
     }
 }
@@ -435,46 +423,25 @@ struct StatsView: View {
 struct MonthlySummaryView: View {
     let totalAppointments: Int
     let completedAppointments: Int
-    let upcomingAppointments: Int
     let purpleColor: Color
     let lightPurple: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 15) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Monthly Summary")
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.black)
-                .padding(.bottom, -5)
-
-            HStack(spacing: 18) {
+            HStack(spacing: 12) {
                 SummaryItem(value: "\(totalAppointments)", label: "Appointments", icon: "calendar", color: purpleColor)
                 SummaryItem(value: "\(completedAppointments)", label: "Completed", icon: "checkmark.circle.fill", color: purpleColor)
-                SummaryItem(value: "\(upcomingAppointments)", label: "Upcoming", icon: "clock.fill", color: purpleColor)
             }
         }
-        .padding(20)
+        .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 18)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(lightPurple)
-                .shadow(color: purpleColor.opacity(0.08), radius: 10, x: 0, y: 5)
+                .shadow(color: purpleColor.opacity(0.1), radius: 8)
         )
-    }
-}
-
-// MARK: - Supporting Views
-struct CardInfoRow: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundColor(.white.opacity(0.8))
-            Text(value)
-                .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
-        }
     }
 }
 
@@ -485,15 +452,10 @@ struct StatView: View {
     let color: Color
 
     var body: some View {
-        VStack(spacing: 8) {
-            ZStack {
-                Circle()
-                    .fill(color.opacity(0.08))
-                    .frame(width: 44, height: 44)
-                Image(systemName: icon)
-                    .font(.system(size: 20))
-                    .foregroundColor(color)
-            }
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 20))
+                .foregroundColor(color)
             Text(value)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.black)
@@ -501,7 +463,6 @@ struct StatView: View {
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundColor(color.opacity(0.7))
         }
-        .padding(.vertical, 20)
         .frame(maxWidth: .infinity)
     }
 }
@@ -518,44 +479,12 @@ struct SummaryItem: View {
                 .font(.system(size: 18))
                 .foregroundColor(color)
             Text(value)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.black)
             Text(label)
                 .font(.system(size: 12, weight: .medium, design: .rounded))
                 .foregroundColor(color.opacity(0.7))
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-struct NoteCard: View {
-    let note: DoctorsNote
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "note.text")
-                    .foregroundColor(color)
-                    .font(.system(size: 16))
-                Text("Appointment ID: \(note.appointmentID)")
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundColor(.black)
-                Spacer()
-            }
-            Text("Patient ID: \(note.patientID)")
-                .font(.system(size: 13, weight: .medium, design: .rounded))
-                .foregroundColor(color.opacity(0.7))
-            Text(note.note)
-                .font(.system(size: 13, weight: .regular, design: .rounded))
-                .foregroundColor(.black.opacity(0.65))
-                .lineLimit(2)
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(.white)
-                .shadow(color: color.opacity(0.08), radius: 6, x: 0, y: 3)
-        )
     }
 }

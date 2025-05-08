@@ -8,7 +8,7 @@ struct Doctor: Identifiable, Codable {
     let doctor_experience: Int?
     let email: String?
     let imageURL: String?
-    let password: String?
+    var password: String?
     let consultationFee: Int?
     let license_number: String?
     let phoneNo: String?
