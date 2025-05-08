@@ -1,110 +1,91 @@
 import SwiftUI
 import FirebaseFirestore
+import Charts
 
-// MARK: - Appointment Model
+// MARK: - Data Models
+struct DailyAppointmentData: Identifiable {
+    let id = UUID()
+    let date: Date
+    let count: Int
+}
 
+struct WeeklyAppointmentData: Identifiable {
+    let id = UUID()
+    let weekStart: Date
+    let count: Int
+}
+
+struct MonthlyAppointmentData: Identifiable {
+    let id = UUID()
+    let monthStart: Date
+    let count: Int
+}
 
 // MARK: - Main View
 struct AnalyticsView: View {
     @StateObject private var analyticsManager = AnalyticsManager()
-    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    private let purpleColor = Color(hex: "6D57FC")
+    private let backgroundColor = Color(hex: "F6F7FF")
 
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(red: 0.94, green: 0.94, blue: 1.0)
+                backgroundColor
                     .edgesIgnoringSafeArea(.all)
                 
                 if analyticsManager.isLoading {
                     ProgressView("Loading analytics...")
-                        .tint(purpleColor)
-                        .scaleEffect(1.5)
-                        .padding()
-                        .background(purpleColor.opacity(0.8))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
                 } else {
-                    ScrollView {
-                        VStack(spacing: 25) {
-                            Text("Hospital Analytics Dashboard")
-                                .font(.system(size: 32, weight: .bold, design: .rounded))
-                                .foregroundColor(.black)
-                                .padding(.top, 20)
+                    VStack(spacing: 12) {
+                        Text("Analytics")
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundColor(.black)
+                            .padding(.top, 2)
+                            .padding(.bottom, 4) // Adjusted to increase spacing below title
+                        
+                        // Analytics Cards
+                        VStack(spacing: 12) {
+                            AnalyticsCard(
+                                title1: "Appointments",
+                                value1: "\(analyticsManager.totalAppointments)",
+                                icon1: "calendar",
+                                title2: "Cancellation Rate",
+                                value2: String(format: "%.1f%%", analyticsManager.cancellationRate),
+                                icon2: "xmark.circle"
+                            )
                             
-                            HStack(spacing: 15) {
-                                AnalyticsCard(
-                                    title: "Total Appointments",
-                                    value: "\(analyticsManager.totalAppointments)",
-                                    icon: "calendar"
-                                )
-                                AnalyticsCard(
-                                    title: "Cancellation Rate",
-                                    value: String(format: "%.1f%%", analyticsManager.cancellationRate),
-                                    icon: "xmark.circle"
-                                )
-                            }
-                            .padding(.horizontal, 20)
-                            
-                            HStack(spacing: 15) {
-                                AnalyticsCard(
-                                    title: "Total Revenue",
-                                    value: "₹\(String(format: "%.2f", analyticsManager.totalRevenue))",
-                                    icon: "indianrupeesign.circle"
-                                )
-                                AnalyticsCard(
-                                    title: "Avg Revenue/Appointment",
-                                    value: "₹\(String(format: "%.2f", analyticsManager.averageRevenuePerAppointment))",
-                                    icon: "chart.bar"
-                                )
-                            }
-                            .padding(.horizontal, 20)
-                            
-                            // Appointments by Status Chart
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.white)
-                                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                                AppointmentsByStatusChart(appointmentsByStatus: analyticsManager.appointmentsByStatus)
-                                    .frame(height: 200)
-                                    .padding()
-                            }
-                            .padding(.horizontal, 20)
-                            
-                            // Daily Appointments Chart
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.white)
-                                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                    )
-                                DailyAppointmentsChart(dailyAppointments: analyticsManager.dailyAppointments)
-                                    .frame(height: 200)
-                                    .padding()
-                            }
-                            .padding(.horizontal, 20)
-                            
-                            // Weekly Appointments Chart
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.white)
-                                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                    )
-                                WeeklyAppointmentsChart(weeklyAppointments: analyticsManager.weeklyAppointments)
-                                    .frame(height: 200)
-                                    .padding()
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 20)
+                            AnalyticsCard(
+                                title1: "Total Revenue",
+                                value1: "₹\(String(format: "%.2f", analyticsManager.totalRevenue))",
+                                icon1: "indianrupeesign.circle",
+                                title2: "Avg Revenue",
+                                value2: "₹\(String(format: "%.2f", analyticsManager.averageRevenuePerAppointment))",
+                                icon2: "chart.bar"
+                            )
                         }
+                        .padding(.horizontal, 20)
+                        
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.white)
+                                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                )
+                            
+                            CombinedAppointmentsChart(
+                                dailyAppointments: analyticsManager.dailyAppointments,
+                                weeklyAppointments: analyticsManager.weeklyAppointments,
+                                monthlyAppointments: analyticsManager.monthlyAppointments
+                            )
+                            .padding()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 10)
                     }
                 }
             }
-            .navigationTitle("Analytics")
-            .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 analyticsManager.fetchAnalytics()
             }
@@ -114,246 +95,223 @@ struct AnalyticsView: View {
 
 // MARK: - Analytics Card
 struct AnalyticsCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
+    let title1: String
+    let value1: String
+    let icon1: String
+    let title2: String
+    let value2: String
+    let icon2: String
+    private let purpleColor = Color(hex: "6D57FC")
+    @State private var isTapped = false
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white)
-                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-            HStack {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .foregroundColor(.gray)
-                    
-                    Text(value)
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundColor(.black)
-                }
-                Spacer()
-                Image(systemName: icon)
-                    .font(.system(size: 30))
-                    .foregroundColor(purpleColor.opacity(0.8))
-            }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-}
-
-// MARK: - Appointments by Status Chart (Bar Chart)
-struct AppointmentsByStatusChart: View {
-    let appointmentsByStatus: [(status: String, count: Int)]
-    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
-
-    var body: some View {
-        VStack {
-            Text("Appointments by Status")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundColor(.black)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            RoundedRectangle(cornerRadius: 18)
+                .fill(.white)
+                .shadow(color: purpleColor.opacity(0.08), radius: 10, x: 0, y: 5)
             
-            GeometryReader { geometry in
-                let maxCount = appointmentsByStatus.map { $0.count }.max() ?? 1
-                let barWidth = geometry.size.width / CGFloat(appointmentsByStatus.count) * 0.8
-                let barSpacing = geometry.size.width / CGFloat(appointmentsByStatus.count) * 0.2
-                
-                HStack(alignment: .bottom, spacing: barSpacing) {
-                    ForEach(appointmentsByStatus, id: \.status) { statusData in
-                        let height = CGFloat(statusData.count) / CGFloat(maxCount) * (geometry.size.height - 60)
-                        VStack {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(purpleColor.opacity(0.8))
-                                    .frame(width: barWidth, height: height)
-                                Text("\(statusData.count)")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .offset(y: -height / 2)
-                            }
-                            Text(statusData.status.capitalized)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.gray)
-                                .rotationEffect(.degrees(-45))
-                                .frame(height: 40)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-    }
-}
-
-// MARK: - Daily Appointments Chart (Enhanced Line Chart)
-struct DailyAppointmentsChart: View {
-    let dailyAppointments: [(date: Date, count: Int)]
-    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
-
-    var body: some View {
-        VStack {
-            Text("Appointments by Day (Last 30 Days)")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundColor(.black)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, 5)
-            
-            GeometryReader { geometry in
-                let maxCount = dailyAppointments.map { $0.count }.max() ?? 1
-                let chartHeight = geometry.size.height - 40
-                let chartWidth = geometry.size.width - 40
-                
-                let points = dailyAppointments.enumerated().map { index, data in
-                    let x = CGFloat(index) / CGFloat(dailyAppointments.count - 1) * chartWidth + 40
-                    let y = (1 - CGFloat(data.count) / CGFloat(maxCount)) * chartHeight + 20
-                    return CGPoint(x: x, y: y)
-                }
-                
-                ZStack {
-                    // Grid Lines and Y-Axis Labels
-                    ForEach(0..<5) { i in
-                        let y = CGFloat(i) / 4 * chartHeight + 20
-                        let count = Int(CGFloat(maxCount) * (1 - CGFloat(i) / 4))
-                        Path { path in
-                            path.move(to: CGPoint(x: 40, y: y))
-                            path.addLine(to: CGPoint(x: geometry.size.width, y: y))
-                        }
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                        
-                        Text("\(count)")
-                            .font(.system(size: 12))
-                            .foregroundColor(.gray)
-                            .position(x: 20, y: y)
-                    }
-                    
-                    // Area Fill
-                    Path { path in
-                        path.move(to: CGPoint(x: points.first?.x ?? 40, y: chartHeight + 20))
-                        for point in points {
-                            path.addLine(to: point)
-                        }
-                        path.addLine(to: CGPoint(x: points.last?.x ?? chartWidth + 40, y: chartHeight + 20))
-                        path.closeSubpath()
-                    }
-                    .fill(purpleColor.opacity(0.1))
-                    
-                    // Line
-                    Path { path in
-                        path.move(to: points.first ?? .zero)
-                        for point in points.dropFirst() {
-                            path.addLine(to: point)
-                        }
-                    }
-                    .strokedPath(StrokeStyle(lineWidth: 4, lineCap: .round))
-                    .foregroundColor(purpleColor)
-                    
-                    // Points
-                    ForEach(0..<points.count, id: \.self) { index in
+            HStack(spacing: 0) {
+                // First Metric
+                VStack(spacing: 6) {
+                    ZStack {
                         Circle()
-                            .frame(width: 10, height: 10)
+                            .fill(purpleColor.opacity(0.08))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: icon1)
+                            .font(.system(size: 22))
                             .foregroundColor(purpleColor)
-                            .position(points[index])
                     }
+                    .padding(.bottom, 2)
                     
-                    // X-Axis Labels
-                    ForEach(dailyAppointments.indices, id: \.self) { index in
-                        if index % 5 == 0 {
-                            Text(dateFormatter.string(from: dailyAppointments[index].date))
-                                .font(.system(size: 12))
-                                .foregroundColor(.gray)
-                                .position(x: points[index].x, y: geometry.size.height - 10)
-                        }
-                    }
+                    Text(value1)
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(.black)
+                    
+                    Text(title1)
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundColor(purpleColor.opacity(0.7))
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity)
+                
+                // Second Metric
+                VStack(spacing: 6) {
+                    ZStack {
+                        Circle()
+                            .fill(purpleColor.opacity(0.08))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: icon2)
+                            .font(.system(size: 22))
+                            .foregroundColor(purpleColor)
+                    }
+                    .padding(.bottom, 2)
+                    
+                    Text(value2)
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(.black)
+                    
+                    Text(title2)
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundColor(purpleColor.opacity(0.7))
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .padding(.vertical, 16) // Reduced from 20 to 16 (4 points less)
+            .padding(.horizontal, 5)
+            .frame(maxWidth: .infinity)
+        }
+        .scaleEffect(isTapped ? 0.98 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: isTapped)
+        .onTapGesture {
+            withAnimation {
+                isTapped.toggle()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    isTapped.toggle()
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Combined Appointments Chart
+struct CombinedAppointmentsChart: View {
+    let dailyAppointments: [DailyAppointmentData]
+    let weeklyAppointments: [WeeklyAppointmentData]
+    let monthlyAppointments: [MonthlyAppointmentData]
+    private let purpleColor = Color(hex: "6D57FC")
+    
+    @State private var selectedTimeRange: TimeRange = .week
+    
+    enum TimeRange: String, CaseIterable {
+        case week = "This Week"
+        case weeks = "Last 6 Weeks"
+        case months = "Last 6 Months"
+        
+        var title: String {
+            switch self {
+            case .week: return "Appointments This Week"
+            case .weeks: return "Appointments Last 6 Weeks"
+            case .months: return "Appointments Last 6 Months"
             }
         }
     }
     
-    private let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM/dd"
-        return formatter
-    }()
-}
-
-// MARK: - Weekly Appointments Chart (Enhanced Bar Chart)
-struct WeeklyAppointmentsChart: View {
-    let weeklyAppointments: [(weekStart: Date, count: Int)]
-    private let purpleColor = Color(red: 0.43, green: 0.34, blue: 0.99)
-
     var body: some View {
-        VStack {
-            Text("Appointments by Week (Last 12 Weeks)")
+        VStack(spacing: 12) {
+            // Chart Title
+            Text(selectedTimeRange.title)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.black)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, 5)
             
-            GeometryReader { geometry in
-                let maxCount = weeklyAppointments.map { $0.count }.max() ?? 1
-                let chartHeight = geometry.size.height - 40
-                let chartWidth = geometry.size.width - 40
-                let barWidth = chartWidth / CGFloat(weeklyAppointments.count) * 0.6
-                let barSpacing = chartWidth / CGFloat(weeklyAppointments.count) * 0.4
-                
-                ZStack {
-                    // Grid Lines and Y-Axis Labels
-                    ForEach(0..<5) { i in
-                        let y = CGFloat(i) / 4 * chartHeight + 20
-                        let count = Int(CGFloat(maxCount) * (1 - CGFloat(i) / 4))
-                        Path { path in
-                            path.move(to: CGPoint(x: 40, y: y))
-                            path.addLine(to: CGPoint(x: geometry.size.width, y: y))
-                        }
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+            // Time Range Picker
+            Picker("Time Range", selection: $selectedTimeRange) {
+                ForEach(TimeRange.allCases, id: \.self) { range in
+                    Text(range.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 20)
+            
+            // Chart
+            Group {
+                if selectedTimeRange == .week {
+                    Chart(dailyAppointments) { data in
+                        LineMark(
+                            x: .value("Day", data.date, unit: .day),
+                            y: .value("Appointments", data.count)
+                        )
+                        .foregroundStyle(purpleColor)
+                        .interpolationMethod(.catmullRom)
+                        .lineStyle(StrokeStyle(lineWidth: 3))
                         
-                        Text("\(count)")
-                            .font(.system(size: 12))
-                            .foregroundColor(.gray)
-                            .position(x: 20, y: y)
+                        AreaMark(
+                            x: .value("Day", data.date, unit: .day),
+                            y: .value("Appointments", data.count)
+                        )
+                        .foregroundStyle(
+                            LinearGradient(
+                                gradient: Gradient(colors: [purpleColor.opacity(0.25), .clear]),
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        
+                        PointMark(
+                            x: .value("Day", data.date, unit: .day),
+                            y: .value("Appointments", data.count)
+                        )
+                        .foregroundStyle(.white)
+                        .symbolSize(60)
+                        .shadow(color: purpleColor, radius: 2, x: 0, y: 0)
                     }
-                    
-                    // Bars
-                    HStack(alignment: .bottom, spacing: barSpacing) {
-                        ForEach(weeklyAppointments.indices, id: \.self) { index in
-                            let data = weeklyAppointments[index]
-                            let height = CGFloat(data.count) / CGFloat(maxCount) * chartHeight
-                            let xPosition = CGFloat(index) * (barWidth + barSpacing) + barWidth / 2 + 40
-                            VStack {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(purpleColor.opacity(0.9))
-                                        .frame(width: barWidth, height: height)
-                                    Text("\(data.count)")
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(.white)
-                                        .offset(y: -height / 2)
+                    .chartXAxis {
+                        AxisMarks(values: .stride(by: .day)) { value in
+                            AxisGridLine()
+                                .foregroundStyle(Color.gray.opacity(0.2))
+                            if let date = value.as(Date.self) {
+                                AxisValueLabel {
+                                    Text(date, format: .dateTime.day().month(.abbreviated))
+                                        .font(.system(size: 10))
                                 }
-                                Text(weekFormatter.string(from: data.weekStart))
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.gray)
-                                    .rotationEffect(.degrees(-45))
-                                    .frame(height: 40)
                             }
-                            .position(x: xPosition, y: (chartHeight - height) / 2 + 20 + height / 2)
+                        }
+                    }
+                } else if selectedTimeRange == .weeks {
+                    Chart(weeklyAppointments) { data in
+                        BarMark(
+                            x: .value("Week", data.weekStart, unit: .weekOfYear),
+                            y: .value("Appointments", data.count)
+                        )
+                        .foregroundStyle(purpleColor)
+                        .cornerRadius(4)
+                    }
+                    .chartXAxis {
+                        AxisMarks(values: .stride(by: .weekOfYear)) { value in
+                            AxisGridLine()
+                                .foregroundStyle(Color.gray.opacity(0.2))
+                            if let date = value.as(Date.self) {
+                                AxisValueLabel {
+                                    Text(date, format: .dateTime.day().month(.abbreviated))
+                                        .font(.system(size: 10))
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Chart(monthlyAppointments) { data in
+                        BarMark(
+                            x: .value("Month", data.monthStart, unit: .month),
+                            y: .value("Appointments", data.count)
+                        )
+                        .foregroundStyle(purpleColor)
+                        .cornerRadius(4)
+                    }
+                    .chartXAxis {
+                        AxisMarks(values: .stride(by: .month)) { value in
+                            AxisGridLine()
+                                .foregroundStyle(Color.gray.opacity(0.2))
+                            if let date = value.as(Date.self) {
+                                AxisValueLabel {
+                                    Text(date, format: .dateTime.month(.abbreviated))
+                                        .font(.system(size: 10))
+                                }
+                            }
                         }
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .chartYAxis {
+                AxisMarks(position: .leading) { value in
+                    AxisGridLine()
+                        .foregroundStyle(Color.gray.opacity(0.2))
+                    AxisValueLabel()
+                        .font(.system(size: 10))
+                }
+            }
+            .frame(height: 220)
+            .padding(.top, 5)
         }
     }
-    
-    private let weekFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM/dd"
-        return formatter
-    }()
 }
 
 // MARK: - Analytics Manager
@@ -363,8 +321,9 @@ class AnalyticsManager: ObservableObject {
     @Published var totalRevenue: Double = 0.0
     @Published var averageRevenuePerAppointment: Double = 0.0
     @Published var appointmentsByStatus: [(status: String, count: Int)] = []
-    @Published var dailyAppointments: [(date: Date, count: Int)] = []
-    @Published var weeklyAppointments: [(weekStart: Date, count: Int)] = []
+    @Published var dailyAppointments: [DailyAppointmentData] = []
+    @Published var weeklyAppointments: [WeeklyAppointmentData] = []
+    @Published var monthlyAppointments: [MonthlyAppointmentData] = []
     @Published var isLoading: Bool = false
     
     private let db = Firestore.firestore()
@@ -388,7 +347,7 @@ class AnalyticsManager: ObservableObject {
             
             let today = Calendar.current.startOfDay(for: Date())
             
-            let appointments = documents.compactMap { doc -> Appointment? in
+            let appointments: [Appointment] = documents.compactMap { doc in
                 let data = doc.data()
                 
                 guard let apptId = data["apptId"] as? String,
@@ -485,36 +444,41 @@ class AnalyticsManager: ObservableObject {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         
-        // Daily Appointments (Last 30 Days)
-        let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: today)!
-        var dailyDict: [Date: Int] = [:]
+        // Current Week (Monday to Sunday)
+        let weekday = calendar.component(.weekday, from: today)
+        let daysToMonday = (weekday + 5) % 7 // Days to subtract to get to Monday
+        guard let weekStart = calendar.date(byAdding: .day, value: -daysToMonday, to: today) else { return }
+        guard let weekEnd = calendar.date(byAdding: .day, value: 6, to: weekStart) else { return }
         
-        for i in 0..<30 {
-            let date = calendar.date(byAdding: .day, value: -i, to: today)!
+        var dailyDict: [Date: Int] = [:]
+        for i in 0..<7 {
+            guard let date = calendar.date(byAdding: .day, value: i, to: weekStart) else { continue }
             dailyDict[date] = 0
         }
         
         for appt in appointments {
-            if let date = appt.date, date >= thirtyDaysAgo {
+            if let date = appt.date, date >= weekStart, date <= weekEnd {
                 let startOfDay = calendar.startOfDay(for: date)
                 dailyDict[startOfDay, default: 0] += 1
             }
         }
         
-        dailyAppointments = dailyDict.map { (date: $0.key, count: $0.value) }
+        dailyAppointments = dailyDict.map { DailyAppointmentData(date: $0.key, count: $0.value) }
             .sorted { $0.date < $1.date }
         
-        // Weekly Appointments (Last 12 Weeks)
-        let twelveWeeksAgo = calendar.date(byAdding: .weekOfYear, value: -12, to: today)!
+        // Last 6 Weeks (Updated to match UI)
+        let sixWeeksAgo = calendar.date(byAdding: .weekOfYear, value: -6, to: today)!
         var weeklyDict: [Date: Int] = [:]
         
-        for i in 0..<12 {
-            let weekStart = calendar.date(byAdding: .weekOfYear, value: -i, to: today)!
-            weeklyDict[weekStart] = 0
+        for i in 0..<6 {
+            guard let weekStart = calendar.date(byAdding: .weekOfYear, value: -i, to: today) else { continue }
+            let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: weekStart)
+            guard let adjustedWeekStart = calendar.date(from: components) else { continue }
+            weeklyDict[adjustedWeekStart] = 0
         }
         
         for appt in appointments {
-            if let date = appt.date, date >= twelveWeeksAgo {
+            if let date = appt.date, date >= sixWeeksAgo {
                 let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
                 if let weekStart = calendar.date(from: components) {
                     weeklyDict[weekStart, default: 0] += 1
@@ -522,11 +486,33 @@ class AnalyticsManager: ObservableObject {
             }
         }
         
-        weeklyAppointments = weeklyDict.map { (weekStart: $0.key, count: $0.value) }
+        weeklyAppointments = weeklyDict.map { WeeklyAppointmentData(weekStart: $0.key, count: $0.value) }
             .sorted { $0.weekStart < $1.weekStart }
+        
+        // Last 6 Months
+        let sixMonthsAgo = calendar.date(byAdding: .month, value: -6, to: today)!
+        var monthlyDict: [Date: Int] = [:]
+        
+        for i in 0..<6 {
+            guard let monthStart = calendar.date(byAdding: .month, value: -i, to: today) else { continue }
+            let components = calendar.dateComponents([.year, .month], from: monthStart)
+            guard let adjustedMonthStart = calendar.date(from: components) else { continue }
+            monthlyDict[adjustedMonthStart] = 0
+        }
+        
+        for appt in appointments {
+            if let date = appt.date, date >= sixMonthsAgo {
+                let components = calendar.dateComponents([.year, .month], from: date)
+                if let monthStart = calendar.date(from: components) {
+                    monthlyDict[monthStart, default: 0] += 1
+                }
+            }
+        }
+        
+        monthlyAppointments = monthlyDict.map { MonthlyAppointmentData(monthStart: $0.key, count: $0.value) }
+            .sorted { $0.monthStart < $1.monthStart }
     }
 }
-
 // MARK: - Preview
 struct AnalyticsView_Previews: PreviewProvider {
     static var previews: some View {

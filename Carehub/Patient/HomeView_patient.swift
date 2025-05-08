@@ -22,6 +22,7 @@ struct HomeView_patient: View {
     @State private var isLoading = true
     @State private var navigateToBooking = false
     @State private var navigateToNotifications = false
+    @State private var navigateToChat = false
     @State private var listener: ListenerRegistration?
     @State private var notificationCount: Int = 0
     @State private var hasViewedNotifications: Bool = UserDefaults.standard.bool(forKey: "hasViewedNotifications") ?? false
@@ -250,6 +251,7 @@ struct HomeView_patient: View {
                             viewModel.fetchRecentPrescriptions(forPatientId: patient.patientId)
                         }
                         
+                        // Previously Visited Doctors Section
                         VStack(alignment: .leading, spacing: 16) {
                             sectionHeader(
                                 title: "Previously Visited Doctors",
@@ -293,6 +295,31 @@ struct HomeView_patient: View {
                 }
                 .padding(.leading, 16)
                 .padding(.trailing, 8)
+                
+                // Chatbot Icon Button
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            navigateToChat = true
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .fill(primaryColor)
+                                    .frame(width: 60, height: 60)
+                                    .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                                
+                                Image(systemName: "message.fill")
+                                    .foregroundColor(.white)
+                                    .font(.system(size: FontSizeManager.fontSize(for: 24)))
+                            }
+                        }
+                        .accessibilityLabel("Open Chatbot")
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 16)
+                    }
+                }
             }
             .navigationBarBackButtonHidden(true)
             .onAppear {
@@ -303,10 +330,10 @@ struct HomeView_patient: View {
                     }
                 }
                 if isInitialLoad {
-                                    isInitialLoad = false // Mark initial load as complete
-                                } else if isVoiceOverEnabled {
-                                    readHomeViewText() // Only read if not initial load and VoiceOver is enabled
-                                }
+                    isInitialLoad = false
+                } else if isVoiceOverEnabled {
+                    readHomeViewText()
+                }
             }
             .onDisappear {
                 listener?.remove()
@@ -335,6 +362,9 @@ struct HomeView_patient: View {
                     getDoctorSpecialty: getDoctorSpecialty,
                     formatDate: formatDate
                 )
+            }
+            .navigationDestination(isPresented: $navigateToChat) {
+                ChatView()
             }
             .onChange(of: isVoiceOverEnabled) { newValue in
                 if newValue {
@@ -382,6 +412,7 @@ struct HomeView_patient: View {
         utterance.rate = 0.5
         speechSynthesizer.speak(utterance)
     }
+
     private func sectionHeader<T: View>(title: String, hasContent: Bool, @ViewBuilder action: @escaping () -> T) -> some View {
         HStack {
             Text(title)
@@ -843,10 +874,11 @@ struct AppointmentListCard: View {
         .accessibilityLabel("Appointment with \(doctorName) for \(specialty), on \(date)")
     }
 }
+
 struct AllPrescriptionsView: View {
     let prescriptions: [Appointment]
     let formatDate: (Date?) -> String
-    let viewModel: AppointmentViewModel // Add viewModel as a parameter
+    let viewModel: AppointmentViewModel
     
     private let primaryColor = Color(red: 0.43, green: 0.34, blue: 0.99)
     var body: some View {
@@ -903,7 +935,6 @@ struct AllPrescriptionsView: View {
     
     private func prescriptionDestination(for appointment: Appointment) -> some View {
         Group {
-            // Use prescriptionId to look up the pdfUrl from medicalTestPdfUrls
             if let medicalTestId = appointment.prescriptionId,
                let pdfUrlStr = viewModel.medicalTestPdfUrls[medicalTestId],
                let pdfUrl = URL(string: pdfUrlStr) {
@@ -930,6 +961,7 @@ struct AllPrescriptionsView: View {
         return "Unknown Doctor"
     }
 }
+
 // MARK: - ImprovedAppointmentCard
 struct ImprovedAppointmentCard: View {
     let doctorName: String
@@ -1040,7 +1072,6 @@ struct ImprovedAppointmentCard: View {
     }
 }
 
-
 struct ImprovedMedicalRecordCard: View {
     let type: String
     let doctorName: String
@@ -1098,7 +1129,7 @@ struct ImprovedMedicalRecordCard: View {
 }
 
 struct DoctorVisit: Identifiable {
-    let id: String 
+    let id: String
     let name: String
     let specialty: String
     let lastVisit: Date
@@ -1125,7 +1156,7 @@ struct ImprovedDoctorCard: View {
                         .overlay(Circle().stroke(primaryColor, lineWidth: 2))
                     
                     Image(systemName: "person.fill")
-                        .font(.system(size: 40)) // Reduced size of the icon
+                        .font(.system(size: 40))
                         .foregroundColor(primaryColor)
                 }
                 
@@ -1164,6 +1195,7 @@ struct ImprovedDoctorCard: View {
         .frame(maxWidth: .infinity)
     }
 }
+
 // MARK: - AllVisitedDoctorsView
 struct AllVisitedDoctorsView: View {
     let recentPrescriptions: [Appointment]
