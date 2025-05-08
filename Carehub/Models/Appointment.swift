@@ -1,7 +1,5 @@
 import SwiftUI
 
-
-
 struct Appointment: Identifiable, Decodable {
     var id: String
     let apptId: String

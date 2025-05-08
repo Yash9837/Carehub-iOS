@@ -970,7 +970,7 @@ struct PatientProfileView: View {
                         // Show full-screen image on tap if needed
                     }
             } else if let currentURLString = appointment?.prescriptionId, !currentURLString.isEmpty {
-                // Check if the URL points to a PDF (based on extension or naming convention)
+                // Check if the URL points to a PDF
                 if currentURLString.lowercased().hasSuffix(".pdf") {
                     Button(action: {
                         showPDFViewer = true
@@ -985,37 +985,59 @@ struct PatientProfileView: View {
                     }
                     .padding(.horizontal)
                 } else {
-                    // Handle image URL (as before)
-                    AsyncImage(url: URL(string: currentURLString)) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFit()
-                                .frame(maxHeight: 200)
-                                .padding(.horizontal)
-                                .onTapGesture {
-                                    // Show full-screen image on tap if needed
+                    // Handle image URL
+                    if let url = URL(string: currentURLString) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                                    .padding(.horizontal)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(maxHeight: 200)
+                                    .padding(.horizontal)
+                                    .onTapGesture {
+                                        // Show full-screen image on tap if needed
+                                    }
+                            case .failure(let error):
+                                VStack {
+                                    Text("Failed to load prescription image")
+                                        .foregroundColor(.red)
+                                    Text("Error: \(error.localizedDescription)")
+                                        .foregroundColor(.red)
+                                        .font(.caption)
+                                    Button(action: {
+                                        // Retry loading the image
+                                    }) {
+                                        Text("Retry")
+                                            .foregroundColor(purpleColor)
+                                            .padding(.vertical, 8)
+                                            .padding(.horizontal)
+                                            .background(Color(.systemGray5))
+                                            .cornerRadius(10)
+                                    }
                                 }
-                        case .failure:
-                            Text("Failed to load prescription image")
-                                .foregroundColor(.red)
                                 .padding(.horizontal)
-                        @unknown default:
-                            EmptyView()
+                            @unknown default:
+                                EmptyView()
+                            }
                         }
+                    } else {
+                        Text("Invalid image URL")
+                            .foregroundColor(.red)
+                            .padding(.horizontal)
                     }
                 }
             }
 
             if !uploadStatus.contains("failed") || pdfFileName.isEmpty {
-                // Show the "Add Prescription" or "Prescription Added" button only if upload hasn't failed
+                // Show the "Add Prescription" or "Prescription Added" button
                 Button(action: {
                     showActionSheet = true
                 }) {
-                    Text(appointment?.prescriptionId == nil ? "Add Prescription" : "Add Prescription ")
+                    Text(appointment?.prescriptionId == nil ? "Add Prescription" : "Add Prescription")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)

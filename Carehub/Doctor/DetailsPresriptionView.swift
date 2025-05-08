@@ -9,6 +9,7 @@ struct DetailsPresriptionView: View {
     @State private var errorMessage: String?
     @State private var doctorNotes: [DoctorsNote] = []
     @State private var medicalTestPDFs: [MedicalTestPDF] = []
+    @State private var prescriptions: [Appointment] = []
     
     private var age: Int? {
         guard let dobString = patient?.userData.Dob else { return nil }
@@ -71,7 +72,7 @@ struct DetailsPresriptionView: View {
                         patientInfoCard(patient: patient)
                         vitalsSection(patient: patient)
                         medicalRecordsSection(records: patient.medicalRecords)
-                        testResultsSection(results: patient.testResults)
+                        testResultsSection(results: prescriptions)
                         doctorsNotesSection()
                         Spacer(minLength: 20)
                     }
@@ -88,8 +89,61 @@ struct DetailsPresriptionView: View {
             fetchPatientData()
             fetchDoctorNotes()
             fetchMedicalTestPDFs()
+            fetchPrescriptions()
         }
     }
+    
+    private func fetchPrescriptions() {
+        let db = Firestore.firestore()
+        let doctorId = AuthManager.shared.currentDoctor?.id ?? ""
+        print("Querying appointments for patientId: \(patientId), docId: \(doctorId)") // Debug log
+        
+        db.collection("appointments")
+            .whereField("patientId", isEqualTo: patientId)
+            .whereField("docId", isEqualTo: doctorId)
+            .getDocuments(source: .default) { (snapshot, error) in
+                if let error = error {
+                    print("Error fetching appointments: \(error.localizedDescription)")
+                    self.prescriptions = []
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else {
+                    print("No appointment documents found for patientId: \(self.patientId) and docId: \(doctorId)")
+                    self.prescriptions = []
+                    return
+                }
+                
+                self.prescriptions = documents.compactMap { doc -> Appointment? in
+                    let data = doc.data()
+                    guard let apptId = data["apptId"] as? String,
+                          let patientId = data["patientId"] as? String,
+                          let description = data["description"] as? String,
+                          let docId = data["docId"] as? String,
+                          let status = data["status"] as? String,
+                          let billingStatus = data["billingStatus"] as? String else {
+                        return nil
+                    }
+                    return Appointment(
+                        id: doc.documentID,
+                        apptId: apptId,
+                        patientId: patientId,
+                        description: description,
+                        docId: docId,
+                        status: status,
+                        billingStatus: billingStatus,
+                        amount: data["amount"] as? Double,
+                        date: (data["date"] as? Timestamp)?.dateValue(),
+                        doctorsNotes: data["doctorsNotes"] as? String,
+                        prescriptionId: data["prescriptionId"] as? String,
+                        followUpRequired: data["followUpRequired"] as? Bool,
+                        followUpDate: (data["followUpDate"] as? Timestamp)?.dateValue()
+                    )
+                }
+                print("Fetched appointments: \(self.prescriptions.count)")
+            }
+    }
+
     
     private func patientInfoCard(patient: PatientF) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -339,63 +393,141 @@ struct DetailsPresriptionView: View {
             }
     }
     
-    private func testResultsSection(results: [TestResultF]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Prescriptions")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(purpleColor)
-                .padding(.horizontal, 16)
+    private func fetchAppointments() {
+            let db = Firestore.firestore()
+            print("Querying appointments for patientId: \(patientId)") // Debug log
             
-            if results.isEmpty {
-                Text("No Prescriptions available")
-                    .font(.system(size: 14))
-                    .foregroundColor(.gray)
-                    .italic()
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 16)
-            } else {
-                ForEach(results) { result in
-                    HStack {
-                        Image(systemName: "testtube.2")
-                            .foregroundColor(purpleColor)
-                            .font(.system(size: 16))
-                            .frame(width: 24)
-                        
-                        VStack(alignment: .leading) {
-                            Text(result.testType)
-                                .font(.system(size: 16, weight: .medium))
-                            
-                            Text(formatDate(result.dateCreated))
-                                .font(.system(size: 14))
-                                .foregroundColor(.gray)
-                        }
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            if let url = URL(string: result.url) {
-                                UIApplication.shared.open(url)
-                            }
-                        }) {
-                            Image(systemName: "arrow.down.doc")
-                                .foregroundColor(purpleColor)
-                                .font(.system(size: 18))
-                        }
+            db.collection("appointments")
+                .whereField("patientId", isEqualTo: patientId)
+                .getDocuments(source: .default) { (snapshot, error) in
+                    if let error = error {
+                        print("Error fetching appointments: \(error.localizedDescription)")
+                        self.prescriptions = []
+                        return
                     }
-                    .padding(.vertical, 12)
+                    
+                    guard let documents = snapshot?.documents else {
+                        print("No appointment documents found for patientId: \(self.patientId)")
+                        self.prescriptions = []
+                        return
+                    }
+                    
+                    self.prescriptions = documents.compactMap { doc -> Appointment? in
+                        let data = doc.data()
+                        guard let apptId = data["apptId"] as? String,
+                              let patientId = data["patientId"] as? String,
+                              let description = data["description"] as? String,
+                              let docId = data["docId"] as? String,
+                              let status = data["status"] as? String,
+                              let billingStatus = data["billingStatus"] as? String else {
+                            return nil
+                        }
+                        return Appointment(
+                            id: doc.documentID,
+                            apptId: apptId,
+                            patientId: patientId,
+                            description: description,
+                            docId: docId,
+                            status: status,
+                            billingStatus: billingStatus,
+                            amount: data["amount"] as? Double,
+                            date: (data["date"] as? Timestamp)?.dateValue(),
+                            doctorsNotes: data["doctorsNotes"] as? String,
+                            prescriptionId: data["prescriptionId"] as? String,
+                            followUpRequired: data["followUpRequired"] as? Bool,
+                            followUpDate: (data["followUpDate"] as? Timestamp)?.dateValue()
+                        )
+                    }
+                    print("Fetched appointments: \(self.prescriptions.count)")
+                }
+        }
+
+    private func testResultsSection(results: [Appointment]) -> some View {
+            @State var selectedImageUrl: URL? // State for full-screen image
+            
+            return VStack(alignment: .leading, spacing: 8) {
+                Text("Prescriptions")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(purpleColor)
                     .padding(.horizontal, 16)
+                
+                if results.isEmpty {
+                    Text("No Prescriptions available")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                        .italic()
+                        .padding(.vertical, 16)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                } else {
+                    ForEach(results) { result in
+                        VStack(alignment: .leading, spacing: 8) {
+                            if let prescriptionId = result.prescriptionId, !prescriptionId.isEmpty, let imageUrl = URL(string: prescriptionId) {
+                                Button(action: { selectedImageUrl = imageUrl }) {
+                                    AsyncImage(url: imageUrl) { image in
+                                        image
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(height: 80)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    } placeholder: {
+                                        ProgressView()
+                                            .frame(height: 80)
+                                            .tint(purpleColor)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                }
+                            } else {
+                                Text("No prescription uploaded")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.gray)
+                                    .frame(height: 80)
+                                    .frame(maxWidth: .infinity)
+                            }
+                            
+                            Text(result.description)
+                                .font(.system(size: 16))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 12)
+                        }
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.white)
+                                .shadow(color: purpleColor.opacity(0.1), radius: 4)
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
                 }
             }
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.white)
+                    .shadow(color: Color.black.opacity(0.08), radius: 5)
+            )
+            .padding(.vertical, 8)
+            .sheet(item: Binding(
+                get: { selectedImageUrl.map { IdentifiableURL(url: $0) } },
+                set: { _ in selectedImageUrl = nil }
+            )) { identifiableUrl in
+                AsyncImage(url: identifiableUrl.url) { image in
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .background(Color.black)
+                } placeholder: {
+                    ProgressView()
+                        .tint(purpleColor)
+                }
+                .edgesIgnoringSafeArea(.all)
+            }
         }
-        .padding(.vertical, 14)
-        .padding(.horizontal, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.white)
-                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
-        )
-        .padding(.vertical, 8)
-    }
+        
+        // Helper struct for identifiable URL
+        private struct IdentifiableURL: Identifiable {
+            let id = UUID()
+            let url: URL
+        }
 
     private func doctorsNotesSection() -> some View {
         VStack(alignment: .leading, spacing: 8) {
