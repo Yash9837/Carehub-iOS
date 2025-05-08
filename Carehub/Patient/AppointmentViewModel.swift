@@ -3,17 +3,13 @@ import SwiftUI
 
 class AppointmentViewModel: ObservableObject {
     private var db = Firestore.firestore()
-
+    
     @Published var recentPrescriptions: [Appointment] = []
+    @Published var medicalTests: [TestResult] = []
     @Published var errorMessage: String?
-    // Dictionary to store the pdfUrl for each medical test, keyed by medicalTests id
-    @Published var medicalTestPdfUrls: [String: String] = [:]
-
+    
     func fetchRecentPrescriptions(forPatientId patientId: String) {
         print("Fetching prescriptions for patient ID: \(patientId)")
-        // Step 1: Fetch medical tests for the patient
-        fetchMedicalTests(forPatientId: patientId) {
-            // Step 2: Fetch appointments after medical tests are loaded
             self.db.collection("appointments")
                 .whereField("patientId", isEqualTo: patientId)
                 .getDocuments { (querySnapshot, error) in
@@ -24,7 +20,7 @@ class AppointmentViewModel: ObservableObject {
                     }
                     
                     print("Fetched documents: \(querySnapshot?.documents.count ?? 0)")
-
+                    
                     let today = Calendar.current.startOfDay(for: Date())
                     
                     self.recentPrescriptions = querySnapshot?.documents.compactMap { document in
@@ -76,43 +72,59 @@ class AppointmentViewModel: ObservableObject {
                     } ?? []
                     
                     print("Total prescriptions after filtering: \(self.recentPrescriptions.count)")
+                    print("PRESCRIPTIONS: \(self.recentPrescriptions)")
                 }
-        }
     }
     
-    func presentPDFViewer(with url: URL) {
-        let pdfViewController = PDFViewController(url: url)
-        let navController = UINavigationController(rootViewController: pdfViewController)
-        
-        // Present modally
-        if let rootVC = UIApplication.shared.windows.first?.rootViewController {
-            rootVC.present(navController, animated: true)
-        }
-    }
-    
-    private func fetchMedicalTests(forPatientId patientId: String, completion: @escaping () -> Void) {
-        db.collection("medicalTests")
-            .whereField("patientId", isEqualTo: patientId)
-            .getDocuments { (querySnapshot, error) in
-                if let error = error {
-                    print("Error fetching medical tests for patient ID \(patientId): \(error.localizedDescription)")
-                    completion()
-                    return
-                }
-                
-                print("Fetched medical tests: \(querySnapshot?.documents.count ?? 0)")
-                
-                for document in querySnapshot?.documents ?? [] {
-                    if let medicalTestId = document.data()["id"] as? String,
-                       let pdfUrl = document.data()["pdfUrl"] as? String {
-                        print("Found medical test ID \(medicalTestId) with pdfUrl: \(pdfUrl)")
-                        self.medicalTestPdfUrls[medicalTestId] = pdfUrl
-                    } else {
-                        print("Failed to decode medical test document ID: \(document.documentID)")
+    func fetchMedicalTests(forPatientId patientId: String) async {
+        let today = Calendar.current.startOfDay(for: Date())
+
+        do {
+            let snapshot = try await db.collection("medicalTests")
+                .whereField("patientId", isEqualTo: patientId)
+                .getDocuments()
+
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+
+            var filteredTests: [TestResult] = []
+
+            for document in snapshot.documents {
+                do {
+                    let testResult = try document.data(as: TestResult.self)
+
+                    guard !testResult.pdfUrl.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                        print("⛔️ Skipped test ID \(testResult.id) - empty pdfUrl")
+                        continue
                     }
+
+                    guard let testDate = dateFormatter.date(from: testResult.date) else {
+                        print("⛔️ Skipped test ID \(testResult.id) - invalid date format: \(testResult.date)")
+                        continue
+                    }
+
+                    if testDate < today {
+                        filteredTests.append(testResult)
+                    } else {
+                        print("⛔️ Skipped test ID \(testResult.id) - future date: \(testResult.date)")
+                    }
+
+                } catch {
+                    print("❌ Failed to decode test document \(document.documentID): \(error.localizedDescription)")
                 }
-                
-                completion()
             }
+
+            // ✅ Ensure UI update happens on the main thread
+            DispatchQueue.main.async {
+                self.medicalTests = filteredTests
+                print("✅ Total valid medical tests: \(self.medicalTests.count)")
+            }
+
+        } catch {
+            print("❌ Error fetching medical tests: \(error.localizedDescription)")
+        }
     }
+
+
 }
