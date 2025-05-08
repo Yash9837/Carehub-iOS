@@ -25,6 +25,8 @@ class AppointmentViewModel: ObservableObject {
                     
                     print("Fetched documents: \(querySnapshot?.documents.count ?? 0)")
 
+                    let today = Calendar.current.startOfDay(for: Date())
+                    
                     self.recentPrescriptions = querySnapshot?.documents.compactMap { document in
                         print("Processing document with ID: \(document.documentID)")
                         if let apptId = document.data()["apptId"] as? String,
@@ -65,9 +67,26 @@ class AppointmentViewModel: ObservableObject {
                             print("Failed to decode appointment for document ID: \(document.documentID)")
                             return nil
                         }
+                    }.filter { appointment in
+                        guard let date = appointment.date,
+                              let prescriptionId = appointment.prescriptionId else {
+                            return false
+                        }
+                        return date < today && !prescriptionId.isEmpty
                     } ?? []
-                    print("Total prescriptions fetched: \(self.recentPrescriptions.count)")
+                    
+                    print("Total prescriptions after filtering: \(self.recentPrescriptions.count)")
                 }
+        }
+    }
+    
+    func presentPDFViewer(with url: URL) {
+        let pdfViewController = PDFViewController(url: url)
+        let navController = UINavigationController(rootViewController: pdfViewController)
+        
+        // Present modally
+        if let rootVC = UIApplication.shared.windows.first?.rootViewController {
+            rootVC.present(navController, animated: true)
         }
     }
     

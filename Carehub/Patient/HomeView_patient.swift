@@ -33,7 +33,7 @@ struct HomeView_patient: View {
     @State private var isInitialLoad = true
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 backgroundColor
                     .edgesIgnoringSafeArea(.all)
@@ -141,12 +141,14 @@ struct HomeView_patient: View {
                                 title: "Upcoming Appointments",
                                 hasContent: !upcomingSchedules.isEmpty
                             ) {
-                                NavigationLink(destination: AllAppointmentsView(
-                                    upcomingSchedules: $upcomingSchedules,
-                                    getDoctorName: getDoctorName,
-                                    getDoctorSpecialty: getDoctorSpecialty,
-                                    formatDate: formatDate
-                                )) {
+                                NavigationLink {
+                                    AllAppointmentsView(
+                                        upcomingSchedules: $upcomingSchedules,
+                                        getDoctorName: getDoctorName,
+                                        getDoctorSpecialty: getDoctorSpecialty,
+                                        formatDate: formatDate
+                                    )
+                                } label: {
                                     Text("See All")
                                         .font(FontSizeManager.font(for: 14, weight: .semibold))
                                         .foregroundColor(primaryColor)
@@ -192,11 +194,19 @@ struct HomeView_patient: View {
                                 title: "Recent Prescriptions & Reports",
                                 hasContent: !viewModel.recentPrescriptions.isEmpty
                             ) {
-                                NavigationLink(destination: AllPrescriptionsView(
-                                    prescriptions: viewModel.recentPrescriptions,
-                                    formatDate: formatDate,
-                                    viewModel: viewModel
-                                )) {
+                                NavigationLink {
+                                    AllPrescriptionsView(
+                                        patientId: patient.patientId,
+                                        viewModel: viewModel,
+                                        billViewModel: GenerateBillViewModel()
+                                    )
+                                    // Alternative initializer if preferred:
+                                    // AllPrescriptionsView(
+                                    //     prescriptions: viewModel.recentPrescriptions,
+                                    //     formatDate: formatDate,
+                                    //     viewModel: viewModel
+                                    // )
+                                } label: {
                                     Text("See All")
                                         .font(FontSizeManager.font(for: 14, weight: .semibold))
                                         .foregroundColor(primaryColor)
@@ -213,32 +223,16 @@ struct HomeView_patient: View {
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 16) {
                                         ForEach(viewModel.recentPrescriptions) { appointment in
-                                            NavigationLink(
-                                                destination: {
-                                                    if let medicalTestId = appointment.prescriptionId,
-                                                       let pdfUrlStr = viewModel.medicalTestPdfUrls[medicalTestId],
-                                                       let pdfUrl = URL(string: pdfUrlStr) {
-                                                        PDFKitView(url: pdfUrl)
-                                                    } else {
-                                                        VStack {
-                                                            Text("Unable to Load Medical Test Report")
-                                                                .font(FontSizeManager.font(for: 18, weight: .bold))
-                                                                .foregroundColor(.primary)
-                                                            Text("The document is not available.")
-                                                                .font(FontSizeManager.font(for: 16, weight: .regular))
-                                                                .foregroundColor(.secondary)
-                                                        }
-                                                    }
-                                                },
-                                                label: {
-                                                    ImprovedMedicalRecordCard(
-                                                        type: appointment.status,
-                                                        doctorName: "\(getDoctorName(for: appointment.docId))",
-                                                        date: formatDate(appointment.date),
-                                                        title: appointment.description
-                                                    )
-                                                }
-                                            )
+                                            NavigationLink {
+                                                prescriptionDestination(for: appointment)
+                                            } label: {
+                                                ImprovedMedicalRecordCard(
+                                                    type: appointment.status,
+                                                    doctorName: getDoctorName(for: appointment.docId),
+                                                    date: formatDate(appointment.date),
+                                                    title: appointment.description
+                                                )
+                                            }
                                         }
                                     }
                                     .padding(.vertical, 8)
@@ -247,18 +241,23 @@ struct HomeView_patient: View {
                             }
                         }
                         .onAppear {
+                            print("Fetching recent prescriptions for patientId: \(patient.patientId)")
                             viewModel.fetchRecentPrescriptions(forPatientId: patient.patientId)
+                            print("Recent prescriptions count: \(viewModel.recentPrescriptions.count)")
                         }
                         
+                        // Previously Visited Doctors Section
                         VStack(alignment: .leading, spacing: 16) {
                             sectionHeader(
                                 title: "Previously Visited Doctors",
                                 hasContent: !viewModel.recentPrescriptions.isEmpty
                             ) {
-                                NavigationLink(destination: AllVisitedDoctorsView(
-                                    recentPrescriptions: viewModel.recentPrescriptions,
-                                    formatDate: formatDate
-                                )) {
+                                NavigationLink {
+                                    AllVisitedDoctorsView(
+                                        recentPrescriptions: viewModel.recentPrescriptions,
+                                        formatDate: formatDate
+                                    )
+                                } label: {
                                     Text("See All")
                                         .font(FontSizeManager.font(for: 14, weight: .semibold))
                                         .foregroundColor(primaryColor)
@@ -276,7 +275,7 @@ struct HomeView_patient: View {
                                     HStack(spacing: 16) {
                                         ForEach(viewModel.recentPrescriptions) { appointment in
                                             ImprovedDoctorCard(
-                                                name: " \(getDoctorName(for: appointment.docId))",
+                                                name: getDoctorName(for: appointment.docId),
                                                 specialty: "General Medicine",
                                                 lastVisit: formatDate(appointment.date),
                                                 imageName: "defaultDoctorImage"
@@ -303,10 +302,11 @@ struct HomeView_patient: View {
                     }
                 }
                 if isInitialLoad {
-                                    isInitialLoad = false // Mark initial load as complete
-                                } else if isVoiceOverEnabled {
-                                    readHomeViewText() // Only read if not initial load and VoiceOver is enabled
-                                }
+                    isInitialLoad = false
+                } else if isVoiceOverEnabled {
+                    readHomeViewText()
+                }
+                print("Recent prescriptions count on appear: \(viewModel.recentPrescriptions.count)")
             }
             .onDisappear {
                 listener?.remove()
@@ -345,7 +345,53 @@ struct HomeView_patient: View {
             }
         }
     }
-
+    
+    private func prescriptionDestination(for appointment: Appointment) -> some View {
+        Group {
+            if let prescriptionURL = appointment.prescriptionId,
+               let imageUrl = URL(string: prescriptionURL) {
+                print("Navigating to image view with URL: \(imageUrl)")
+                AsyncImage(url: imageUrl) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                    case .failure:
+                        VStack {
+                            Text("Failed to Load Image")
+                                .font(FontSizeManager.font(for: 18, weight: .bold))
+                                .foregroundColor(.primary)
+                            Text("The image could not be retrieved.")
+                                .font(FontSizeManager.font(for: 16, weight: .regular))
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+                .navigationTitle("Prescription Image")
+                .navigationBarTitleDisplayMode(.inline)
+            } else {
+                print("Invalid or missing prescription URL for appointment: \(appointment.description)")
+                VStack {
+                    Text("Unable to Load Medical Test Report")
+                        .font(FontSizeManager.font(for: 18, weight: .bold))
+                        .foregroundColor(.primary)
+                    Text("The document is not available.")
+                        .font(FontSizeManager.font(for: 16, weight: .regular))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+    
     private func readHomeViewText() {
         var textToRead = " Welcome to CareHub. "
         if isLoading {
@@ -904,10 +950,9 @@ struct AllPrescriptionsView: View {
     private func prescriptionDestination(for appointment: Appointment) -> some View {
         Group {
             // Use prescriptionId to look up the pdfUrl from medicalTestPdfUrls
-            if let medicalTestId = appointment.prescriptionId,
-               let pdfUrlStr = viewModel.medicalTestPdfUrls[medicalTestId],
-               let pdfUrl = URL(string: pdfUrlStr) {
-                PDFKitView(url: pdfUrl)
+            if let prescriptionURL = appointment.prescriptionId,
+               let pdfUrl = URL(string: prescriptionURL) {
+                PDFKitViewPatient(url: pdfUrl)
             } else {
                 VStack {
                     Text("Unable to Load Medical Test Report")
