@@ -13,8 +13,22 @@ struct AdminDashboardView: View {
 
             ScrollView {
                 VStack(spacing: 20) {
-                    // Stats Overview
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    // Dashboard Label
+                    Text("Dashboard")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 10)
+                    
+                    // Stats Overview - 2 columns for 2x6 layout
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.flexible(), spacing: 10),
+                            GridItem(.flexible(), spacing: 10)
+                        ],
+                        spacing: 10
+                    ) {
                         ForEach(stats) { stat in
                             DashboardStatCard(stat: stat)
                         }
@@ -29,8 +43,8 @@ struct AdminDashboardView: View {
                 }
                 .padding(.top, 20)
             }
-            .scrollIndicators(.hidden) // Hides scroll bar for a cleaner look (optional)
-            .scrollContentBackground(.hidden) // <- Important: Hides internal ScrollView background
+            .scrollIndicators(.hidden)
+            .scrollContentBackground(.hidden)
         }
         .navigationTitle("Admin Dashboard")
         .navigationBarTitleDisplayMode(.large)
@@ -41,10 +55,12 @@ struct AdminDashboardView: View {
     
     private func loadStats() {
         stats = [
-            DashboardStat(title: "Total Staff", value: "\(staffManager.staffList.count)", icon: "person.3.fill", color: purpleColor),
+            DashboardStat(title: "Staff", value: "\(staffManager.staffList.count)", icon: "person.3.fill", color: purpleColor),
             DashboardStat(title: "Doctors", value: "\(staffManager.doctors.count)", icon: "stethoscope", color: purpleColor),
             DashboardStat(title: "Nurses", value: "\(staffManager.nurses.count)", icon: "cross.case.fill", color: purpleColor),
-            DashboardStat(title: "Lab Techs", value: "\(staffManager.labTechs.count)", icon: "testtube.2", color: purpleColor)
+            DashboardStat(title: "Lab Techs", value: "\(staffManager.labTechs.count)", icon: "testtube.2", color: purpleColor),
+            DashboardStat(title: "Accountants", value: "\(staffManager.accountants.count)", icon: "dollarsign.circle.fill", color: purpleColor),
+            DashboardStat(title: "Admins", value: "\(staffManager.admins.count)", icon: "key.fill", color: purpleColor)
         ]
     }
 }
@@ -72,13 +88,13 @@ struct DashboardStatCard: View {
                         .foregroundColor(stat.color)
                         .font(.system(size: 16))
                     Text(stat.title.uppercased())
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.gray)
                     Spacer()
                 }
                 
                 Text(stat.value)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.black)
             }
             .padding(12)
@@ -99,7 +115,7 @@ struct QuickActionsView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
             
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                 NavigationLink {
                     AddStaffView(staffManager: staffManager)
                 } label: {
@@ -110,18 +126,6 @@ struct QuickActionsView: View {
                     StaffListView(staffManager: staffManager)
                 } label: {
                     ActionButton2(title: "Manage Staff", icon: "person.3.sequence.fill", color: purpleColor)
-                }
-                
-                NavigationLink {
-                    AnalyticsView()
-                } label: {
-                    ActionButton2(title: "View Reports", icon: "chart.pie.fill", color: purpleColor)
-                }
-                
-                NavigationLink {
-                    AdminSettingsView()
-                } label: {
-                    ActionButton2(title: "Settings", icon: "gearshape.fill", color: purpleColor)
                 }
             }
             .padding(.horizontal, 16)
@@ -153,4 +157,3 @@ struct ActionButton2: View {
         .frame(maxWidth: .infinity, minHeight: 80)
     }
 }
-

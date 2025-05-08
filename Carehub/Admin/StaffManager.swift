@@ -12,6 +12,7 @@ class StaffManager: ObservableObject {
     var nurses: [Staff] { staffList.filter { $0.role == .nurse } }
     var labTechs: [Staff] { staffList.filter { $0.role == .labTechnician } }
     var admins: [Staff] { staffList.filter { $0.role == .admin } }
+    var accountants: [Staff] { staffList.filter { $0.role == .accountant } }
     
     private let db = Firestore.firestore()
     
